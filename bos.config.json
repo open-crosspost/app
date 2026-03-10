@@ -1,0 +1,17 @@
+{
+  "extends": "bos://every.near/everything.dev",
+  "account": "dev.everything.near",
+  "app": {
+    "ui": {
+      "name": "ui",
+      "development": "http://localhost:3002"
+    },
+    "api": {
+      "name": "api",
+      "development": "http://localhost:3014",
+      "variables": {},
+      "secrets": []
+    }
+  },
+  "testnet": "dev.allthethings.testnet"
+}

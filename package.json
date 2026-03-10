@@ -1,0 +1,74 @@
+{
+  "name": "monorepo",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "api",
+      "ui",
+      "host"
+    ],
+    "catalog": {
+      "react": "19.2.4",
+      "react-dom": "19.2.4",
+      "@tanstack/react-query": "5.90.20",
+      "@tanstack/react-router": "1.157.16",
+      "near-kit": "^0.12.0",
+      "@hot-labs/near-connect": "^0.11.0",
+      "drizzle-orm": "^0.45.1",
+      "drizzle-kit": "^0.31.8",
+      "better-auth": "^1.5.4",
+      "better-near-auth": "0.5.1",
+      "every-plugin": "0.8.8",
+      "typescript": "^5.9.3",
+      "vitest": "^4.0.17",
+      "@libsql/client": "0.17.0",
+      "@types/node": "^25.0.3",
+      "@types/react": "^19.2.7",
+      "@types/react-dom": "^19.2.3",
+      "effect": "^3.19.15",
+      "everything-dev": "0.3.3",
+      "@module-federation/enhanced": "0.22.1",
+      "@module-federation/node": "2.7.27",
+      "@module-federation/rsbuild-plugin": "0.22.1",
+      "@module-federation/runtime-core": "0.22.1"
+    }
+  },
+  "scripts": {
+    "init": "bun run db:migrate",
+    "dev": "bunx everything-dev dev",
+    "dev:ui": "bunx everything-dev dev --api=remote",
+    "dev:api": "bunx everything-dev dev --ui=remote",
+    "dev:proxy": "bunx everything-dev dev --proxy",
+    "build": "bunx everything-dev build",
+    "build:api": "bun run --cwd api build",
+    "build:ui": "bun run --cwd ui build",
+    "deploy": "DEPLOY=true NODE_ENV=production bun run build:ui && bun run build:api",
+    "typecheck": "bun run --cwd ui tsc --noEmit && bun run --cwd api tsc --noEmit",
+    "start": "NODE_ENV=production bunx everything-dev start --no-interactive",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "echo 'Packages versioned - skipping npm publish'",
+    "db:push": "bun run --cwd api drizzle-kit push",
+    "db:studio": "bun run --cwd api drizzle-kit studio",
+    "db:generate": "bun run --cwd api drizzle-kit generate",
+    "db:migrate": "bun run --cwd api drizzle-kit migrate",
+    "test": "bun run test:api && bun run test:e2e",
+    "test:api": "cd api && bun test tests/integration/ tests/unit/",
+    "test:integration": "cd api && bun test tests/integration/"
+  },
+  "packageManager": "bun@1.2.20",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8",
+    "@types/bun": "latest",
+    "dotenv": "^17.3.1",
+    "everything-dev": "0.3.3",
+    "tsx": "^4.21.0",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
