@@ -10,27 +10,36 @@ export class KvService extends Context.Tag("KvService")<
     listKeys: (
       owner: string,
       limit?: number,
-      offset?: number
-    ) => Effect.Effect<{
-      keys: Array<{ key: string; updatedAt: string }>;
-      total: number;
-      hasMore: boolean;
-    }, ORPCError<string, unknown>>;
+      offset?: number,
+    ) => Effect.Effect<
+      {
+        keys: Array<{ key: string; updatedAt: string }>;
+        total: number;
+        hasMore: boolean;
+      },
+      ORPCError<string, unknown>
+    >;
 
     getValue: (
       key: string,
-      owner: string
-    ) => Effect.Effect<{ key: string; value: string; updatedAt: string }, ORPCError<string, unknown>>;
+      owner: string,
+    ) => Effect.Effect<
+      { key: string; value: string; updatedAt: string },
+      ORPCError<string, unknown>
+    >;
 
     setValue: (
       key: string,
       value: string,
-      owner: string
-    ) => Effect.Effect<{ key: string; value: string; created: boolean }, ORPCError<string, unknown>>;
+      owner: string,
+    ) => Effect.Effect<
+      { key: string; value: string; created: boolean },
+      ORPCError<string, unknown>
+    >;
 
     deleteKey: (
       key: string,
-      owner: string
+      owner: string,
     ) => Effect.Effect<{ key: string; deleted: boolean }, ORPCError<string, unknown>>;
   }
 >() {}
@@ -44,10 +53,7 @@ export const KvServiceLive = Layer.effect(
       listKeys: (owner, limit = 20, offset = 0) =>
         Effect.gen(function* () {
           const [totalResult] = yield* Effect.promise(() =>
-            db
-              .select({ count: count() })
-              .from(kvStore)
-              .where(eq(kvStore.nearAccountId, owner))
+            db.select({ count: count() }).from(kvStore).where(eq(kvStore.nearAccountId, owner)),
           );
 
           const total = totalResult?.count ?? 0;
@@ -59,7 +65,7 @@ export const KvServiceLive = Layer.effect(
               .where(eq(kvStore.nearAccountId, owner))
               .orderBy(desc(kvStore.updatedAt))
               .limit(limit)
-              .offset(offset)
+              .offset(offset),
           );
 
           return {
@@ -75,19 +81,15 @@ export const KvServiceLive = Layer.effect(
       getValue: (key, owner) =>
         Effect.gen(function* () {
           const [record] = yield* Effect.promise(() =>
-            db.select().from(kvStore).where(eq(kvStore.key, key)).limit(1)
+            db.select().from(kvStore).where(eq(kvStore.key, key)).limit(1),
           );
 
           if (!record) {
-            return yield* Effect.fail(
-              new ORPCError("NOT_FOUND", { message: "Key not found" })
-            );
+            return yield* Effect.fail(new ORPCError("NOT_FOUND", { message: "Key not found" }));
           }
 
           if (record.nearAccountId !== owner) {
-            return yield* Effect.fail(
-              new ORPCError("FORBIDDEN", { message: "Access denied" })
-            );
+            return yield* Effect.fail(new ORPCError("FORBIDDEN", { message: "Access denied" }));
           }
 
           return {
@@ -101,22 +103,17 @@ export const KvServiceLive = Layer.effect(
         Effect.gen(function* () {
           const now = new Date();
           const [existing] = yield* Effect.promise(() =>
-            db.select().from(kvStore).where(eq(kvStore.key, key)).limit(1)
+            db.select().from(kvStore).where(eq(kvStore.key, key)).limit(1),
           );
 
           let created = false;
 
           if (existing) {
             if (existing.nearAccountId !== owner) {
-              return yield* Effect.fail(
-                new ORPCError("FORBIDDEN", { message: "Access denied" })
-              );
+              return yield* Effect.fail(new ORPCError("FORBIDDEN", { message: "Access denied" }));
             }
             yield* Effect.promise(() =>
-              db
-                .update(kvStore)
-                .set({ value, updatedAt: now })
-                .where(eq(kvStore.key, key))
+              db.update(kvStore).set({ value, updatedAt: now }).where(eq(kvStore.key, key)),
             );
           } else {
             yield* Effect.promise(() =>
@@ -126,7 +123,7 @@ export const KvServiceLive = Layer.effect(
                 nearAccountId: owner,
                 createdAt: now,
                 updatedAt: now,
-              })
+              }),
             );
             created = true;
           }
@@ -137,27 +134,21 @@ export const KvServiceLive = Layer.effect(
       deleteKey: (key, owner) =>
         Effect.gen(function* () {
           const [record] = yield* Effect.promise(() =>
-            db.select().from(kvStore).where(eq(kvStore.key, key)).limit(1)
+            db.select().from(kvStore).where(eq(kvStore.key, key)).limit(1),
           );
 
           if (!record) {
-            return yield* Effect.fail(
-              new ORPCError("NOT_FOUND", { message: "Key not found" })
-            );
+            return yield* Effect.fail(new ORPCError("NOT_FOUND", { message: "Key not found" }));
           }
 
           if (record.nearAccountId !== owner) {
-            return yield* Effect.fail(
-              new ORPCError("FORBIDDEN", { message: "Access denied" })
-            );
+            return yield* Effect.fail(new ORPCError("FORBIDDEN", { message: "Access denied" }));
           }
 
-          yield* Effect.promise(() =>
-            db.delete(kvStore).where(eq(kvStore.key, key))
-          );
+          yield* Effect.promise(() => db.delete(kvStore).where(eq(kvStore.key, key)));
 
           return { key, deleted: true };
         }),
     };
-  })
+  }),
 );

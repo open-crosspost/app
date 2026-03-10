@@ -1,6 +1,6 @@
 import { createPluginRuntime } from "every-plugin";
 import { Context, Effect, Layer } from "every-plugin/effect";
-import type { RuntimeConfig } from 'everything-dev/types';
+import type { RuntimeConfig } from "everything-dev/types";
 import { ConfigService } from "./config";
 import { PluginError } from "./errors";
 
@@ -29,7 +29,7 @@ function secretsFromEnv(keys: string[]): Record<string, string> {
 const unavailableResult = (
   pluginName: string | null,
   error: string | null,
-  errorDetails: string | null
+  errorDetails: string | null,
 ): PluginResult => ({
   runtime: null,
   api: null,
@@ -109,7 +109,7 @@ export const initializePlugins = Effect.gen(function* () {
     console.warn("[Plugins] Server will continue without plugin functionality");
 
     return Effect.succeed(unavailableResult(pluginName ?? null, errorMessage, errorStack ?? null));
-  })
+  }),
 );
 
 export class PluginsService extends Context.Tag("host/PluginsService")<
@@ -127,10 +127,10 @@ export class PluginsService extends Context.Tag("host/PluginsService")<
             console.log("[Plugins] Shutting down plugin runtime...");
             plugins.runtime.shutdown();
           }
-        })
+        }),
       );
 
       return plugins;
-    })
+    }),
   );
 }

@@ -1,9 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { AnyRoute } from "@tanstack/react-router";
-import {
-  createMemoryHistory,
-  createRouter as createTanStackRouter,
-} from "@tanstack/react-router";
+import { createMemoryHistory, createRouter as createTanStackRouter } from "@tanstack/react-router";
 import {
   createRequestHandler,
   RouterServer,
@@ -35,10 +32,8 @@ function getMetaKey(meta: HeadMeta): string {
   if ("title" in meta) return "title";
   if ("charSet" in meta) return "charSet";
   if ("name" in meta) return `name:${(meta as { name: string }).name}`;
-  if ("property" in meta)
-    return `property:${(meta as { property: string }).property}`;
-  if ("httpEquiv" in meta)
-    return `httpEquiv:${(meta as { httpEquiv: string }).httpEquiv}`;
+  if ("property" in meta) return `property:${(meta as { property: string }).property}`;
+  if ("httpEquiv" in meta) return `httpEquiv:${(meta as { httpEquiv: string }).httpEquiv}`;
   return JSON.stringify(meta);
 }
 
@@ -95,10 +90,7 @@ export async function getRouteHead(
           cause: "enter",
         } as Parameters<typeof loaderFn>[0]);
       } catch (error) {
-        console.warn(
-          `[getRouteHead] Loader failed for ${match.routeId}:`,
-          error,
-        );
+        console.warn(`[getRouteHead] Loader failed for ${match.routeId}:`, error);
       }
     }
 
@@ -146,9 +138,7 @@ export async function renderToStream(
     initialEntries: [url.pathname + url.search],
   });
 
-  let queryClientRef:
-    | typeof import("@tanstack/react-query").QueryClient.prototype
-    | null = null;
+  let queryClientRef: typeof import("@tanstack/react-query").QueryClient.prototype | null = null;
 
   const handler = createRequestHandler({
     request,

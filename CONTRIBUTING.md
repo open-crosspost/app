@@ -1,16 +1,16 @@
 # Contributing Guide
 
-Thank you for contributing to the NEAR Merch Store! 🎉
+Thank you for contributing to everything-dev! 🎉
 
 ## Quick Setup
 
 ```bash
 bun install              # Install dependencies
 bun db:migrate           # Run database migrations
-bun dev                  # Start all services
+bos dev --host remote    # Start development (typical workflow)
 ```
 
-Visit http://localhost:3000 to see the application.
+Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
 
 **Need more details?** See [README.md](./README.md) for architecture overview and [LLM.txt](./LLM.txt) for technical deep-dive.
 
@@ -18,9 +18,9 @@ Visit http://localhost:3000 to see the application.
 
 ### Making Changes
 
-- **UI Changes**: Edit `ui/src/` → hot reload automatically → deploy with `bun build:ui`
-- **API Changes**: Edit `api/src/` → hot reload automatically → deploy with `bun build:api`
-- **Host Changes**: Edit `host/src/` or `bos.config.json` → deploy with `bun build:host`
+- **UI Changes**: Edit `ui/src/` → hot reload automatically → deploy with `bun run build:ui`
+- **API Changes**: Edit `api/src/` → hot reload automatically → deploy with `bun run build:api`
+- **Host Changes**: Edit `host/src/` or `bos.config.json` → deploy with `bun run build:host`
 
 ### Environment Configuration
 
@@ -35,12 +35,109 @@ Secrets go in `.env` (see [.env.example](./.env.example) for required variables)
 
 ### Project Documentation
 
+- **[AGENTS.md](./AGENTS.md)** - Operational guide for AI agents
 - **[README.md](./README.md)** - Architecture, tech stack, and quick start
 - **[LLM.txt](./LLM.txt)** - Technical guide for LLMs and developers
 - **[api/README.md](./api/README.md)** - API plugin documentation
-- **[api/LLM.txt](./api/LLM.txt)** - Plugin development guide (every-plugin)
 - **[ui/README.md](./ui/README.md)** - Frontend documentation
 - **[host/README.md](./host/README.md)** - Server host documentation
+
+## Git Workflow
+
+### Branch Naming
+
+Create feature branches from `main`:
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b feature/amazing-feature
+```
+
+**Branch naming conventions:**
+- `feature/description` - New features
+- `fix/description` - Bug fixes
+- `docs/description` - Documentation changes
+- `refactor/description` - Code refactoring
+- `test/description` - Test additions/changes
+
+### Semantic Commits
+
+Use [Semantic Commits](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) for clear history:
+
+```bash
+# Format: <type>(<scope>): <subject>
+git commit -m "feat(api): add user profile endpoint"
+git commit -m "fix(ui): resolve routing issue on mobile"
+git commit -m "docs(readme): update setup instructions"
+git commit -m "refactor(api): simplify auth middleware"
+git commit -m "test(ui): add coverage for login flow"
+```
+
+**Types:**
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation only
+- `style:` - Code style (formatting, no logic change)
+- `refactor:` - Code refactoring
+- `perf:` - Performance improvements
+- `test:` - Tests
+- `chore:` - Build/config/tooling changes
+
+### Changesets
+
+We use [Changesets](https://github.com/changesets/changesets) for versioning.
+
+**When to add a changeset:**
+- Any user-facing change (features, fixes, deprecations)
+- Breaking changes
+- Skip for: docs-only changes, internal refactors, test-only changes
+
+**Create a changeset:**
+```bash
+bun run changeset
+# Follow prompts to select packages and write description
+```
+
+**Changeset file format:**
+```markdown
+---
+"api": minor
+"ui": patch
+---
+
+Added new endpoint for user profiles
+```
+
+**The release workflow:**
+1. Changesets action creates a "Version Packages" PR on merge to main
+2. On merge of that PR, GitHub releases are created for api/ui
+3. Deployments happen automatically via CI
+
+### Pull Request Process
+
+1. **Before creating PR:**
+   ```bash
+   bun test        # Run all tests
+   bun typecheck   # Type check all packages
+   bun lint        # Run linting
+   ```
+
+2. **Create PR from your fork:**
+   - Push branch to your fork: `git push origin feature/amazing-feature`
+   - Open PR against `main` branch of upstream repo
+   - Use descriptive title following semantic format
+   - Fill out PR template if provided
+
+3. **PR requirements:**
+   - All tests must pass
+   - Type checking must pass
+   - Linting must pass
+   - Changeset added (if applicable)
+
+4. **After merge:**
+   - Delete your branch
+   - Changesets action will handle versioning
 
 ## Contributing Code
 
@@ -49,9 +146,10 @@ Secrets go in `.env` (see [.env.example](./.env.example) for required variables)
 3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
 4. **Make** your changes
 5. **Test** thoroughly: `bun test` and `bun typecheck`
-6. **Commit** using [Semantic Commits](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716)
-7. **Push** to your fork: `git push origin feature/amazing-feature`
-8. **Open** a Pull Request to the main repository
+6. **Add changeset** if needed: `bun run changeset`
+7. **Commit** using [Semantic Commits](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716)
+8. **Push** to your fork: `git push origin feature/amazing-feature`
+9. **Open** a Pull Request to the main repository
 
 ### Code Style
 
@@ -59,10 +157,22 @@ Secrets go in `.env` (see [.env.example](./.env.example) for required variables)
 - Ensure type safety (no `any` types unless absolutely necessary)
 - Write descriptive commit messages
 - Add tests for new features
+- Use semantic Tailwind classes (see LLM.txt for style guide)
+- No code comments in implementation (code should be self-documenting)
+
+### Linting
+
+We use [Biome](https://biomejs.dev/) for linting and formatting:
+
+```bash
+bun lint        # Check linting
+bun lint:fix    # Fix auto-fixable issues
+bun format      # Format code
+```
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/NEARBuilders/near-merch-store/issues) with:
+Use [GitHub Issues](https://github.com/NEARBuilders/everything-dev/issues) with:
 
 - **Clear description** of the problem
 - **Steps to reproduce** the issue
@@ -71,6 +181,7 @@ Use [GitHub Issues](https://github.com/NEARBuilders/near-merch-store/issues) wit
 
 ## Getting Help
 
+- Check [AGENTS.md](./AGENTS.md) for agent operational guidance
 - Check the [README](./README.md) for architecture and setup
 - Read the [LLM.txt](./LLM.txt) for technical details
 - Review workspace READMEs for specific documentation

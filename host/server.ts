@@ -1,6 +1,6 @@
 import "dotenv/config";
-import type { RuntimeConfig } from "./src/services/config";
 import { runServerBlocking } from "./src/program";
+import type { RuntimeConfig } from "./src/services/config";
 
 const configJson = process.env.BOS_RUNTIME_CONFIG;
 

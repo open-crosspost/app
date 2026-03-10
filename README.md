@@ -15,7 +15,7 @@ Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
 
 ## CLI Commands
 
-The `bos` CLI manages all workflows. See [.claude/skills/bos/SKILL.md](.claude/skills/bos/SKILL.md) for the full skill reference.
+The `bos` CLI manages all workflows. See [.agent/skills/bos/SKILL.md](.agent/skills/bos/SKILL.md) for the full skill reference.
 
 ### Development
 
@@ -49,14 +49,63 @@ bos status                  # Check remote health
 bos clean                   # Clean build artifacts
 ```
 
+## Development Workflow
+
+### Making Changes
+
+- **UI Changes**: Edit `ui/src/` → hot reload automatically → deploy with `bun build:ui`
+- **API Changes**: Edit `api/src/` → hot reload automatically → deploy with `bun build:api`
+- **Host Changes**: Edit `host/src/` or `bos.config.json` → deploy with `bun build:host`
+
+### Before Committing
+
+Always run these commands before committing:
+
+```bash
+bun test        # Run all tests
+bun typecheck   # Type check all packages
+bun lint        # Run linting (see lint setup below)
+```
+
+### Changesets
+
+We use [Changesets](https://github.com/changesets/changesets) for versioning:
+
+**When to add a changeset:**
+- Any user-facing change (features, fixes, deprecations)
+- Breaking changes
+- Skip for: docs-only changes, internal refactors, test-only changes
+
+**Create a changeset:**
+```bash
+bun run changeset
+# Follow prompts to select packages and describe changes
+```
+
+The release workflow (`.github/workflows/release.yml`) handles versioning and GitHub releases automatically on merge to main.
+
+### Git Workflow
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines including:
+- Branch naming conventions
+- Semantic commit format
+- Pull request process
+
 ## Documentation
 
-- **[.claude/skills/bos/SKILL.md](.claude/skills/bos/SKILL.md)** - BOS CLI skill (commands, workflows)
-- **[LLM.txt](./LLM.txt)** - Technical guide for LLMs and developers
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
+- **[AGENTS.md](./AGENTS.md)** - Quick operational guide for AI agents
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines and git workflow
+- **[LLM.txt](./LLM.txt)** - Deep technical reference for implementation
 - **[API README](./api/README.md)** - API plugin documentation
 - **[UI README](./ui/README.md)** - Frontend documentation
 - **[Host README](./host/README.md)** - Server host documentation
+
+**Documentation Purpose:**
+- `README.md` (this file) - Human quick start and overview
+- `AGENTS.md` - Agent operational shortcuts
+- `CONTRIBUTING.md` - How to contribute (branch, commit, PR workflow)
+- `LLM.txt` - Technical deep-dive for implementation details
+- Package READMEs (api/, ui/, host/) - Package-specific details
 
 ## Architecture
 
@@ -132,7 +181,24 @@ All runtime configuration lives in `bos.config.json`:
 }
 ```
 
-See [.claude/skills/bos/docs/types.md](.claude/skills/bos/docs/types.md) for the complete schema.
+See [.agent/skills/bos/docs/types.md](.agent/skills/bos/docs/types.md) for the complete schema.
+
+## Lint Setup
+
+This project uses [Biome](https://biomejs.dev/) for linting and formatting:
+
+```bash
+# Check linting
+bun lint
+
+# Fix auto-fixable issues
+bun lint:fix
+
+# Format code
+bun format
+```
+
+Biome is configured in `biome.json` at the project root. Generated files (like `routeTree.gen.ts`) are automatically excluded.
 
 ## Tech Stack
 

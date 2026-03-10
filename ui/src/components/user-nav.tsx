@@ -24,9 +24,7 @@ export function UserNav() {
   if (accountId) {
     return (
       <>
-        <span className="text-xs text-muted-foreground font-mono">
-          {accountId}
-        </span>
+        <span className="text-xs text-muted-foreground font-mono">{accountId}</span>
         <button
           type="button"
           onClick={handleSignOut}

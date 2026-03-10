@@ -5,9 +5,7 @@ import { PluginsService } from "../services/plugins";
 
 export const DatabaseLive = DatabaseService.Default;
 
-export const AuthLive = AuthService.Default.pipe(
-  Layer.provide(DatabaseLive)
-);
+export const AuthLive = AuthService.Default.pipe(Layer.provide(DatabaseLive));
 
 export const PluginsLive = PluginsService.Live;
 

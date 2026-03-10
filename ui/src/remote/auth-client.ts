@@ -1,4 +1,11 @@
-import { adminClient } from "better-auth/client/plugins";
+import { apiKeyClient } from "@better-auth/api-key/client";
+import { passkeyClient } from "@better-auth/passkey/client";
+import {
+  adminClient,
+  anonymousClient,
+  organizationClient,
+  phoneNumberClient,
+} from "better-auth/client/plugins";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
 import { siwnClient } from "better-near-auth/client";
 import { getAccount, getHostUrl } from "./runtime";
@@ -9,10 +16,15 @@ function createAuthClient() {
     fetchOptions: { credentials: "include" },
     plugins: [
       siwnClient({
-        domain: getAccount(),
+        recipient: getAccount(),
         networkId: "mainnet",
       }),
       adminClient(),
+      anonymousClient(),
+      phoneNumberClient(),
+      passkeyClient(),
+      organizationClient(),
+      apiKeyClient(),
     ],
   });
 }

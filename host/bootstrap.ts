@@ -20,7 +20,7 @@ function getRemoteUrl(): string {
 
 async function bootstrap() {
   const remoteUrl = getRemoteUrl();
-  
+
   console.log("🚀 Bootstrapping host from remote...");
   console.log(`   Remote URL: ${remoteUrl}`);
 
@@ -53,10 +53,12 @@ async function bootstrap() {
 
     console.log(`   Loading: ${remoteEntryUrl}`);
 
-    mf.registerRemotes([{
-      name: "host",
-      entry: remoteEntryUrl,
-    }]);
+    mf.registerRemotes([
+      {
+        name: "host",
+        entry: remoteEntryUrl,
+      },
+    ]);
 
     console.log("   Loading host/Server module...");
     const hostModule = await mf.loadRemote<{ runServer: () => ServerHandle }>("host/Server");
@@ -67,7 +69,7 @@ async function bootstrap() {
 
     console.log("   Starting server...");
     serverHandle = hostModule.runServer();
-    
+
     await serverHandle.ready;
     console.log("✅ Server ready");
 

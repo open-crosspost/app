@@ -139,11 +139,9 @@ export const AppStateView: FC<AppStateViewProps> = ({
             </h1>
             <p style={messageStyle}>
               {kind === "error" &&
-                (submessage ||
-                  "The application encountered an unexpected error.")}
+                (submessage || "The application encountered an unexpected error.")}
               {kind === "notFound" &&
-                (submessage ||
-                  "The page you're looking for doesn't exist or has been moved.")}
+                (submessage || "The page you're looking for doesn't exist or has been moved.")}
             </p>
           </>
         )}
@@ -211,7 +209,7 @@ export const Loading: FC = () => (
   />
 );
 
-// biome-ignore lint/suspicious/noShadowRestrictedNames: <explanation>
+// biome-ignore lint/suspicious/noShadowRestrictedNames: Error is a built-in global, but this is an intentional component name
 export const Error: FC<{
   message?: string;
   submessage?: string;
@@ -230,9 +228,7 @@ export const Error: FC<{
 
     {errorDetails && (
       <details style={detailsStyle}>
-        <summary
-          style={{ cursor: "pointer", fontWeight: 500, marginBottom: "0.5rem" }}
-        >
+        <summary style={{ cursor: "pointer", fontWeight: 500, marginBottom: "0.5rem" }}>
           Technical Details
         </summary>
         <pre
@@ -273,10 +269,7 @@ interface ErrorBoundaryState {
   retryCount: number;
 }
 
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -317,9 +310,7 @@ export class ErrorBoundary extends Component<
       return (
         <div style={pageStyle}>
           <Error
-            message={
-              isNetworkError ? "Connection Error" : "Something went wrong"
-            }
+            message={isNetworkError ? "Connection Error" : "Something went wrong"}
             submessage={
               isNetworkError
                 ? "Unable to load the remote application. Please check your connection and try again."

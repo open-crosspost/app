@@ -2,7 +2,7 @@
 /// <reference types="@proj-airi/unplugin-drizzle-orm-migrations/types" />
 
 interface ImportMetaEnv {
-  readonly MODE: 'development' | 'production';
+  readonly MODE: "development" | "production";
 }
 
 interface ImportMeta {

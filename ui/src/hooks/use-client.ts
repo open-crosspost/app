@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from "react";
 
 const emptySubscribe = () => () => {};
 
@@ -6,28 +6,24 @@ export function useIsClient(): boolean {
   return useSyncExternalStore(
     emptySubscribe,
     () => true,
-    () => false
+    () => false,
   );
 }
 
 export function useClientValue<T>(clientValue: () => T, serverValue: T): T {
-  return useSyncExternalStore(
-    emptySubscribe,
-    clientValue,
-    () => serverValue
-  );
+  return useSyncExternalStore(emptySubscribe, clientValue, () => serverValue);
 }
 
 export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     emptySubscribe,
     () => window.matchMedia(query).matches,
-    () => false
+    () => false,
   );
 }
 
 export function usePrefersDarkMode(): boolean {
-  return useMediaQuery('(prefers-color-scheme: dark)');
+  return useMediaQuery("(prefers-color-scheme: dark)");
 }
 
 export function useLocalStorage<T>(key: string, fallback: T): T {
@@ -42,6 +38,6 @@ export function useLocalStorage<T>(key: string, fallback: T): T {
         return stored as T;
       }
     },
-    () => fallback
+    () => fallback,
   );
 }

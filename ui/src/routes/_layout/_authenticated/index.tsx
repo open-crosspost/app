@@ -15,7 +15,10 @@ export const Route = createFileRoute("/_layout/_authenticated/")({
       { title: "Dashboard | demo.everything" },
       { name: "description", content: "Manage your key-value store and test API endpoints." },
       { property: "og:title", content: "Dashboard | demo.everything" },
-      { property: "og:description", content: "Manage your key-value store and test API endpoints." },
+      {
+        property: "og:description",
+        content: "Manage your key-value store and test API endpoints.",
+      },
     ],
   }),
   component: Dashboard,
@@ -68,16 +71,12 @@ function Dashboard() {
   });
 
   const isLoading =
-    protectedMutation.isPending ||
-    setValueMutation.isPending ||
-    getValueMutation.isPending;
+    protectedMutation.isPending || setValueMutation.isPending || getValueMutation.isPending;
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between pb-4 border-b border-border/50">
-        <span className="text-xs text-muted-foreground font-mono">
-          {accountId}
-        </span>
+        <span className="text-xs text-muted-foreground font-mono">{accountId}</span>
         <div className="flex gap-4">
           <Link
             to="/keys"
@@ -95,74 +94,70 @@ function Dashboard() {
       </div>
 
       <div className="space-y-6">
-          <div className="space-y-3">
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => protectedMutation.mutate()}
+            disabled={isLoading}
+            className="w-full px-5 py-3 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            {protectedMutation.isPending ? "calling..." : "call protected endpoint"}
+          </button>
+
+          {protectedData && (
+            <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
+              <pre className="text-xs font-mono text-muted-foreground overflow-auto">
+                {JSON.stringify(protectedData, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-border/50">
+          <input
+            type="text"
+            value={kvKey}
+            onChange={(e) => setKvKey(e.target.value)}
+            className="w-full px-4 py-2.5 text-sm font-mono bg-muted/20 border border-border focus:border-ring rounded-lg outline-none transition-colors"
+            placeholder="key"
+          />
+
+          <input
+            type="text"
+            value={kvValue}
+            onChange={(e) => setKvValue(e.target.value)}
+            className="w-full px-4 py-2.5 text-sm font-mono bg-muted/20 border border-border focus:border-ring rounded-lg outline-none transition-colors"
+            placeholder="value"
+          />
+
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => protectedMutation.mutate()}
-              disabled={isLoading}
-              className="w-full px-5 py-3 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-left"
+              onClick={() => setValueMutation.mutate({ key: kvKey, value: kvValue })}
+              disabled={isLoading || !kvKey || !kvValue}
+              className="flex-1 px-4 py-2.5 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {protectedMutation.isPending
-                ? "calling..."
-                : "call protected endpoint"}
+              {setValueMutation.isPending ? "setting..." : "set"}
             </button>
-
-            {protectedData && (
-              <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
-                <pre className="text-xs font-mono text-muted-foreground overflow-auto">
-                  {JSON.stringify(protectedData, null, 2)}
-                </pre>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => getValueMutation.mutate({ key: kvKey })}
+              disabled={isLoading || !kvKey}
+              className="flex-1 px-4 py-2.5 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {getValueMutation.isPending ? "getting..." : "get"}
+            </button>
           </div>
 
-          <div className="space-y-3 pt-4 border-t border-border/50">
-            <input
-              type="text"
-              value={kvKey}
-              onChange={(e) => setKvKey(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm font-mono bg-muted/20 border border-border focus:border-ring rounded-lg outline-none transition-colors"
-              placeholder="key"
-            />
-
-            <input
-              type="text"
-              value={kvValue}
-              onChange={(e) => setKvValue(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm font-mono bg-muted/20 border border-border focus:border-ring rounded-lg outline-none transition-colors"
-              placeholder="value"
-            />
-
-            <div className="flex gap-2">
-              <button
-              type="button"
-                onClick={() =>
-                  setValueMutation.mutate({ key: kvKey, value: kvValue })
-                }
-                disabled={isLoading || !kvKey || !kvValue}
-                className="flex-1 px-4 py-2.5 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {setValueMutation.isPending ? "setting..." : "set"}
-              </button>
-              <button
-              type="button"
-                onClick={() => getValueMutation.mutate({ key: kvKey })}
-                disabled={isLoading || !kvKey}
-                className="flex-1 px-4 py-2.5 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {getValueMutation.isPending ? "getting..." : "get"}
-              </button>
+          {kvResult && (
+            <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
+              <pre className="text-xs font-mono text-muted-foreground overflow-auto">
+                {JSON.stringify(kvResult, null, 2)}
+              </pre>
             </div>
-
-            {kvResult && (
-              <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
-                <pre className="text-xs font-mono text-muted-foreground overflow-auto">
-                  {JSON.stringify(kvResult, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
+          )}
         </div>
+      </div>
     </div>
   );
 }

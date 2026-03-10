@@ -23,7 +23,7 @@ declare global {
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: () => { },
+    onError: () => {},
   }),
   defaultOptions: {
     queries: {
@@ -65,8 +65,7 @@ function createApiLink() {
           ) {
             toast.error("Unable to connect to API", {
               id: "api-connection-error",
-              description:
-                "The API is currently unavailable. Please try again later.",
+              description: "The API is currently unavailable. Please try again later.",
             });
           }
         }

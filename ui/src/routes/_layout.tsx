@@ -13,7 +13,9 @@ function Layout() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-end gap-4">
             <ThemeToggle />
-            <ClientOnly fallback={<span className="text-xs text-muted-foreground font-mono">...</span>}>
+            <ClientOnly
+              fallback={<span className="text-xs text-muted-foreground font-mono">...</span>}
+            >
               <UserNav />
             </ClientOnly>
           </div>

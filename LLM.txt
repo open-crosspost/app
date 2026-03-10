@@ -280,32 +280,113 @@ rounded-xl   // calc(var(--radius) + 4px)
 
 ### Authentication: Better-Auth + better-near-auth
 
-The project uses **Better-Auth** with the **better-near-auth** plugin for NEAR Protocol authentication.
+The project uses **Better-Auth** with multiple authentication methods:
+1. **better-near-auth** plugin for NEAR Protocol authentication (SIWN - Sign In With NEAR)
+2. **Email/Password** with verification
+3. **Anonymous** authentication for guest users
 
-**Host Setup:**
+**Host Setup (host/src/services/auth.ts):**
 ```typescript
-// host/src/lib/auth.ts
 import { betterAuth } from "better-auth";
-import { nearAuth } from "better-near-auth";
+import { admin, anonymous } from "better-auth/plugins";
+import { siwn } from "better-near-auth";
 
 export const auth = betterAuth({
-  database: /* drizzle adapter */,
+  database: drizzleAdapter(db, { provider: "sqlite", schema }),
   plugins: [
-    nearAuth({
-      network: 'mainnet',
-    })
-  ]
+    siwn({ recipient: "your-account.near" }),
+    admin({ defaultRole: "user", adminRoles: ["admin"] }),
+    anonymous({ 
+      emailDomainName: "your-account.near",
+      onLinkAccount: async ({ anonymousUser, newUser }) => {
+        // Migrate anonymous user data to new user
+      }
+    }),
+  ],
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      void sendEmail({ to: user.email, subject: "Reset your password", text: `Click: ${url}` });
+    },
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      void sendEmail({ to: user.email, subject: "Verify your email", text: `Click: ${url}` });
+    },
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["siwn", "email-password"],
+      allowDifferentEmails: true,
+    },
+  },
 });
 ```
 
-**Client Setup:**
+**Client Setup (ui/src/remote/auth-client.ts):**
 ```typescript
-// ui/src/lib/auth-client.ts
+import { adminClient, anonymousClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { nearAuthClient } from "better-near-auth/client";
+import { siwnClient } from "better-near-auth/client";
 
 export const authClient = createAuthClient({
-  plugins: [nearAuthClient()]
+  plugins: [
+    siwnClient({ recipient: "your-account.near", networkId: "mainnet" }),
+    adminClient(),
+    anonymousClient(),
+  ],
+});
+```
+
+### Authentication Features
+
+#### 1. NEAR Sign In (SIWN)
+Single-step authentication with automatic wallet capability detection:
+```typescript
+await authClient.signIn.near({
+  onSuccess: () => navigate({ to: "/" }),
+  onError: (error) => {
+    if (error.code === "UNAUTHORIZED_NONCE_REPLAY") {
+      toast.error("Sign-in already used");
+    }
+  },
+});
+```
+
+#### 2. Email/Password with Verification
+```typescript
+// Sign up with email
+await authClient.signUp.email({
+  email: "user@example.com",
+  password: "password123",
+  name: "User Name",
+});
+
+// Email automatically verified via sendOnSignUp: true
+// Users can also request manual verification:
+await authClient.sendVerificationEmail({ email: "user@example.com" });
+```
+
+#### 3. Anonymous Authentication
+```typescript
+// Create anonymous user
+const { data: user } = await authClient.signIn.anonymous();
+
+// Link anonymous account to real account later
+await authClient.signIn.email({ email: "user@example.com", password: "password123" });
+// onLinkAccount callback automatically migrates data
+```
+
+#### 4. Password Reset
+```typescript
+await authClient.forgetPassword({
+  email: "user@example.com",
+  redirectTo: "/reset-password",
 });
 ```
 
@@ -402,6 +483,96 @@ The host reads `NODE_ENV` and loads URLs from `bos.config.json`:
 - `development` → `http://localhost:3002`, `http://localhost:3014`
 - `production` → CDN URLs
 
+### Development Commands with bos CLI
+
+The `bos` CLI provides the primary development workflow:
+
+**Typical Development:**
+```bash
+bos dev --host remote   # Remote host, local UI + API
+```
+
+This is the standard workflow because:
+- The host is already deployed and running remotely
+- You only need to work on UI and/or API locally
+- Hot reload works for local packages
+- Production-like environment
+
+**Isolating Work:**
+```bash
+bos dev --api remote    # Work on UI only (API is remote)
+bos dev --ui remote     # Work on API only (UI is remote)
+bos dev                 # Full local (rarely needed, initial setup only)
+```
+
+**Production Preview:**
+```bash
+bos start --no-interactive   # Run with all production modules
+```
+
+### How Host, UI, and API Relate
+
+```
+Development Mode (bos dev --host remote):
+┌─────────────────────────────────────────┐
+│  Host (Remote)                          │
+│  - Running on production/staging URL   │
+│  - Loads UI from localhost:3002          │
+│  - Loads API from localhost:3014         │
+└─────────────────────────────────────────┘
+            ↓                    ↓
+    ┌──────────────┐    ┌──────────────┐
+    │ UI (Local)   │    │ API (Local)  │
+    │ :3002        │    │ :3014        │
+    └──────────────┘    └──────────────┘
+```
+
+**Key Points:**
+1. **Host** orchestrates everything - serves the HTML, loads UI via Module Federation, merges API routes
+2. **UI** is a Module Federation remote - host dynamically loads `remoteEntry.js`
+3. **API** is an every-plugin - host loads plugin and merges its router
+4. During dev with `--host remote`, host URLs come from `bos.config.json` production URLs
+5. Local UI/API URLs are injected at runtime
+
+### Debugging Development Issues
+
+**Process Logs:**
+```bash
+# Check running processes
+bos ps
+
+# View logs
+ls .bos/logs/           # Available log files
+cat .bos/logs/api.log   # API process logs
+cat .bos/logs/ui.log    # UI process logs
+```
+
+**API Not Responding:**
+1. Check `bos ps` - is API process running?
+2. Check `.bos/logs/api.log` - any startup errors?
+3. Check `bos status` - are remotes healthy?
+4. Verify `bos.config.json` - are URLs correct?
+5. Test directly: `curl http://localhost:3014/health`
+
+**UI Not Loading:**
+1. Check `bos ps` - is UI process running?
+2. Check browser console for Module Federation errors
+3. Check `bos.config.json` - is `app.ui.development` URL correct?
+4. Clear browser cache and hard reload
+5. Verify `remoteEntry.js` is accessible at the URL
+
+**Type Errors After API Changes:**
+1. Ensure `api/src/contract.ts` is updated
+2. Run `bun typecheck` in both ui/ and api/
+3. Check that UI imports match contract exports
+4. Restart dev server if needed
+
+**Module Federation Errors:**
+- Clear browser cache (Ctrl+Shift+R / Cmd+Shift+R)
+- Verify shared dependency versions match in all package.json files
+- Check browser console for specific MF error messages
+- Ensure `bos.config.json` URLs are accessible from browser
+
 ### Deployment
 
 **Deploy UI:**
@@ -432,6 +603,63 @@ bun build
 ```
 
 **Key Point:** UI and API are **independently deployable** without rebuilding the host!
+
+## Changesets & Release Workflow
+
+We use [Changesets](https://github.com/changesets/changesets) for versioning and releases.
+
+### When to Add a Changeset
+
+**Add a changeset for:**
+- New features
+- Bug fixes
+- Deprecations
+- Breaking changes
+
+**Skip changeset for:**
+- Documentation-only changes
+- Internal refactors
+- Test-only changes
+- CI/CD changes
+
+### Creating Changesets
+
+```bash
+# Interactive - select packages and write description
+bun run changeset
+
+# This creates a .changeset/*.md file describing the change
+```
+
+### Changeset File Format
+
+```markdown
+---
+"api": minor
+"ui": patch
+---
+
+Added new endpoint for user profiles
+```
+
+### Release Process
+
+The release workflow (`.github/workflows/release.yml`) runs automatically on merge to main:
+
+1. **Version PR Creation:**
+   - Changesets action creates/updates a "Version Packages" PR
+   - This PR bumps versions and updates CHANGELOG.md files
+
+2. **On Merge of Version PR:**
+   - Publishes GitHub releases for `api` and `ui` packages
+   - Runs `bun run deploy` to build and deploy to Zephyr Cloud
+   - Commits updated `bos.config.json` with new production URLs
+
+**Local Release Commands (rarely needed):**
+```bash
+bun run version   # Bump versions based on changesets
+bun run release   # Create releases (CI handles this)
+```
 
 ## Type Safety
 
@@ -480,6 +708,47 @@ bun test:ui       # UI only
 
 **Integration Tests:**
 See `api/tests/` for plugin testing patterns.
+
+**Running Tests:**
+```bash
+# All tests
+bun test
+
+# API integration tests only
+bun run test:integration
+
+# API unit tests only
+bun run test:api
+
+# With coverage
+bun run --cwd api coverage
+```
+
+## Linting
+
+This project uses [Biome](https://biomejs.dev/) for linting and formatting:
+
+```bash
+# Check linting
+bun lint
+
+# Fix auto-fixable issues
+bun lint:fix
+
+# Format code
+bun format
+
+# Check formatting without writing
+bun format:check
+```
+
+**Configuration:** `biome.json` at project root
+
+**Ignored Files:**
+- `**/node_modules/**`
+- `**/dist/**`
+- `**/*.gen.ts` (generated files like routeTree.gen.ts)
+- `**/coverage/**`
 
 ## Common Patterns
 
@@ -580,10 +849,11 @@ type Environment = 'development' | 'production' | 'staging';
 
 ## Related Documentation
 
+- **AGENTS.md**: [./AGENTS.md](./AGENTS.md) - Quick operational guide for agents
+- **CONTRIBUTING.md**: [./CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
 - **every-plugin Guide**: https://github.com/near-everything/every-plugin/blob/main/plugins/_template/LLM.txt
 - **near-kit Full Documentation**: https://kit.near.tools/llms-full.txt
 - **better-near-auth Guide**: https://github.com/elliotBraem/better-near-auth/blob/main/LLM.txt
-- **Contributing Guide**: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Troubleshooting
 
@@ -606,5 +876,10 @@ type Environment = 'development' | 'production' | 'staging';
 - Ensure `bos.config.json` is in host root
 - Check file is accessible at runtime (not in .gitignore)
 - Verify NODE_ENV matches a key in config
+
+**Lint Errors:**
+- Run `bun lint:fix` to auto-fix issues
+- Check `biome.json` for configuration
+- Exclude generated files if needed
 
 For more help, see [CONTRIBUTING.md](./CONTRIBUTING.md) or open an issue.

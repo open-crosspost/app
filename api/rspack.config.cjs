@@ -4,7 +4,7 @@ const { EveryPluginDevServer } = require("every-plugin/build/rspack");
 const { withZephyr } = require("zephyr-rspack-plugin");
 const pkg = require("./package.json");
 
-const shouldDeploy = process.env.DEPLOY === 'true';
+const shouldDeploy = process.env.DEPLOY === "true";
 
 function updateHostConfig(name, url) {
   try {
@@ -17,7 +17,7 @@ function updateHostConfig(name, url) {
     }
 
     config.app.api.production = url;
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     console.log(`   ✅ Updated bos.config.json: app.api.production`);
   } catch (err) {
     console.error("   ❌ Failed to update bos.config.json:", err.message);
@@ -25,14 +25,12 @@ function updateHostConfig(name, url) {
 }
 
 const baseConfig = {
-  externals: [
-    /^@libsql\/.*/, 
-  ],
+  externals: [/^@libsql\/.*/],
   plugins: [new EveryPluginDevServer()],
   infrastructureLogging: {
-    level: 'error',
+    level: "error",
   },
-  stats: 'errors-warnings',
+  stats: "errors-warnings",
 };
 
 module.exports = shouldDeploy

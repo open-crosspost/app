@@ -296,4 +296,5 @@ fabric.properties
 
 .turbo
 .bos
-.wrangler
+# CSS files (Tailwind - handled by build tools)
+*.css

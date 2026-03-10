@@ -1,12 +1,6 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -18,10 +12,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -32,7 +23,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error("Error caught by boundary:", error, errorInfo);
   }
 
   render() {
@@ -46,18 +37,13 @@ export class ErrorBoundary extends React.Component<
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Something went wrong</CardTitle>
-              <CardDescription>
-                We're having trouble loading the application
-              </CardDescription>
+              <CardDescription>We're having trouble loading the application</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {this.state.error?.message || 'An unexpected error occurred'}
+                {this.state.error?.message || "An unexpected error occurred"}
               </p>
-              <Button
-                onClick={() => window.location.reload()}
-                className="w-full"
-              >
+              <Button onClick={() => window.location.reload()} className="w-full">
                 Reload Page
               </Button>
             </CardContent>
@@ -78,19 +64,13 @@ export function ApiErrorBoundary({ children }: { children: React.ReactNode }) {
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Connection Error</CardTitle>
-              <CardDescription>
-                Unable to connect to the API server
-              </CardDescription>
+              <CardDescription>Unable to connect to the API server</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                The application is running in offline mode. Some features may be
-                unavailable.
+                The application is running in offline mode. Some features may be unavailable.
               </p>
-              <Button
-                onClick={() => window.location.reload()}
-                className="w-full"
-              >
+              <Button onClick={() => window.location.reload()} className="w-full">
                 Try Again
               </Button>
             </CardContent>

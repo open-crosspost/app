@@ -6,5 +6,3 @@ declare global {
     __RUNTIME_CONFIG__?: ClientRuntimeConfig;
   }
 }
-
-export { };

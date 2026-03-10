@@ -6,8 +6,7 @@ import { apiClient } from "../../../../utils/orpc";
 export type KvValueResult = Awaited<ReturnType<typeof apiClient.getValue>>;
 
 function generateOgImageSvg(keyId: string): string {
-  const escapedKey =
-    keyId.length > 40 ? `${keyId.slice(0, 37)}...` : keyId;
+  const escapedKey = keyId.length > 40 ? `${keyId.slice(0, 37)}...` : keyId;
   const svg = `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="#171717"/>
     <text x="600" y="315" font-family="monospace" font-size="48" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">${escapedKey}</text>
@@ -108,9 +107,7 @@ function KeyValue() {
 
       {showDeleteConfirm && (
         <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <p className="text-sm mb-3">
-            Are you sure you want to delete key "{key}"?
-          </p>
+          <p className="text-sm mb-3">Are you sure you want to delete key "{key}"?</p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -153,9 +150,7 @@ function KeyValue() {
           </div>
         ) : (
           <div className="p-6 bg-muted/20 rounded-lg border border-border/50">
-            <p className="text-sm text-muted-foreground">
-              No value found for key "{key}"
-            </p>
+            <p className="text-sm text-muted-foreground">No value found for key "{key}"</p>
           </div>
         )}
       </div>

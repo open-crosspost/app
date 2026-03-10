@@ -44,6 +44,10 @@
     "build:ui": "bun run --cwd ui build",
     "deploy": "DEPLOY=true NODE_ENV=production bun run build:ui && bun run build:api",
     "typecheck": "bun run --cwd ui tsc --noEmit && bun run --cwd api tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "start": "NODE_ENV=production bunx everything-dev start --no-interactive",
     "changeset": "changeset",
     "version": "changeset version",
@@ -60,6 +64,7 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
+    "@biomejs/biome": "2.4.6",
     "@changesets/cli": "^2.29.8",
     "@types/bun": "latest",
     "dotenv": "^17.3.1",
@@ -70,5 +75,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@better-auth/api-key": "^1.5.4",
+    "@better-auth/passkey": "^1.5.4"
   }
 }

@@ -1,16 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
+import DrizzleORMMigrations from "@proj-airi/unplugin-drizzle-orm-migrations/rspack";
 import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
-import DrizzleORMMigrations from "@proj-airi/unplugin-drizzle-orm-migrations/rspack";
 import { withZephyr } from "zephyr-rsbuild-plugin";
 
 const __dirname = import.meta.dirname;
 const shouldDeploy = process.env.DEPLOY === "true";
 
-const configPath =
-  process.env.BOS_CONFIG_PATH ?? path.resolve(__dirname, "../bos.config.json");
+const configPath = process.env.BOS_CONFIG_PATH ?? path.resolve(__dirname, "../bos.config.json");
 
 const bosConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const sharedUi = bosConfig.shared?.ui ?? {};
@@ -22,10 +21,7 @@ function updateBosConfig(url: string) {
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     console.log(`   ✅ Updated bos.config.json: app.host.production`);
   } catch (err) {
-    console.error(
-      "   ❌ Failed to update bos.config.json:",
-      (err as Error).message
-    );
+    console.error("   ❌ Failed to update bos.config.json:", (err as Error).message);
   }
 }
 
@@ -40,7 +36,7 @@ if (shouldDeploy) {
           updateBosConfig(info.url);
         },
       },
-    })
+    }),
   );
 }
 
@@ -69,11 +65,7 @@ export default defineConfig({
         uniqueName: "host",
         library: { type: "commonjs-module" },
       },
-      externals: [
-        /^node:/,
-        /^bun:/,
-        "@libsql/client",
-      ],
+      externals: [/^node:/, /^bun:/, "@libsql/client"],
       infrastructureLogging: {
         level: "error",
       },

@@ -1,6 +1,6 @@
-import { beforeAll, afterAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { type Context, Hono } from "hono";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { proxyRequest } from "../../src/program";
-import { Hono, type Context } from "hono";
 
 const createMockResponse = (body: string, status = 200, headers: Record<string, string> = {}) => {
   return new Response(body, {
@@ -30,7 +30,7 @@ describe("API Proxy", () => {
     it("forwards request to target URL with path preserved", async () => {
       const targetBase = "https://api.example.com";
       const originalUrl = "http://localhost:3000/api/users?page=1";
-      
+
       fetchMock.mockResolvedValueOnce(createMockResponse('{"users":[]}'));
 
       const req = new Request(originalUrl, { method: "GET" });
@@ -43,12 +43,12 @@ describe("API Proxy", () => {
 
     it("removes host header from forwarded request", async () => {
       const targetBase = "https://api.example.com";
-      
+
       fetchMock.mockResolvedValueOnce(createMockResponse("ok"));
 
       const req = new Request("http://localhost:3000/api/test", {
         method: "GET",
-        headers: { "Host": "localhost:3000" },
+        headers: { Host: "localhost:3000" },
       });
       await proxyRequest(req, targetBase);
 
@@ -58,7 +58,7 @@ describe("API Proxy", () => {
 
     it("sets accept-encoding to identity", async () => {
       const targetBase = "https://api.example.com";
-      
+
       fetchMock.mockResolvedValueOnce(createMockResponse("ok"));
 
       const req = new Request("http://localhost:3000/api/test", {
@@ -74,7 +74,7 @@ describe("API Proxy", () => {
     it("forwards POST body correctly", async () => {
       const targetBase = "https://api.example.com";
       const body = JSON.stringify({ name: "test" });
-      
+
       fetchMock.mockResolvedValueOnce(createMockResponse('{"id":1}'));
 
       const req = new Request("http://localhost:3000/api/users", {
@@ -91,7 +91,7 @@ describe("API Proxy", () => {
 
     it("preserves response status code", async () => {
       const targetBase = "https://api.example.com";
-      
+
       fetchMock.mockResolvedValueOnce(createMockResponse("Not Found", 404));
 
       const req = new Request("http://localhost:3000/api/missing");
@@ -102,11 +102,13 @@ describe("API Proxy", () => {
 
     it("removes content-encoding and content-length from response", async () => {
       const targetBase = "https://api.example.com";
-      
-      fetchMock.mockResolvedValueOnce(createMockResponse("ok", 200, {
-        "content-encoding": "gzip",
-        "content-length": "100",
-      }));
+
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse("ok", 200, {
+          "content-encoding": "gzip",
+          "content-length": "100",
+        }),
+      );
 
       const req = new Request("http://localhost:3000/api/test");
       const response = await proxyRequest(req, targetBase);
@@ -118,30 +120,30 @@ describe("API Proxy", () => {
     describe("cookie rewriting", () => {
       it("rewrites better-auth cookies in request when enabled", async () => {
         const targetBase = "https://api.example.com";
-        
+
         fetchMock.mockResolvedValueOnce(createMockResponse("ok"));
 
         const req = new Request("http://localhost:3000/api/auth/session", {
           headers: {
-            "cookie": "better-auth.session_token=abc123; other-cookie=value",
+            cookie: "better-auth.session_token=abc123; other-cookie=value",
           },
         });
         await proxyRequest(req, targetBase, true);
 
         const proxiedRequest = fetchMock.mock.calls[0][0] as Request;
         expect(proxiedRequest.headers.get("cookie")).toBe(
-          "__Secure-better-auth.session_token=abc123; other-cookie=value"
+          "__Secure-better-auth.session_token=abc123; other-cookie=value",
         );
       });
 
       it("does not rewrite cookies when disabled", async () => {
         const targetBase = "https://api.example.com";
-        
+
         fetchMock.mockResolvedValueOnce(createMockResponse("ok"));
 
         const req = new Request("http://localhost:3000/api/data", {
           headers: {
-            "cookie": "better-auth.session_token=abc123",
+            cookie: "better-auth.session_token=abc123",
           },
         });
         await proxyRequest(req, targetBase, false);
@@ -152,18 +154,18 @@ describe("API Proxy", () => {
 
       it("strips Secure and Domain from response cookies when rewriting", async () => {
         const targetBase = "https://api.example.com";
-        
+
         const mockResponse = new Response("ok", {
           status: 200,
           headers: new Headers(),
         });
-        
-        Object.defineProperty(mockResponse.headers, 'getSetCookie', {
+
+        Object.defineProperty(mockResponse.headers, "getSetCookie", {
           value: () => [
             "__Secure-better-auth.session_token=xyz; Domain=api.example.com; Secure; Path=/; HttpOnly",
           ],
         });
-        
+
         fetchMock.mockResolvedValueOnce(mockResponse);
 
         const req = new Request("http://localhost:3000/api/auth/login");
@@ -198,7 +200,7 @@ describe("API Proxy", () => {
 
     it("proxies /api/* routes when proxy is configured", async () => {
       const app = new Hono();
-      
+
       const config = {
         hostUrl: "http://localhost:3000",
         api: {
@@ -221,16 +223,16 @@ describe("API Proxy", () => {
 
       fetchMock.mockResolvedValueOnce(createMockResponse('{"status":"ok"}'));
 
-      const response = await app.fetch(new Request("http://localhost:3000/api/health"));
+      const _response = await app.fetch(new Request("http://localhost:3000/api/health"));
       expect(fetchMock).toHaveBeenCalled();
-      
+
       const proxiedRequest = fetchMock.mock.calls[0][0] as Request;
       expect(proxiedRequest.url).toBe("https://production-api.example.com/api/health");
     });
 
     it("handles RPC requests through proxy", async () => {
       const app = new Hono();
-      
+
       app.all("/api/*", async (c: Context) => {
         const response = await proxyRequest(c.req.raw, "https://production-api.example.com", true);
         return response;
@@ -239,11 +241,13 @@ describe("API Proxy", () => {
       const rpcBody = JSON.stringify({ method: "getValue", params: { key: "test" } });
       fetchMock.mockResolvedValueOnce(createMockResponse('{"result":"value"}'));
 
-      const response = await app.fetch(new Request("http://localhost:3000/api/rpc/getValue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: rpcBody,
-      }));
+      const _response = await app.fetch(
+        new Request("http://localhost:3000/api/rpc/getValue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: rpcBody,
+        }),
+      );
 
       expect(fetchMock).toHaveBeenCalled();
       const proxiedRequest = fetchMock.mock.calls[0][0] as Request;
@@ -258,10 +262,14 @@ describe("API Proxy", () => {
         account: "test.near",
         app: {
           host: { development: "http://localhost:3000", production: "https://prod.example.com" },
-          ui: { name: "ui", development: "http://localhost:3002", production: "https://ui.example.com" },
-          api: { 
-            name: "api", 
-            development: "http://localhost:3014", 
+          ui: {
+            name: "ui",
+            development: "http://localhost:3002",
+            production: "https://ui.example.com",
+          },
+          api: {
+            name: "api",
+            development: "http://localhost:3014",
             production: "https://api.example.com",
             proxy: "https://staging-api.example.com",
           },

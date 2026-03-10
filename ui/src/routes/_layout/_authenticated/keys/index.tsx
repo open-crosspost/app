@@ -63,9 +63,7 @@ function KeysList() {
         value: `Sample value for key ${i + 1} - ${new Date().toISOString()}`,
       }));
 
-      await Promise.all(
-        sampleKeys.map(({ key, value }) => apiClient.setValue({ key, value }))
-      );
+      await Promise.all(sampleKeys.map(({ key, value }) => apiClient.setValue({ key, value })));
       return sampleKeys.length;
     },
     onSuccess: async (count) => {

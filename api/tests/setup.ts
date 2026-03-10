@@ -1,15 +1,15 @@
-import { migrate } from 'drizzle-orm/libsql/migrator';
-import Plugin from '@/index';
-import { createDatabase, type Database } from '@/db';
-import pluginDevConfig from '../plugin.dev';
-import { createPluginRuntime } from 'every-plugin';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { migrate } from "drizzle-orm/libsql/migrator";
+import { createPluginRuntime } from "every-plugin";
+import { createDatabase, type Database } from "@/db";
+import Plugin from "@/index";
+import pluginDevConfig from "../plugin.dev";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const TEST_DB_URL = 'file:./api-test.db';
+export const TEST_DB_URL = "file:./api-test.db";
 
 const TEST_CONFIG = {
   variables: pluginDevConfig.config.variables,
@@ -46,16 +46,13 @@ export function getTestDb() {
 export async function runMigrations() {
   const db = getTestDb();
   await migrate(db, {
-    migrationsFolder: join(__dirname, '../src/db/migrations'),
+    migrationsFolder: join(__dirname, "../src/db/migrations"),
   });
 }
 
 export async function getPluginClient(context?: { nearAccountId?: string }) {
   const runtime = getRuntime();
-  const { createClient } = await runtime.usePlugin(
-    pluginDevConfig.pluginId,
-    TEST_CONFIG
-  );
+  const { createClient } = await runtime.usePlugin(pluginDevConfig.pluginId, TEST_CONFIG);
   return createClient(context);
 }
 

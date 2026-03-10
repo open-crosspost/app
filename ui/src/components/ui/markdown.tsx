@@ -9,7 +9,6 @@ export function Markdown({ content, className }: MarkdownProps) {
   const html = parseMarkdown(content);
 
   return (
-    // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering requires HTML injection
     <article
       className={cn(
         "prose prose-neutral dark:prose-invert max-w-none",
@@ -27,7 +26,7 @@ export function Markdown({ content, className }: MarkdownProps) {
         "prose-th:bg-muted prose-th:border prose-th:border-border prose-th:px-4 prose-th:py-2",
         "prose-td:border prose-td:border-border prose-td:px-4 prose-td:py-2",
         "prose-hr:border-border",
-        className
+        className,
       )}
       dangerouslySetInnerHTML={{ __html: html }}
     />
@@ -37,17 +36,17 @@ export function Markdown({ content, className }: MarkdownProps) {
 function parseMarkdown(md: string): string {
   let html = md;
 
-  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+  html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+  html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+  html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
 
-  html = html.replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>');
-  html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+  html = html.replace(/\*\*\*(.*?)\*\*\*/gim, "<strong><em>$1</em></strong>");
+  html = html.replace(/\*\*(.*?)\*\*/gim, "<strong>$1</strong>");
+  html = html.replace(/\*(.*?)\*/gim, "<em>$1</em>");
 
   html = html.replace(/`{3}(\w*)\n([\s\S]*?)\n`{3}/gim, (_, lang, code) => {
     const escapedCode = escapeHtml(code);
-    return `<pre><code class="language-${lang || 'text'}">${escapedCode}</code></pre>`;
+    return `<pre><code class="language-${lang || "text"}">${escapedCode}</code></pre>`;
   });
   html = html.replace(/`([^`]+)`/gim, (_, code) => {
     return `<code>${escapeHtml(code)}</code>`;
@@ -57,13 +56,13 @@ function parseMarkdown(md: string): string {
     return match;
   });
 
-  const lines = html.split('\n');
+  const lines = html.split("\n");
   const processedLines: string[] = [];
   let inTable = false;
   let tableRows: string[] = [];
   let inList = false;
   let listItems: string[] = [];
-  let listType: 'ul' | 'ol' = 'ul';
+  let listType: "ul" | "ol" = "ul";
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -89,22 +88,22 @@ function parseMarkdown(md: string): string {
       const olMatch = line.match(/^[\s]*\d+\.\s+(.+)$/);
 
       if (ulMatch) {
-        if (!inList || listType !== 'ul') {
+        if (!inList || listType !== "ul") {
           if (inList) {
             processedLines.push(buildList(listItems, listType));
           }
           inList = true;
-          listType = 'ul';
+          listType = "ul";
           listItems = [];
         }
         listItems.push(ulMatch[1]);
       } else if (olMatch) {
-        if (!inList || listType !== 'ol') {
+        if (!inList || listType !== "ol") {
           if (inList) {
             processedLines.push(buildList(listItems, listType));
           }
           inList = true;
-          listType = 'ol';
+          listType = "ol";
           listItems = [];
         }
         listItems.push(olMatch[1]);
@@ -116,12 +115,12 @@ function parseMarkdown(md: string): string {
         }
 
         if (line.match(/^>\s*(.*)/)) {
-          const quoteContent = line.replace(/^>\s*/, '');
+          const quoteContent = line.replace(/^>\s*/, "");
           processedLines.push(`<blockquote><p>${quoteContent}</p></blockquote>`);
         } else if (line.match(/^---+$/)) {
-          processedLines.push('<hr />');
-        } else if (line.trim() === '') {
-          processedLines.push('');
+          processedLines.push("<hr />");
+        } else if (line.trim() === "") {
+          processedLines.push("");
         } else if (!line.match(/^<h[1-6]>/)) {
           processedLines.push(`<p>${line}</p>`);
         } else {
@@ -138,52 +137,52 @@ function parseMarkdown(md: string): string {
     processedLines.push(buildList(listItems, listType));
   }
 
-  html = processedLines.join('\n');
+  html = processedLines.join("\n");
 
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/gim,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
   );
 
   return html;
 }
 
 function buildTable(rows: string[]): string {
-  if (rows.length === 0) return '';
+  if (rows.length === 0) return "";
 
   const headerRow = rows[0];
   const dataRows = rows.slice(1);
 
   const headerCells = headerRow
-    .split('|')
+    .split("|")
     .filter((c) => c.trim())
     .map((c) => `<th>${c.trim()}</th>`)
-    .join('');
+    .join("");
 
   const bodyRows = dataRows
     .map((row) => {
       const cells = row
-        .split('|')
+        .split("|")
         .filter((c) => c.trim())
         .map((c) => `<td>${c.trim()}</td>`)
-        .join('');
+        .join("");
       return `<tr>${cells}</tr>`;
     })
-    .join('');
+    .join("");
 
   return `<div class="overflow-x-auto"><table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
 }
 
-function buildList(items: string[], type: 'ul' | 'ol'): string {
-  const listItems = items.map((item) => `<li>${item}</li>`).join('');
+function buildList(items: string[], type: "ul" | "ol"): string {
+  const listItems = items.map((item) => `<li>${item}</li>`).join("");
   return `<${type}>${listItems}</${type}>`;
 }
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }

@@ -34,10 +34,7 @@ function updateBosConfig(field: "production" | "ssr", url: string) {
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     console.log(`   ✅ Updated bos.config.json: app.ui.${field}`);
   } catch (err) {
-    console.error(
-      "   ❌ Failed to update bos.config.json:",
-      (err as Error).message
-    );
+    console.error("   ❌ Failed to update bos.config.json:", (err as Error).message);
   }
 }
 
@@ -70,7 +67,7 @@ function createClientConfig() {
             updateBosConfig("production", info.url);
           },
         },
-      })
+      }),
     );
   }
 
@@ -143,7 +140,7 @@ function createServerConfig() {
             updateBosConfig("ssr", info.url);
           },
         },
-      })
+      }),
     );
   }
 
@@ -169,9 +166,7 @@ function createServerConfig() {
           publicPath: "/",
           library: { type: "commonjs-module" },
         },
-        externals: [
-          /^node:/,
-        ],
+        externals: [/^node:/],
         infrastructureLogging: { level: "error" },
         stats: "errors-warnings",
         plugins: [

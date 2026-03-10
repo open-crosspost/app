@@ -52,8 +52,7 @@ const releaseDatabase = ({ client }: DatabaseWithClient) =>
     try {
       client.close();
       console.log("[Database] Connection closed");
-    } catch {
-    }
+    } catch {}
   });
 
 export class DatabaseService extends Context.Tag("host/DatabaseService")<
@@ -62,8 +61,6 @@ export class DatabaseService extends Context.Tag("host/DatabaseService")<
 >() {
   static Default = Layer.scoped(
     DatabaseService,
-    Effect.acquireRelease(acquireDatabase, releaseDatabase).pipe(
-      Effect.map(({ db }) => db)
-    )
+    Effect.acquireRelease(acquireDatabase, releaseDatabase).pipe(Effect.map(({ db }) => db)),
   );
 }

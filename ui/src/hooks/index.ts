@@ -4,4 +4,4 @@ export {
   useLocalStorage,
   useMediaQuery,
   usePrefersDarkMode,
-} from './use-client';
+} from "./use-client";

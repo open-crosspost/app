@@ -15,5 +15,13 @@ export const Route = createFileRoute("/_layout/_authenticated")({
     }
     return { session };
   },
-  component: () => <Outlet />,
+  component: AuthenticatedLayout,
 });
+
+function AuthenticatedLayout() {
+  return (
+    <div className="min-h-screen">
+      <Outlet />
+    </div>
+  );
+}

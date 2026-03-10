@@ -18,7 +18,7 @@ export async function migrate(client: Client, migrations: Migration[]): Promise<
   `);
 
   const applied = await client.execute(`SELECT hash FROM __drizzle_migrations`);
-  const appliedHashes = new Set(applied.rows.map(r => r.hash as string));
+  const appliedHashes = new Set(applied.rows.map((r) => r.hash as string));
 
   for (const migration of migrations) {
     if (appliedHashes.has(migration.hash)) continue;
@@ -26,11 +26,11 @@ export async function migrate(client: Client, migrations: Migration[]): Promise<
     console.log(`[Database] Applying migration: ${migration.tag}`);
 
     await client.batch([
-      ...migration.sql.map(sql => ({ sql })),
+      ...migration.sql.map((sql) => ({ sql })),
       {
         sql: `INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)`,
-        args: [migration.hash, Date.now()]
-      }
+        args: [migration.hash, Date.now()],
+      },
     ]);
   }
 }

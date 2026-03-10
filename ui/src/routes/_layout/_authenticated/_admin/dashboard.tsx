@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute(
-  "/_layout/_authenticated/_admin/dashboard"
-)({
+export const Route = createFileRoute("/_layout/_authenticated/_admin/dashboard")({
   component: AdminDashboard,
 });
 
@@ -22,8 +20,7 @@ function AdminDashboard() {
       <div className="space-y-4">
         <div className="p-6 bg-muted/20 rounded-lg border border-border/50">
           <p className="text-xs text-muted-foreground">
-            This dashboard is protected for authenticated users with role
-            "admin" only.
+            This dashboard is protected for authenticated users with role "admin" only.
           </p>
         </div>
       </div>

@@ -1,5 +1,10 @@
 import { Context } from "every-plugin/effect";
-import type { ClientRuntimeConfig, RuntimeConfig, SharedConfig, SourceMode } from "everything-dev/types";
+import type {
+  ClientRuntimeConfig,
+  RuntimeConfig,
+  SharedConfig,
+  SourceMode,
+} from "everything-dev/types";
 
 export type { ClientRuntimeConfig, RuntimeConfig, SharedConfig, SourceMode };
 
