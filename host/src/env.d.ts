@@ -8,3 +8,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module "virtual:drizzle-migrations.sql" {
+  const migrations: { default: Array<{ sql: string[]; name: string }> };
+  export default migrations;
+}

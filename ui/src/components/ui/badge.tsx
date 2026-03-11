@@ -5,16 +5,16 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center border-2 px-2.5 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none transition-all duration-150",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+        default: "border-outset border-[rgb(51,51,51)] bg-[rgb(245,245,245)] text-[rgb(51,51,51)] dark:border-[rgb(200,200,200)] dark:bg-[rgb(60,60,60)] dark:text-[rgb(230,230,230)]",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+          "border-outset border-[rgb(180,180,180)] bg-secondary text-secondary-foreground",
         destructive:
-          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline: "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "border-outset border-[rgb(180,50,40)] bg-destructive text-destructive-foreground",
+        outline: "border-outset border-[rgb(51,51,51)] bg-background text-foreground dark:border-[rgb(200,200,200)]",
       },
     },
     defaultVariants: {

@@ -11,13 +11,37 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { getBaseStyles, getRemoteScripts } from "@/remote/head";
 import type { RouterContext } from "@/types";
+import { sessionQueryOptions, type SessionData } from "@/lib/session";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  loader: ({ context }) => ({
-    assetsUrl: context.assetsUrl || "",
-    runtimeConfig: context.runtimeConfig,
-  }),
+  beforeLoad: async ({ context }) => {
+    const session = (context as unknown as Record<string, unknown>).session as SessionData | undefined | null;
+    
+    return {
+      assetsUrl: context.assetsUrl || "",
+      runtimeConfig: context.runtimeConfig,
+      session,
+    };
+  },
+  loader: async ({ context }) => {
+    const { queryClient } = context;
+    const session = (context as unknown as Record<string, unknown>).session as SessionData | undefined | null;
+    
+    // Pre-populate session cache from SSR data
+    if (session && queryClient) {
+      queryClient.setQueryData(
+        sessionQueryOptions(session).queryKey,
+        session
+      );
+    }
+    
+    return {
+      assetsUrl: context.assetsUrl || "",
+      runtimeConfig: context.runtimeConfig,
+      session,
+    };
+  },
   head: ({ loaderData }) => {
     const assetsUrl = loaderData?.assetsUrl || "";
     const runtimeConfig = loaderData?.runtimeConfig;
@@ -45,7 +69,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { title },
         { name: "description", content: description },
-        { name: "theme-color", content: "#171717" },
+        { name: "theme-color", content: "#ffffff" },
         { name: "color-scheme", content: "light dark" },
         { name: "application-name", content: siteName },
         { name: "mobile-web-app-capable", content: "yes" },

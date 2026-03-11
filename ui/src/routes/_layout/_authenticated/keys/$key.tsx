@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { apiClient } from "../../../../utils/orpc";
+import { apiClient } from "@/remote/orpc";
+import { Button } from "@/components/ui/button";
 
 export type KvValueResult = Awaited<ReturnType<typeof apiClient.getValue>>;
 
@@ -84,24 +85,24 @@ function KeyValue() {
     <div className="space-y-8">
       <div className="flex items-center justify-between pb-4 border-b border-border/50">
         <div>
-          <button
-            type="button"
+          <Button
             onClick={handleBack}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
+            variant="ghost"
+            size="sm"
           >
             ← back
-          </button>
+          </Button>
           <h1 className="text-lg font-mono mt-2">Key: {key}</h1>
         </div>
         {data && (
-          <button
-            type="button"
+          <Button
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
-            className="px-3 py-1.5 text-xs font-mono bg-destructive/10 text-destructive hover:bg-destructive/20 rounded border border-destructive/20 transition-colors disabled:opacity-50"
+            variant="destructive"
+            size="sm"
           >
             {deleteMutation.isPending ? "deleting..." : "delete"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -109,22 +110,22 @@ function KeyValue() {
         <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
           <p className="text-sm mb-3">Are you sure you want to delete key "{key}"?</p>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <Button
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
-              className="px-3 py-1.5 text-xs font-mono bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded transition-colors disabled:opacity-50"
+              variant="destructive"
+              size="sm"
             >
               {deleteMutation.isPending ? "deleting..." : "confirm delete"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => setShowDeleteConfirm(false)}
               disabled={deleteMutation.isPending}
-              className="px-3 py-1.5 text-xs font-mono bg-muted hover:bg-muted/80 rounded transition-colors disabled:opacity-50"
+              variant="secondary"
+              size="sm"
             >
               cancel
-            </button>
+            </Button>
           </div>
           {deleteMutation.isError && (
             <p className="text-xs text-destructive mt-2">

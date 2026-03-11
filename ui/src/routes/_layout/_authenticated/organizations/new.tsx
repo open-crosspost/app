@@ -1,16 +1,17 @@
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "../../../../lib/auth-client";
+import { createOrganization, sessionQueryOptions, organizationsQueryOptions } from "@/lib/session";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_layout/_authenticated/organizations/new")({
   head: () => ({
     meta: [
       { title: "New Organization | demo.everything" },
       { name: "description", content: "Create a new organization." },
-      { property: "og:title", content: "New Organization | demo.everything" },
-      { property: "og:description", content: "Create a new organization." },
     ],
   }),
   component: NewOrganization,
@@ -18,29 +19,19 @@ export const Route = createFileRoute("/_layout/_authenticated/organizations/new"
 
 function NewOrganization() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
 
-  const handleBack = () => {
-    if (router.history.canGoBack()) {
-      router.history.back();
-    } else {
-      router.navigate({ to: "/organizations" });
-    }
-  };
-
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await authClient.organization.create({
-        name,
-        slug,
-      });
-      if (error) throw new Error(error.message);
+      const data = await createOrganization(name, slug);
       return data;
     },
     onSuccess: async (data) => {
-      toast.success(`Organization "${data?.name}" created successfully`);
-      // Navigate to the new org
+      await queryClient.invalidateQueries({ queryKey: organizationsQueryOptions().queryKey });
+      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      toast.success(`Organization "${data?.name}" created`);
       if (data?.id) {
         router.navigate({ to: "/organizations/$id", params: { id: data.id } });
       }
@@ -50,8 +41,8 @@ function NewOrganization() {
     },
   });
 
-  const generateSlug = (name: string) => {
-    return name
+  const generateSlug = (value: string) => {
+    return value
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
@@ -65,82 +56,104 @@ function NewOrganization() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="pb-4 border-b border-border/50">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
-        >
-          ← back to organizations
-        </button>
-        <h1 className="text-lg font-mono mt-2">New Organization</h1>
-        <p className="text-xs text-muted-foreground mt-1">Create a new workspace for your team</p>
-      </div>
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-mono">New Organization</h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              Create a new workspace for your team
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/organizations">
+              back
+            </Link>
+          </Button>
+        </div>
+      </section>
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
           createMutation.mutate();
         }}
-        className="space-y-4"
+        className="space-y-6"
       >
-        <div className="space-y-2">
-          <label className="text-xs font-mono text-muted-foreground">Organization Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm font-mono bg-background border border-border focus:border-ring rounded-md outline-none transition-colors"
-            placeholder="My Team"
-            required
-          />
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <table className="w-full text-xs font-mono">
+              <tbody>
+                <tr className="border-b border-border">
+                  <td className="px-4 py-3 text-muted-foreground text-right w-32">name</td>
+                  <td className="px-4 py-3">
+                    <Input
+                      type="text"
+                      value={name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      placeholder="My Team"
+                      className="font-mono text-xs h-8"
+                      required
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-muted-foreground text-right">slug</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">@</span>
+                      <Input
+                        type="text"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))}
+                        placeholder="my-team"
+                        pattern="[a-z0-9-]+"
+                        className="font-mono text-xs h-8"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Only lowercase letters, numbers, and hyphens
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
 
-        <div className="space-y-2">
-          <label className="text-xs font-mono text-muted-foreground">Slug</label>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">@</span>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))}
-              className="flex-1 px-3 py-2 text-sm font-mono bg-background border border-border focus:border-ring rounded-md outline-none transition-colors"
-              placeholder="my-team"
-              pattern="[a-z0-9-]+"
-              required
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">Only lowercase letters, numbers, and hyphens</p>
-        </div>
-
-        <div className="pt-4 flex gap-3">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="px-4 py-2 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-md"
-          >
-            cancel
-          </button>
-          <button
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/organizations">
+              cancel
+            </Link>
+          </Button>
+          <Button
             type="submit"
             disabled={createMutation.isPending || !name || !slug}
-            className="flex-1 px-4 py-2 text-sm font-mono bg-primary text-primary-foreground hover:bg-primary/90 rounded-md disabled:opacity-50 transition-colors"
+            variant="outline"
+            size="sm"
           >
-            {createMutation.isPending ? "creating..." : "create organization"}
-          </button>
+            {createMutation.isPending ? "creating..." : "create"}
+          </Button>
         </div>
       </form>
 
-      <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
-        <h3 className="text-xs font-mono font-medium mb-2">What happens next?</h3>
-        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-          <li>Your organization will be created immediately</li>
-          <li>You&apos;ll be the owner with full permissions</li>
-          <li>You can invite team members from the organization settings</li>
-          <li>You can switch between organizations anytime</li>
-        </ul>
-      </div>
+      <section className="space-y-4">
+        <h2 className="text-xs font-mono text-muted-foreground border-b border-border pb-2">
+          what happens next
+        </h2>
+        <Card>
+          <CardContent className="p-4">
+            <ul className="space-y-2 text-xs text-muted-foreground">
+              <li>• Your organization will be created immediately</li>
+              <li>• You'll be the owner with full permissions</li>
+              <li>• You can invite team members from the organization settings</li>
+              <li>• You can switch between organizations anytime</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

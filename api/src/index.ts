@@ -2,9 +2,12 @@ import { createPlugin } from "every-plugin";
 import { Cause, Effect, Exit, Layer } from "every-plugin/effect";
 import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
+import { eq } from "drizzle-orm";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
 import { KvService, KvServiceLive } from "./services/kv";
+import type { Database } from "../../host/src/services/database";
+import type { Auth } from "../../host/src/services/auth";
 
 // Extended context with unified identity model
 export interface AuthContext {
@@ -19,15 +22,17 @@ export interface AuthContext {
 
   // Public identity (NEAR) - optional, user selects active account
   nearAccountId?: string;
-  nearAccounts?: Array<{
-    accountId: string;
-    network: string;
-    isPrimary: boolean;
-  }>;
 
   // Organization context
   organizationId?: string;
   organizationRole?: string;
+
+  // Request utilities
+  reqHeaders?: Headers;
+
+  // Server capabilities
+  db: Database;
+  auth: Auth;
 }
 
 export default createPlugin({
@@ -69,6 +74,10 @@ export default createPlugin({
     // Request utilities
     reqHeaders: z.custom<Headers>().optional(),
     getRawBody: z.custom<() => Promise<string>>().optional(),
+
+    // Server capabilities
+    db: z.custom<Database>().optional(),
+    auth: z.custom<Auth>().optional(),
   }),
 
   contract,
@@ -109,6 +118,9 @@ export default createPlugin({
           nearAccountId: context.nearAccountId,
           organizationId: context.organizationId,
           organizationRole: context.organizationRole,
+          reqHeaders: context.reqHeaders,
+          db: context.db!,
+          auth: context.auth!,
         } as AuthContext,
       });
     });
@@ -137,9 +149,80 @@ export default createPlugin({
           userId: context.userId,
           user: context.user,
           nearAccountId: context.nearAccountId,
+          reqHeaders: context.reqHeaders,
+          db: context.db!,
+          auth: context.auth!,
         } as AuthContext,
       });
     });
+
+    // Organization role check - requires membership with specific role
+    const requireOrgRole = (requiredRole: "owner" | "admin" | "member") => 
+      builder.middleware(async ({ context, next }, input: any) => {
+        if (!context.user || !context.userId) {
+          throw new ORPCError("UNAUTHORIZED", {
+            message: "Authentication required",
+            data: { authType: "session" },
+          });
+        }
+
+        // Get organizationId from input (for endpoints that have it)
+        const targetOrgId = input?.organizationId || context.organizationId;
+
+        if (!targetOrgId) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Organization ID required",
+            data: {},
+          });
+        }
+
+        // Check membership in the target organization
+        const membership = await context.db!.query.member.findFirst({
+          where: (member: any, { and, eq }: any) => and(
+            eq(member.userId, context.userId),
+            eq(member.organizationId, targetOrgId),
+          ),
+        });
+
+        if (!membership) {
+          throw new ORPCError("FORBIDDEN", {
+            message: "You are not a member of this organization",
+            data: {},
+          });
+        }
+
+        const roleHierarchy: Record<string, number> = {
+          owner: 100,
+          admin: 80,
+          member: 50,
+        };
+
+        const userRoleLevel = roleHierarchy[membership.role] ?? 0;
+        const requiredRoleLevel = roleHierarchy[requiredRole] ?? 0;
+
+        if (userRoleLevel < requiredRoleLevel) {
+          throw new ORPCError("FORBIDDEN", {
+            message: `Requires ${requiredRole} role in organization`,
+            data: {
+              requiredRole,
+              currentRole: membership.role,
+            },
+          });
+        }
+
+        return next({
+          context: {
+            userId: context.userId,
+            user: context.user,
+            nearAccountId: context.nearAccountId,
+            organizationId: targetOrgId,
+            organizationRole: membership.role,
+            reqHeaders: context.reqHeaders,
+            db: context.db!,
+            auth: context.auth!,
+          } as AuthContext,
+        });
+      });
 
     return {
       ping: builder.ping.handler(async () => ({
@@ -154,24 +237,10 @@ export default createPlugin({
         smsConfigured: !!process.env.SMS_PROVIDER,
       })),
 
-      // Generic protected endpoint - any auth method
-      protected: builder.protected.use(requireAuth).handler(async ({ context }) => ({
-        message: "Protected data",
-        accountId: context.nearAccountId || context.userId,
-        timestamp: new Date().toISOString(),
-      })),
-
-      // NEAR-specific endpoint - requires linked wallet
-      protectedNear: builder.protected.use(requireNearAccount).handler(async ({ context }) => ({
-        message: "NEAR-only data",
-        accountId: context.nearAccountId!,
-        timestamp: new Date().toISOString(),
-      })),
-
-      // KV endpoints
-      listKeys: builder.listKeys.use(requireNearAccount).handler(async ({ input, context }) => {
+      // KV endpoints - any auth method
+      listKeys: builder.listKeys.use(requireAuth).handler(async ({ input, context }) => {
         const exit = await Effect.runPromiseExit(
-          services.listKeys(context.nearAccountId!, input.limit, input.offset),
+          services.listKeys(context.userId, input.limit, input.offset),
         );
 
         if (Exit.isFailure(exit)) {
@@ -191,10 +260,10 @@ export default createPlugin({
       }),
 
       getValue: builder.getValue
-        .use(requireNearAccount)
+        .use(requireAuth)
         .handler(async ({ input, context, errors }) => {
           const exit = await Effect.runPromiseExit(
-            services.getValue(input.key, context.nearAccountId!),
+            services.getValue(input.key, context.userId),
           );
 
           if (Exit.isFailure(exit)) {
@@ -226,10 +295,10 @@ export default createPlugin({
         }),
 
       setValue: builder.setValue
-        .use(requireNearAccount)
+        .use(requireAuth)
         .handler(async ({ input, context, errors }) => {
           const exit = await Effect.runPromiseExit(
-            services.setValue(input.key, input.value, context.nearAccountId!),
+            services.setValue(input.key, input.value, context.userId),
           );
 
           if (Exit.isFailure(exit)) {
@@ -255,10 +324,10 @@ export default createPlugin({
         }),
 
       deleteKey: builder.deleteKey
-        .use(requireNearAccount)
+        .use(requireAuth)
         .handler(async ({ input, context, errors }) => {
           const exit = await Effect.runPromiseExit(
-            services.deleteKey(input.key, context.nearAccountId!),
+            services.deleteKey(input.key, context.userId),
           );
 
           if (Exit.isFailure(exit)) {
@@ -311,30 +380,179 @@ export default createPlugin({
         });
       }),
 
-      // API Keys - placeholder for now (integrates with Better Auth API keys)
-      listApiKeys: builder.listApiKeys.use(requireAuth).handler(async () => ({
-        keys: [],
-      })),
+      // API Keys - integrate with Better Auth API key plugin
+      listApiKeys: builder.listApiKeys.use(requireAuth).handler(async ({ context, input }) => {
+        const result = await context.auth.api.listApiKeys({
+          query: {
+            organizationId: input.organizationId,
+          },
+          headers: context.reqHeaders!,
+        });
 
-      createApiKey: builder.createApiKey.use(requireAuth).handler(async ({ input }) => {
-        const keyId = crypto.randomUUID();
-        const expiresAt = input.expiresInDays
-          ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-          : null;
+        if (!result) {
+          return { keys: [] };
+        }
+
         return {
-          id: keyId,
-          name: input.name,
-          key: `api_${keyId}_${crypto.randomUUID().slice(0, 8)}`,
-          prefix: "api_",
-          permissions: input.permissions || ["read"],
-          createdAt: new Date().toISOString(),
-          expiresAt,
+          keys: (Array.isArray(result) ? result : result.keys || []).map((key: any) => ({
+            id: key.id,
+            name: key.name || "Unnamed",
+            prefix: key.prefix || "api_",
+            permissions: key.permissions ? JSON.parse(key.permissions) : [],
+            lastUsed: key.lastRequest ? new Date(key.lastRequest).toISOString() : null,
+            createdAt: new Date(key.createdAt).toISOString(),
+            expiresAt: key.expiresAt ? new Date(key.expiresAt).toISOString() : null,
+          })),
         };
       }),
 
-      deleteApiKey: builder.deleteApiKey.use(requireAuth).handler(async () => ({
-        deleted: true,
-      })),
+      createApiKey: builder.createApiKey.use(requireAuth).handler(async ({ context, input, errors }) => {
+        try {
+          const result = await context.auth.api.createApiKey({
+            body: {
+              name: input.name,
+              organizationId: input.organizationId,
+              expiresIn: input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : undefined,
+              permissions: input.permissions ? JSON.stringify(input.permissions) : undefined,
+            },
+            headers: context.reqHeaders!,
+          });
+
+          if (!result) {
+            throw errors.BAD_REQUEST({
+              message: "Failed to create API key",
+              data: {},
+            });
+          }
+
+          return {
+            id: result.id,
+            name: result.name || input.name,
+            key: result.key || result.start || "",
+            prefix: result.prefix || "api_",
+            permissions: input.permissions || ["read"],
+            createdAt: new Date(result.createdAt).toISOString(),
+            expiresAt: result.expiresAt ? new Date(result.expiresAt).toISOString() : null,
+          };
+        } catch (error) {
+          throw errors.BAD_REQUEST({
+            message: error instanceof Error ? error.message : "Failed to create API key",
+            data: {},
+          });
+        }
+      }),
+
+      deleteApiKey: builder.deleteApiKey.use(requireAuth).handler(async ({ context, input, errors }) => {
+        try {
+          await context.auth.api.deleteApiKey({
+            body: {
+              id: input.keyId,
+            },
+            headers: context.reqHeaders!,
+          });
+
+          return { deleted: true };
+        } catch (error) {
+          throw errors.NOT_FOUND({
+            message: error instanceof Error ? error.message : "API key not found",
+            data: {},
+          });
+        }
+      }),
+
+      // Organization Members - query database directly
+      listOrgMembers: builder.listOrgMembers.use(requireOrgRole("member")).handler(async ({ context, input }) => {
+        const members = await context.db.query.member.findMany({
+          where: (member, { eq }) => eq(member.organizationId, input.organizationId),
+          with: {
+            user: true,
+          },
+        });
+
+        return {
+          members: members.map((m) => ({
+            id: m.id,
+            userId: m.userId,
+            role: m.role as "owner" | "admin" | "member",
+            name: m.user?.name || null,
+            email: m.user?.email || null,
+            createdAt: m.createdAt.toISOString(),
+          })),
+        };
+      }),
+
+      // Organization Invitations - query database directly
+      listOrgInvitations: builder.listOrgInvitations.use(requireOrgRole("member")).handler(async ({ context, input }) => {
+        const invitations = await context.db.query.invitation.findMany({
+          where: (invitation, { and, eq }) => and(
+            eq(invitation.organizationId, input.organizationId),
+            eq(invitation.status, "pending"),
+          ),
+        });
+
+        return {
+          invitations: invitations.map((inv) => ({
+            id: inv.id,
+            email: inv.email,
+            role: inv.role as "admin" | "member",
+            status: inv.status as "pending" | "accepted" | "rejected" | "expired",
+            expiresAt: inv.expiresAt.toISOString(),
+            createdAt: inv.createdAt.toISOString(),
+          })),
+        };
+      }),
+
+      // Cancel invitation - requires admin role
+      cancelInvitation: builder.cancelInvitation.use(requireOrgRole("admin")).handler(async ({ context, input, errors }) => {
+        const invitation = await context.db.query.invitation.findFirst({
+          where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
+        });
+
+        if (!invitation) {
+          throw errors.NOT_FOUND({
+            message: "Invitation not found",
+            data: {},
+          });
+        }
+
+        if (invitation.organizationId !== context.organizationId) {
+          throw errors.FORBIDDEN({
+            message: "Invitation does not belong to your organization",
+            data: {},
+          });
+        }
+
+        const { invitation: invitationTable } = await import("../../host/src/db/schema/auth");
+        await context.db.delete(invitationTable)
+          .where(eq(invitationTable.id, input.invitationId));
+
+        return { cancelled: true };
+      }),
+
+      // Resend invitation - requires admin role
+      resendInvitation: builder.resendInvitation.use(requireOrgRole("admin")).handler(async ({ context, input, errors }) => {
+        const invitation = await context.db.query.invitation.findFirst({
+          where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
+        });
+
+        if (!invitation) {
+          throw errors.NOT_FOUND({
+            message: "Invitation not found",
+            data: {},
+          });
+        }
+
+        if (invitation.organizationId !== context.organizationId) {
+          throw errors.FORBIDDEN({
+            message: "Invitation does not belong to your organization",
+            data: {},
+          });
+        }
+
+        // TODO: Actually resend the email via Better Auth
+        // For now, just return success
+        return { sent: true };
+      }),
     };
   },
 });

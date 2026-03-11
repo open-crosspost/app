@@ -25,7 +25,7 @@ export interface NearCapabilities {
 export interface OrganizationMember {
   id: string;
   role: string;
-  teamId?: string | null;
+
 }
 
 // Organization info
@@ -68,6 +68,10 @@ export interface RequestContext {
 
   // SSR compatibility - session from Better Auth
   session: SessionResult;
+
+  // Server-side capabilities
+  auth: Auth;
+  db: Database;
 }
 
 export async function createRequestContext(
@@ -155,7 +159,6 @@ export async function createRequestContext(
             member: {
               id: membership.id,
               role: membership.role,
-              teamId: membership.teamId,
             },
             isPersonal: org.slug === user.id, // Personal org has slug = user id
             hasOrganization: true,
@@ -174,6 +177,8 @@ export async function createRequestContext(
     organization: organizationContext,
     reqHeaders: req.headers,
     session,
+    auth,
+    db,
   };
 }
 

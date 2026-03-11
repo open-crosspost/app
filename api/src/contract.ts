@@ -72,18 +72,59 @@ export const contract = oc.router({
     .output(z.object({ deleted: z.boolean() }))
     .errors({ UNAUTHORIZED, NOT_FOUND, FORBIDDEN }),
 
-  // Original KV endpoints (app-specific data)
-  protected: oc
-    .route({ method: "GET", path: "/protected" })
+  // Organization Members - thin bridge for Better Auth
+  listOrgMembers: oc
+    .route({ method: "GET", path: "/organizations/{organizationId}/members" })
+    .input(z.object({ organizationId: z.string() }))
     .output(
       z.object({
-        message: z.string(),
-        accountId: z.string(),
-        timestamp: z.iso.datetime(),
+        members: z.array(
+          z.object({
+            id: z.string(),
+            userId: z.string(),
+            role: z.enum(["owner", "admin", "member"]),
+            name: z.string().nullable(),
+            email: z.string().nullable(),
+            createdAt: z.iso.datetime(),
+          }),
+        ),
       }),
     )
-    .errors({ UNAUTHORIZED }),
+    .errors({ UNAUTHORIZED, NOT_FOUND, FORBIDDEN }),
 
+  // Organization Invitations - thin bridge for Better Auth
+  listOrgInvitations: oc
+    .route({ method: "GET", path: "/organizations/{organizationId}/invitations" })
+    .input(z.object({ organizationId: z.string() }))
+    .output(
+      z.object({
+        invitations: z.array(
+          z.object({
+            id: z.string(),
+            email: z.string(),
+            role: z.enum(["admin", "member"]),
+            status: z.enum(["pending", "accepted", "rejected", "expired"]),
+            expiresAt: z.iso.datetime(),
+            createdAt: z.iso.datetime(),
+          }),
+        ),
+      }),
+    )
+    .errors({ UNAUTHORIZED, NOT_FOUND, FORBIDDEN }),
+
+  cancelInvitation: oc
+    .route({ method: "DELETE", path: "/invitations/{invitationId}" })
+    .input(z.object({ invitationId: z.string() }))
+    .output(z.object({ cancelled: z.boolean() }))
+    .errors({ UNAUTHORIZED, NOT_FOUND, FORBIDDEN }),
+
+  resendInvitation: oc
+    .route({ method: "POST", path: "/invitations/{invitationId}/resend" })
+    .input(z.object({ invitationId: z.string() }))
+    .output(z.object({ sent: z.boolean() }))
+    .errors({ UNAUTHORIZED, NOT_FOUND, FORBIDDEN }),
+
+  // KV endpoints (app-specific data)
   listKeys: oc
     .route({ method: "GET", path: "/kv" })
     .input(

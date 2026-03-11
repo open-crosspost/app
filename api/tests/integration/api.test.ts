@@ -29,26 +29,6 @@ describe("API Integration", () => {
     });
   });
 
-  describe("protected", () => {
-    it("rejects unauthenticated requests", async () => {
-      const client = await getPluginClient();
-
-      await expect(client.protected()).rejects.toMatchObject({
-        code: "UNAUTHORIZED",
-      });
-    });
-
-    it("returns data with authenticated context", async () => {
-      const client = await getPluginClient({ nearAccountId: testOwner });
-
-      const result = await client.protected();
-
-      expect(result.message).toBe("Protected data");
-      expect(result.accountId).toBe(testOwner);
-      expect(result.timestamp).toBeDefined();
-    });
-  });
-
   describe("kv operations", () => {
     it("sets and gets a value", async () => {
       const client = await getPluginClient({ nearAccountId: testOwner });

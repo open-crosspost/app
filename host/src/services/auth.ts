@@ -1,17 +1,12 @@
-import { apiKey } from "@better-auth/api-key";
-import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, anonymous, organization, phoneNumber } from "better-auth/plugins";
-import { siwn } from "better-near-auth";
 import { Context, Effect, Layer } from "every-plugin/effect";
 import * as fs from "fs";
 import * as path from "path";
 import * as schema from "../db/schema/auth";
 import { ConfigService } from "./config";
 import { DatabaseService } from "./database";
-
-export type Auth = ReturnType<typeof betterAuth>;
+import { getPlugins } from "./auth-plugins";
 
 // Dev preview directory for email/SMS
 const DEV_PREVIEW_DIR = path.join(process.cwd(), ".dev-preview");
@@ -133,45 +128,12 @@ export const createAuth = Effect.gen(function* () {
     trustedOrigins: process.env.CORS_ORIGIN?.split(",") || ["*"],
     secret: process.env.BETTER_AUTH_SECRET || "default-secret-change-in-production",
     baseURL: process.env.BETTER_AUTH_URL,
-    plugins: [
-      siwn({
-        recipient: config.account,
-      }),
-      admin({
-        defaultRole: "user",
-        adminRoles: ["admin"],
-      }),
-      anonymous({
-        emailDomainName: config.account,
-        onLinkAccount: async ({ anonymousUser, newUser }) => {
-          // Handle linking anonymous user data to new user
-          console.log(`[Anonymous] Linking ${anonymousUser.user.id} to ${newUser.user.id}`);
-          // Migrate anonymous user's personal org to new user
-          await createPersonalOrganization(DatabaseService, newUser.user);
-        },
-      }),
-      phoneNumber({
-        sendOTP: async ({ phoneNumber, code }, _ctx) => {
-          void sendSMS({ phoneNumber, code });
-        },
-        signUpOnVerification: {
-          getTempEmail: (phoneNumber) => `${phoneNumber}@${config.account}`,
-          getTempName: (phoneNumber) => phoneNumber,
-        },
-      }),
-      passkey(),
-      organization({
-        async sendInvitationEmail(data) {
-          const inviteLink = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/accept-invitation/${data.id}`;
-          void sendEmail({
-            to: data.email,
-            subject: `Invitation to join ${data.organization.name}`,
-            text: `You've been invited by ${data.inviter.user.name} (${data.inviter.user.email}) to join ${data.organization.name}.\n\nClick here to accept: ${inviteLink}`,
-          });
-        },
-      }),
-      apiKey(),
-    ],
+    plugins: getPlugins({
+      account: config.account,
+      baseUrl: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+      sendEmail,
+      sendSMS,
+    }),
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
@@ -201,13 +163,12 @@ export const createAuth = Effect.gen(function* () {
     databaseHooks: {
       user: {
         create: {
-          after: async (user) => {
-            // Skip for anonymous users
-            const userData = user as typeof schema.user.$inferInsert & { isAnonymous?: boolean };
-            if (!userData.isAnonymous) {
-              await createPersonalOrganization(DatabaseService, user);
-            }
-          },
+        after: async (user) => {
+          const userData = user as typeof schema.user.$inferInsert & { isAnonymous?: boolean };
+          if (!userData.isAnonymous) {
+            await createPersonalOrganization(db, user);
+          }
+        },
         },
       },
     },
@@ -234,6 +195,10 @@ export const createAuth = Effect.gen(function* () {
     },
   });
 });
+
+// Use any for Auth type to avoid complex type inference issues with plugins
+// The actual auth instance has all plugin methods at runtime
+export type Auth = any;
 
 export class AuthService extends Context.Tag("host/AuthService")<AuthService, Auth>() {
   static Default = Layer.effect(AuthService, createAuth);
