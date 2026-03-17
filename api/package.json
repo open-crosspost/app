@@ -17,7 +17,8 @@
     "@orpc/server": "^1.13.4",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
-    "near-kit": "catalog:"
+    "near-kit": "catalog:",
+    "near-social-js": "^2.0.4"
   },
   "devDependencies": {
     "@effect/language-service": "^0.41.1",

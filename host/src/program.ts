@@ -10,9 +10,10 @@ import { formatORPCError } from "every-plugin/errors";
 import { onError } from "every-plugin/orpc";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
+import { getRegistryApp, getRegistryAppByHost } from "../../api/src/services/registry";
 import { BaseLive, PluginsLive } from "./layers";
 import { type Auth, AuthService } from "./services/auth";
-import { ConfigService, type RuntimeConfig } from "./services/config";
+import { type ClientRuntimeConfig, ConfigService, type RuntimeConfig } from "./services/config";
 import { createRequestContext } from "./services/context";
 import { type Database, DatabaseService } from "./services/database";
 import { loadRouterModule, type RouterModule } from "./services/federation.server";
@@ -20,6 +21,125 @@ import { PluginsService } from "./services/plugins";
 import { createRouter } from "./services/router";
 import { installSsrApiClientGlobal, runWithSsrApiClient } from "./services/ssr-api-client";
 import { logger } from "./utils/logger";
+
+interface ActiveRuntimeState {
+  accountId: string;
+  gatewayId: string;
+  runtimeBasePath: string;
+  canonicalConfigUrl: string | null;
+  resolvedConfig: Record<string, unknown> | null;
+  title: string | null;
+  hostUrl: string | null;
+}
+
+type RuntimeClientConfig = ClientRuntimeConfig & {
+  runtime?: ActiveRuntimeState;
+};
+
+function normalizeUrl(url?: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    return new URL(url).toString().replace(/\/$/, "");
+  } catch {
+    return url.replace(/\/$/, "");
+  }
+}
+
+function getRuntimeOverride(pathname: string) {
+  const match = pathname.match(/^\/_runtime\/([^/]+)\/([^/]+)(?:\/|$)/);
+  if (!match) {
+    return null;
+  }
+
+  const [, encodedAccountId, encodedGatewayId] = match;
+  const accountId = decodeURIComponent(encodedAccountId);
+  const gatewayId = decodeURIComponent(encodedGatewayId);
+
+  return {
+    accountId,
+    gatewayId,
+    runtimeBasePath: `/_runtime/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`,
+  };
+}
+
+function getFallbackGatewayId(config: RuntimeConfig) {
+  if (process.env.GATEWAY_DOMAIN) {
+    return process.env.GATEWAY_DOMAIN;
+  }
+
+  return normalizeUrl(config.hostUrl)?.replace(/^https?:\/\//, "") ?? "runtime";
+}
+
+async function resolveActiveRuntime(config: RuntimeConfig, request: Request) {
+  const url = new URL(request.url);
+  const override = getRuntimeOverride(url.pathname);
+
+  if (override) {
+    const runtime = await getRegistryApp(override.accountId, override.gatewayId);
+    if (!runtime) {
+      return null;
+    }
+
+    return {
+      accountId: runtime.accountId,
+      gatewayId: runtime.gatewayId,
+      runtimeBasePath: override.runtimeBasePath,
+      canonicalConfigUrl: runtime.canonicalConfigUrl,
+      resolvedConfig: runtime.resolvedConfig,
+      title: runtime.metadata?.title ?? runtime.gatewayId,
+      hostUrl: runtime.hostUrl,
+    } satisfies ActiveRuntimeState;
+  }
+
+  const hostRuntime = await getRegistryAppByHost(url.origin).catch(() => null);
+  if (hostRuntime) {
+    return {
+      accountId: hostRuntime.accountId,
+      gatewayId: hostRuntime.gatewayId,
+      runtimeBasePath: "/",
+      canonicalConfigUrl: hostRuntime.canonicalConfigUrl,
+      resolvedConfig: hostRuntime.resolvedConfig,
+      title: hostRuntime.metadata?.title ?? hostRuntime.gatewayId,
+      hostUrl: hostRuntime.hostUrl,
+    } satisfies ActiveRuntimeState;
+  }
+
+  return {
+    accountId: config.account,
+    gatewayId: getFallbackGatewayId(config),
+    runtimeBasePath: "/",
+    canonicalConfigUrl: null,
+    resolvedConfig: null,
+    title: config.account,
+    hostUrl: config.hostUrl,
+  } satisfies ActiveRuntimeState;
+}
+
+function buildRuntimeClientConfig(
+  config: RuntimeConfig,
+  request: Request,
+  activeRuntime: ActiveRuntimeState,
+): RuntimeClientConfig {
+  const requestUrl = new URL(request.url);
+
+  return {
+    env: config.env,
+    account: activeRuntime.accountId,
+    hostUrl: requestUrl.origin,
+    assetsUrl: config.ui.url,
+    apiBase: "/api",
+    rpcBase: "/api/rpc",
+    ui: {
+      name: config.ui.name,
+      url: config.ui.url,
+      entry: config.ui.entry,
+    },
+    runtime: activeRuntime,
+  };
+}
 
 function extractErrorDetails(error: unknown): {
   message: string;
@@ -317,6 +437,9 @@ export const createStartServer = (onReady?: () => void) =>
       app.use("/icon.svg", serveStatic({ root: "./dist" }));
       app.use("/manifest.json", serveStatic({ root: "./dist" }));
       app.use("/robots.txt", serveStatic({ root: "./dist" }));
+      app.use("/README.md", serveStatic({ root: "./dist" }));
+      app.use("/skill.md", serveStatic({ root: "./dist" }));
+      app.use("/llms.txt", serveStatic({ root: "./dist" }));
     }
 
     logMilestone("Server starting");
@@ -325,19 +448,32 @@ export const createStartServer = (onReady?: () => void) =>
       console.log(`[HTTP] ${c.req.method} ${c.req.url}`);
       const loadingTime = Date.now() - loadingState.startTime;
       const isTimedOut = loadingTime > 30000;
+      const activeRuntime = await resolveActiveRuntime(config, c.req.raw);
+
+      if (!activeRuntime) {
+        return c.html(
+          `<!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <title>Runtime Not Found</title>
+            </head>
+            <body>
+              <h1>Runtime Not Found</h1>
+              <p>The requested published runtime could not be resolved.</p>
+            </body>
+          </html>`,
+          404,
+        );
+      }
+
+      const runtimeConfig = buildRuntimeClientConfig(config, c.req.raw, activeRuntime);
 
       if (loadingState.status !== "ready") {
         if (loadingState.status === "failed" || isTimedOut) {
           loadingState.status = "failed";
 
           const clientUrl = config.ui.url;
-          const runtimeConfig = {
-            env: config.env,
-            account: config.account,
-            assetsUrl: clientUrl,
-            apiBase: "/api",
-            rpcBase: "/api/rpc",
-          };
 
           return c.html(
             `<!DOCTYPE html>
@@ -394,7 +530,6 @@ export const createStartServer = (onReady?: () => void) =>
       }
 
       try {
-        const { env, account } = config;
         const assetsUrl = config.ui.url;
 
         const requestContext = await createRequestContext(c.req.raw, auth, db);
@@ -411,13 +546,7 @@ export const createStartServer = (onReady?: () => void) =>
           ssrRouterModule?.renderToStream(c.req.raw, {
             assetsUrl,
             session: requestContext.session,
-            runtimeConfig: {
-              env,
-              account,
-              assetsUrl,
-              apiBase: "/api",
-              rpcBase: "/api/rpc",
-            },
+            runtimeConfig,
           });
 
         const result = ssrApiClient

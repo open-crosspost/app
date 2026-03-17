@@ -1,35 +1,49 @@
 import { getAssetsUrl, getRuntimeConfig } from "./remote/runtime";
 
-export async function hydrate() {
-  console.log("[Hydrate] Starting...");
+declare global {
+  interface Window {
+    __EVERYTHING_DEV_HYDRATE_PROMISE__?: Promise<void>;
+  }
+}
 
-  const runtimeConfig = getRuntimeConfig();
-  if (!runtimeConfig) {
-    console.error("[Hydrate] No runtime config found");
-    return;
+export async function hydrate() {
+  if (window.__EVERYTHING_DEV_HYDRATE_PROMISE__) {
+    return window.__EVERYTHING_DEV_HYDRATE_PROMISE__;
   }
 
-  const { hydrateRoot } = await import("react-dom/client");
-  const { RouterClient } = await import("@tanstack/react-router/ssr/client");
-  const { QueryClientProvider } = await import("@tanstack/react-query");
-  const { createRouter } = await import("./router");
+  window.__EVERYTHING_DEV_HYDRATE_PROMISE__ = (async () => {
+    console.log("[Hydrate] Starting...");
 
-  const { router, queryClient } = createRouter({
-    context: {
-      assetsUrl: getAssetsUrl(runtimeConfig),
-      runtimeConfig,
-    },
-  });
+    const runtimeConfig = getRuntimeConfig();
+    if (!runtimeConfig) {
+      console.error("[Hydrate] No runtime config found");
+      return;
+    }
 
-  console.log("[Hydrate] Calling hydrateRoot...");
-  hydrateRoot(
-    document,
-    <QueryClientProvider client={queryClient}>
-      <RouterClient router={router} />
-    </QueryClientProvider>,
-  );
+    const { hydrateRoot } = await import("react-dom/client");
+    const { RouterClient } = await import("@tanstack/react-router/ssr/client");
+    const { QueryClientProvider } = await import("@tanstack/react-query");
+    const { createRouter } = await import("./router");
 
-  console.log("[Hydrate] Complete!");
+    const { router, queryClient } = createRouter({
+      context: {
+        assetsUrl: getAssetsUrl(runtimeConfig),
+        runtimeConfig,
+      },
+    });
+
+    console.log("[Hydrate] Calling hydrateRoot...");
+    hydrateRoot(
+      document,
+      <QueryClientProvider client={queryClient}>
+        <RouterClient router={router} />
+      </QueryClientProvider>,
+    );
+
+    console.log("[Hydrate] Complete!");
+  })();
+
+  return window.__EVERYTHING_DEV_HYDRATE_PROMISE__;
 }
 
 export default hydrate;

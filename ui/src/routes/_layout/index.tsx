@@ -1,44 +1,134 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components";
+import { buildRuntimeHref, getActiveRuntime } from "@/lib/active-runtime";
+import { Route as RootRoute } from "../__root";
 
 export const Route = createFileRoute("/_layout/")({
   head: () => ({
     meta: [
-      { title: "everything.dev | A pursuit for the open web" },
-      { name: "description", content: "everything.dev - A pursuit for the open web" },
+      { title: "everything.dev | Runtime composition on NEAR" },
+      {
+        name: "description",
+        content:
+          "everything.dev is an open runtime for apps on NEAR, composed from published config and loaded at runtime.",
+      },
     ],
   }),
   component: Landing,
 });
 
+const subtitles = [
+  <>
+    An open runtime for apps on{" "}
+    <a href="https://near.org" className="underline hover:text-foreground transition-colors">
+      NEAR
+    </a>
+  </>,
+  "an upgradable runtime for a verifiable internet",
+  "in pursuit of the open web.",
+];
+
 function Landing() {
+  const router = useRouter();
+  const { runtimeConfig } = RootRoute.useLoaderData();
+  const [subtitleIndex, setSubtitleIndex] = useState(0);
+  const activeRuntime = getActiveRuntime(runtimeConfig);
+  const runtimeLabel = activeRuntime
+    ? `${activeRuntime.accountId} / ${activeRuntime.gatewayId}`
+    : runtimeConfig?.account
+      ? `${runtimeConfig.account} / ${getGatewayLabel(runtimeConfig.hostUrl)}`
+      : "runtime / host";
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSubtitleIndex((i) => (i + 1) % subtitles.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const preloadApps = useCallback(() => {
+    router.preloadRoute({ to: "/apps" } as Parameters<typeof router.preloadRoute>[0]);
+  }, [router]);
+
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-6">
-      <div className="max-w-2xl text-center space-y-8">
-        <h1 className="text-3xl sm:text-4xl font-semibold">
+    <div className="flex min-h-[80vh] flex-col items-center justify-center pb-[8vh] animate-fade-in">
+      <div className="flex max-w-3xl flex-col items-center text-center">
+        <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground font-mono">
+          {runtimeLabel}
+        </p>
+
+        <h1
+          className="mt-4 text-5xl font-semibold tracking-tight sm:text-7xl"
+          style={{
+            textShadow: "rgba(0,0,0,0.08) 1px 1px 1px, rgba(0,0,0,0.06) 3px 3px 3px",
+          }}
+        >
           everything.dev
         </h1>
-        <p className="text-base text-muted-foreground">
-          a pursuit for the open web
+
+        <div className="mt-2 flex min-h-[1.75rem] items-center justify-center sm:min-h-[2rem]">
+          <p
+            key={subtitleIndex}
+            className="text-lg text-foreground sm:text-xl animate-subtitle-cycle"
+          >
+            {subtitles[subtitleIndex]}
+          </p>
+        </div>
+
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          Published config composes the host, UI, and API at runtime. The runtime is published from
+          NEAR, can share a stable host, and leaves room for new interfaces, plugins, and composed
+          applications to grow around the same core record.
         </p>
-        
-        <div className="pt-8 space-y-4">
+
+        <div className="mt-5 flex flex-wrap items-start justify-center gap-3">
           <Button asChild>
-            <Link to="/login">
-              get started →
-            </Link>
+            <a
+              href={buildRuntimeHref("/apps", runtimeConfig)}
+              onMouseEnter={preloadApps}
+              onFocus={preloadApps}
+              onClick={(e) => {
+                e.preventDefault();
+                router.navigate({ to: "/apps" } as Parameters<typeof router.navigate>[0]);
+              }}
+            >
+              browse apps
+            </a>
+          </Button>
+          <div className="group relative flex flex-col items-center">
+            <Button asChild variant="outline">
+              <Link to="/about" preload="intent">
+                about
+              </Link>
+            </Button>
+            <a
+              href="/skill.md"
+              className="absolute top-full mt-1 text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-foreground whitespace-nowrap font-mono"
+            >
+              for your agent: skill.md
+            </a>
+          </div>
+          <Button asChild variant="outline">
+            <a href={buildRuntimeHref("/config", runtimeConfig)}>config</a>
           </Button>
         </div>
-        
-        <div className="pt-8">
-          <a
-            href="/about"
-            className="text-sm text-link hover:underline"
-          >
-            about
-          </a>
-        </div>
       </div>
+
+      <p className="pt-4 text-xs text-muted-foreground text-center max-w-md">
+        Software that stays portable, inspectable, and continuously built over time.
+      </p>
     </div>
   );
+}
+
+function getGatewayLabel(hostUrl?: string) {
+  if (!hostUrl) {
+    return "gateway";
+  }
+
+  try {
+    return new URL(hostUrl).host;
+  } catch {
+    return hostUrl;
+  }
 }

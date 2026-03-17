@@ -1,21 +1,31 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { sessionQueryOptions, organizationsQueryOptions, signOut } from "@/lib/session";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { organizationsQueryOptions, sessionQueryOptions, signOut } from "@/lib/session";
 
 export function UserNav() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  
+
   const { data: session } = useQuery(sessionQueryOptions());
-  const { data: organizations } = useQuery(organizationsQueryOptions());
-  
   const user = session?.user;
+  const { data: organizations } = useQuery({
+    ...organizationsQueryOptions(),
+    enabled: !!user,
+  });
   const activeOrgId = session?.session?.activeOrganizationId;
-  
+
   const activeOrg = useMemo(() => {
-    return organizations?.find(org => org.id === activeOrgId);
+    return organizations?.find((org) => org.id === activeOrgId);
   }, [organizations, activeOrgId]);
 
   const signOutMutation = useMutation({
@@ -26,7 +36,7 @@ export function UserNav() {
     },
     onSuccess: () => {
       router.invalidate();
-      window.location.href = "/home";
+      router.navigate({ to: "/" });
     },
     onError: (error: Error) => {
       console.error("Sign out error:", error);
@@ -35,79 +45,105 @@ export function UserNav() {
 
   if (!user) {
     return (
-      <Button asChild variant="outline">
-        <Link to="/login">
-          login
-        </Link>
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link to="/login">connect</Link>
+        </Button>
+        <DotControl />
+      </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 sm:gap-3">
+    <div className="flex items-center gap-2">
       {activeOrg && (
-        <Button asChild variant="outline" size="sm" className="hidden sm:flex max-w-[120px]">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="hidden sm:flex max-w-[120px] text-xs text-muted-foreground"
+        >
           <Link to="/organizations">
             <span className="truncate">{activeOrg.name}</span>
           </Link>
         </Button>
       )}
-      
-      <div className="relative group">
-        <Button variant="outline" className="flex items-center gap-2">
-          <span className="truncate max-w-[100px] sm:max-w-[150px]">
-            {user.name || user.email || user.id.slice(0, 8)}
-          </span>
-          <span className="text-muted-foreground hidden sm:inline">▼</span>
-        </Button>
-        
-        <div className="absolute right-0 top-full mt-1 w-48 border-2 border-outset border-[rgb(51,51,51)] bg-background opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 dark:border-[rgb(100,100,100)]">
-          <div className="p-3 border-b border-border">
-            <p className="text-xs text-muted-foreground">signed in as</p>
-            <p className="text-sm truncate">{user.email || user.id}</p>
-          </div>
-          
-          <div className="p-1">
-            <Link
-              to="/"
-              className="block px-3 py-2 text-sm hover:bg-muted/20 transition-colors"
-            >
-              home
-            </Link>
-            <Link
-              to="/organizations"
-              className="block px-3 py-2 text-sm hover:bg-muted/20 transition-colors"
-            >
-              organizations
-            </Link>
-            <Link
-              to="/settings"
-              className="block px-3 py-2 text-sm hover:bg-muted/20 transition-colors"
-            >
-              settings
-            </Link>
-            {user.role === "admin" && (
-              <Link
-                to="/dashboard"
-                className="block px-3 py-2 text-sm hover:bg-muted/20 transition-colors"
-              >
-                admin
-              </Link>
-            )}
-          </div>
-          
-          <div className="p-1 border-t border-border">
-            <button
-              type="button"
-              onClick={() => signOutMutation.mutate()}
-              disabled={signOutMutation.isPending}
-              className="block w-full text-left px-3 py-2 text-sm hover:bg-muted/20 transition-colors disabled:opacity-50"
-            >
-              {signOutMutation.isPending ? "signing out..." : "sign out"}
-            </button>
-          </div>
-        </div>
-      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="w-6 h-6 rounded-full bg-foreground transition-all duration-200 ease-out hover:shadow-lg hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            title="menu"
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">signed in as</p>
+              <p className="truncate text-sm font-normal">{user.email || user.id}</p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/home">workspace</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/organizations">organizations</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/settings">settings</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a href="/apps">published apps</a>
+          </DropdownMenuItem>
+          {user.role === "admin" && (
+            <DropdownMenuItem asChild>
+              <Link to="/dashboard">admin</Link>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(event) => {
+              event.preventDefault();
+              signOutMutation.mutate();
+            }}
+            disabled={signOutMutation.isPending}
+          >
+            {signOutMutation.isPending ? "signing out..." : "sign out"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
+  );
+}
+
+function DotControl() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="w-6 h-6 rounded-full bg-foreground transition-all duration-200 ease-out hover:shadow-lg hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          title="actions"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel className="text-xs text-muted-foreground">navigate</DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link to="/login">connect</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/apps">apps</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/about">about</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/api">api reference</a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

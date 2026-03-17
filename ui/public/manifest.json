@@ -1,7 +1,7 @@
 {
-  "short_name": "Demo",
-  "name": "Every Demo",
-  "description": "Demo application showcasing Module Federation with SSR, TanStack Router, and oRPC",
+  "short_name": "everything.dev",
+  "name": "everything.dev",
+  "description": "Open runtime for apps on NEAR, composed from published config and loaded at runtime.",
   "icons": [
     {
       "src": "favicon-16x16.png",
@@ -52,8 +52,8 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#171717",
-  "background_color": "#ffffff",
-  "categories": ["development", "demo"],
+  "theme_color": "#fafafa",
+  "background_color": "#fafafa",
+  "categories": ["developer tools", "productivity", "web development"],
   "orientation": "portrait-primary"
 }

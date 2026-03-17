@@ -1,27 +1,28 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Badge, Button, Card, CardContent } from "@/components";
 import { authClient } from "@/lib/auth-client";
 import {
-  sessionQueryOptions,
-  passkeysQueryOptions,
-  updateProfile,
-  changePassword,
-  revokeOtherSessions,
   addPasskey,
-  removePasskey,
+  changePassword,
   linkNearWallet,
+  passkeysQueryOptions,
+  removePasskey,
+  revokeOtherSessions,
+  sessionQueryOptions,
+  updateProfile,
 } from "@/lib/session";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_layout/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Settings | demo.everything" },
-      { name: "description", content: "Manage your account and authentication methods." },
+      { title: "Settings | everything.dev" },
+      {
+        name: "description",
+        content: "Manage your account and authentication methods.",
+      },
     ],
   }),
   component: Settings,
@@ -29,49 +30,91 @@ export const Route = createFileRoute("/_layout/_authenticated/settings")({
 
 function Settings() {
   const { data: session } = useQuery(sessionQueryOptions());
-  const { data: passkeys } = useQuery(passkeysQueryOptions());
-  
+  const { data: passkeys = [] } = useQuery(passkeysQueryOptions());
+
   const user = session?.user;
   const nearAccountId = authClient.near.getAccountId();
 
   if (!user) {
     return (
-      <div className="space-y-6">
-        <p className="text-xs text-muted-foreground">Loading...</p>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center text-sm text-muted-foreground">
+          Loading settings...
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <h1 className="text-lg font-mono">Settings</h1>
-        <p className="text-xs text-muted-foreground">
-          Manage your identity and authentication methods
-        </p>
+      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card>
+          <CardContent className="p-6 sm:p-8 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">settings</Badge>
+              {user.isAnonymous && <Badge variant="outline">anonymous</Badge>}
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                Identity & Security
+              </h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Update your profile, attach durable authentication methods, and
+                control how your workspace session behaves.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link to="/home">back to workspace</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <a href="/apps">published apps</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <MiniStat label="email" value={user.email ? "linked" : "missing"} />
+            <MiniStat
+              label="near"
+              value={nearAccountId ? "linked" : "missing"}
+            />
+            <MiniStat label="passkeys" value={String(passkeys.length)} />
+            <MiniStat
+              label="profile"
+              value={user.isAnonymous ? "temporary" : "persistent"}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       <ProfileSection user={user} />
-      
-      <AuthMethodsSection 
-        user={user} 
-        passkeys={passkeys || []}
+      <AuthMethodsSection
+        user={user}
+        passkeys={passkeys}
         nearAccountId={nearAccountId}
       />
-      
       <SecuritySection user={user} />
     </div>
   );
 }
 
-function ProfileSection({ user }: { user: { id: string; email?: string; name?: string; isAnonymous?: boolean } }) {
+function ProfileSection({
+  user,
+}: {
+  user: { id: string; email?: string; name?: string; isAnonymous?: boolean };
+}) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(user.name || "");
 
   const updateMutation = useMutation({
     mutationFn: () => updateProfile(name),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions().queryKey,
+      });
       toast.success("Profile updated");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -79,73 +122,58 @@ function ProfileSection({ user }: { user: { id: string; email?: string; name?: s
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xs font-mono text-muted-foreground border-b border-border pb-2">
-        profile
-      </h2>
-      
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Profile</h2>
+        <p className="text-sm text-muted-foreground">
+          Core identity values stored on your account session.
+        </p>
+      </div>
+
       <Card>
-        <CardContent className="p-0">
-          <table className="w-full text-xs font-mono">
-            <tbody>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground text-right w-32">id</td>
-                <td className="px-4 py-3">
-                  <code className="text-xs">{user.id}</code>
-                </td>
-              </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground text-right">email</td>
-                <td className="px-4 py-3">
-                  {user.email ? (
-                    <span>{user.email}</span>
-                  ) : (
-                    <span className="text-muted-foreground">not linked</span>
-                  )}
-                </td>
-              </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground text-right">name</td>
-                <td className="px-4 py-3">
-                  <Input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="h-7 text-xs"
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-muted-foreground text-right">type</td>
-                <td className="px-4 py-3">
-                  {user.isAnonymous ? (
-                    <span className="text-muted-foreground">anonymous</span>
-                  ) : (
-                    <span>standard</span>
-                  )}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <CardContent className="p-6 space-y-4">
+          <Field label="user id">
+            <div className="rounded-sm border border-border bg-muted/10 p-3 font-mono text-xs break-all">
+              {user.id}
+            </div>
+          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="email">
+              <div className="rounded-sm border border-border bg-muted/10 p-3 text-sm text-muted-foreground">
+                {user.email ?? "not linked"}
+              </div>
+            </Field>
+            <Field label="account type">
+              <div className="rounded-sm border border-border bg-muted/10 p-3 text-sm text-muted-foreground">
+                {user.isAnonymous ? "anonymous" : "standard"}
+              </div>
+            </Field>
+          </div>
+          <Field label="display name">
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="flex h-10 w-full border-2 border-inset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)] bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => updateMutation.mutate()}
+              disabled={updateMutation.isPending || name === (user.name || "")}
+              variant="outline"
+              size="sm"
+            >
+              {updateMutation.isPending ? "saving..." : "save profile"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="flex gap-2">
-        <Button
-          onClick={() => updateMutation.mutate()}
-          disabled={updateMutation.isPending || name === user.name}
-          variant="outline"
-          size="sm"
-        >
-          {updateMutation.isPending ? "saving..." : "save"}
-        </Button>
-      </div>
-
       {user.isAnonymous && (
-        <Card className="bg-muted/20">
-          <CardContent className="p-4">
-            <p className="text-xs font-mono text-muted-foreground leading-relaxed">
-              Your data will be lost when you sign out. Link an email or NEAR wallet to save your progress.
-            </p>
+        <Card>
+          <CardContent className="p-4 text-sm text-muted-foreground leading-relaxed">
+            This session is temporary. Link an email or NEAR wallet before
+            signing out if you want the account to remain recoverable.
           </CardContent>
         </Card>
       )}
@@ -153,11 +181,11 @@ function ProfileSection({ user }: { user: { id: string; email?: string; name?: s
   );
 }
 
-function AuthMethodsSection({ 
-  user, 
-  passkeys, 
-  nearAccountId 
-}: { 
+function AuthMethodsSection({
+  user,
+  passkeys,
+  nearAccountId,
+}: {
   user: { email?: string; isAnonymous?: boolean };
   passkeys: Array<{ id: string; name?: string }>;
   nearAccountId: string | null;
@@ -167,7 +195,9 @@ function AuthMethodsSection({
   const addPasskeyMutation = useMutation({
     mutationFn: addPasskey,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: passkeysQueryOptions().queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: passkeysQueryOptions().queryKey,
+      });
       toast.success("Passkey added");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -176,7 +206,9 @@ function AuthMethodsSection({
   const removePasskeyMutation = useMutation({
     mutationFn: (passkeyId: string) => removePasskey(passkeyId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: passkeysQueryOptions().queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: passkeysQueryOptions().queryKey,
+      });
       toast.success("Passkey removed");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -185,7 +217,9 @@ function AuthMethodsSection({
   const linkNearMutation = useMutation({
     mutationFn: linkNearWallet,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions().queryKey,
+      });
       toast.success("NEAR wallet linked");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -193,91 +227,87 @@ function AuthMethodsSection({
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xs font-mono text-muted-foreground border-b border-border pb-2">
-        auth methods
-      </h2>
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Auth Methods</h2>
+        <p className="text-sm text-muted-foreground">
+          Attach stronger login methods and keep your account portable.
+        </p>
+      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <table className="w-full text-xs font-mono">
-            <tbody>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground text-right w-32">email</td>
-                <td className="px-4 py-3">
-                  {user.email ? (
-                    <span>{user.email}</span>
-                  ) : (
-                    <span className="text-muted-foreground">not linked</span>
-                  )}
-                </td>
-              </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground text-right">near</td>
-                <td className="px-4 py-3">
-                  {nearAccountId ? (
-                    <code className="text-xs">{nearAccountId}</code>
-                  ) : (
-                    <Button
-                      onClick={() => linkNearMutation.mutate()}
-                      disabled={linkNearMutation.isPending}
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto px-0 py-0 text-xs font-mono text-muted-foreground hover:text-foreground"
-                    >
-                      {linkNearMutation.isPending ? "linking..." : "link wallet →"}
-                    </Button>
-                  )}
-                </td>
-              </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground text-right">phone</td>
-                <td className="px-4 py-3">
-                  <span className="text-muted-foreground">not linked</span>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-muted-foreground text-right align-top">passkeys</td>
-                <td className="px-4 py-3">
-                  <div className="space-y-2">
-                    {passkeys.length > 0 ? (
-                      passkeys.map((passkey) => (
-                        <div key={passkey.id} className="flex items-center justify-between">
-                          <span>{passkey.name || "Passkey"}</span>
-                          <Button
-                            onClick={() => removePasskeyMutation.mutate(passkey.id)}
-                            disabled={removePasskeyMutation.isPending}
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto px-0 py-0 text-xs font-mono text-muted-foreground hover:text-foreground"
-                          >
-                            remove
-                          </Button>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-muted-foreground">none registered</span>
-                    )}
-                    <Button
-                      onClick={() => addPasskeyMutation.mutate()}
-                      disabled={addPasskeyMutation.isPending}
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto px-0 py-0 text-xs font-mono text-muted-foreground hover:text-foreground"
-                    >
-                      {addPasskeyMutation.isPending ? "adding..." : "add passkey →"}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <MethodCard title="email" status={user.email ? "linked" : "missing"}>
+          <p className="text-sm text-muted-foreground">
+            {user.email ??
+              "Email login has not been linked for this account yet."}
+          </p>
+        </MethodCard>
+
+        <MethodCard title="near" status={nearAccountId ? "linked" : "missing"}>
+          {nearAccountId ? (
+            <div className="rounded-sm border border-border bg-muted/10 p-3 font-mono text-xs break-all">
+              {nearAccountId}
+            </div>
+          ) : (
+            <Button
+              onClick={() => linkNearMutation.mutate()}
+              disabled={linkNearMutation.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {linkNearMutation.isPending ? "linking..." : "link NEAR wallet"}
+            </Button>
+          )}
+        </MethodCard>
+
+        <MethodCard
+          title="passkeys"
+          status={passkeys.length > 0 ? `${passkeys.length} linked` : "missing"}
+        >
+          <div className="space-y-2">
+            {passkeys.length > 0 ? (
+              passkeys.map((passkey) => (
+                <div
+                  key={passkey.id}
+                  className="rounded-sm border border-border bg-muted/10 p-3 flex items-center justify-between gap-3"
+                >
+                  <span className="text-sm truncate">
+                    {passkey.name || "Passkey"}
+                  </span>
+                  <Button
+                    onClick={() => removePasskeyMutation.mutate(passkey.id)}
+                    disabled={removePasskeyMutation.isPending}
+                    variant="outline"
+                    size="sm"
+                  >
+                    remove
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No passkeys registered yet.
+              </p>
+            )}
+            <Button
+              onClick={() => addPasskeyMutation.mutate()}
+              disabled={addPasskeyMutation.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {addPasskeyMutation.isPending ? "adding..." : "add passkey"}
+            </Button>
+          </div>
+        </MethodCard>
+      </div>
     </section>
   );
 }
 
-function SecuritySection({ user }: { user: { email?: string; isAnonymous?: boolean } }) {
+function SecuritySection({
+  user,
+}: {
+  user: { email?: string; isAnonymous?: boolean };
+}) {
   const queryClient = useQueryClient();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -312,7 +342,9 @@ function SecuritySection({ user }: { user: { email?: string; isAnonymous?: boole
     mutationFn: async () => {
       await authClient.signOut();
       await authClient.near.disconnect().catch(() => {});
-      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions().queryKey,
+      });
     },
     onSuccess: () => {
       window.location.href = "/";
@@ -322,101 +354,178 @@ function SecuritySection({ user }: { user: { email?: string; isAnonymous?: boole
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xs font-mono text-muted-foreground border-b border-border pb-2">
-        security
-      </h2>
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Security</h2>
+        <p className="text-sm text-muted-foreground">
+          Session controls and password management for linked email accounts.
+        </p>
+      </div>
 
-      {user.email && (
-        <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-xs font-mono">
-              <tbody>
-                <tr className="border-b border-border">
-                  <td className="px-4 py-3 text-muted-foreground text-right w-32">current</td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="px-4 py-3 text-muted-foreground text-right">new</td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="px-4 py-3 text-muted-foreground text-right">confirm</td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="p-4">
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        {user.email ? (
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div className="font-medium">Change password</div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label="current password">
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    className="flex h-10 w-full border-2 border-inset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)] bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </Field>
+                <Field label="new password">
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    className="flex h-10 w-full border-2 border-inset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)] bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </Field>
+                <Field label="confirm password">
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="flex h-10 w-full border-2 border-inset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)] bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </Field>
+              </div>
               <Button
                 onClick={() => changePasswordMutation.mutate()}
-                disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmPassword}
+                disabled={
+                  changePasswordMutation.isPending ||
+                  !currentPassword ||
+                  !newPassword ||
+                  !confirmPassword
+                }
                 variant="outline"
                 size="sm"
               >
-                {changePasswordMutation.isPending ? "changing..." : "change password"}
+                {changePasswordMutation.isPending
+                  ? "changing..."
+                  : "change password"}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-sm text-muted-foreground">
+              Password management appears once an email-based login is attached
+              to this account.
+            </CardContent>
+          </Card>
+        )}
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-mono">other sessions</p>
-              <p className="text-xs text-muted-foreground mt-1">Revoke all other active sessions</p>
-            </div>
-            <Button
-              onClick={() => revokeSessionsMutation.mutate()}
-              disabled={revokeSessionsMutation.isPending}
-              variant="outline"
-              size="sm"
-            >
-              {revokeSessionsMutation.isPending ? "revoking..." : "revoke"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-mono">sign out</p>
-              <p className="text-xs text-muted-foreground mt-1">End your current session</p>
-            </div>
-            <Button
-              onClick={() => signOutMutation.mutate()}
-              disabled={signOutMutation.isPending}
-              variant="outline"
-              size="sm"
-            >
-              {signOutMutation.isPending ? "signing out..." : "sign out"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="grid gap-4">
+          <SecurityActionCard
+            title="revoke other sessions"
+            body="End every other active session while keeping this one open."
+            actionLabel={
+              revokeSessionsMutation.isPending
+                ? "revoking..."
+                : "revoke sessions"
+            }
+            onClick={() => revokeSessionsMutation.mutate()}
+            disabled={revokeSessionsMutation.isPending}
+          />
+          <SecurityActionCard
+            title="sign out"
+            body="Disconnect this session and return to the public landing page."
+            actionLabel={
+              signOutMutation.isPending ? "signing out..." : "sign out"
+            }
+            onClick={() => signOutMutation.mutate()}
+            disabled={signOutMutation.isPending}
+          />
+        </div>
+      </div>
     </section>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="text-xl font-semibold tracking-tight">{value}</div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MethodCard({
+  title,
+  status,
+  children,
+}: {
+  title: string;
+  status: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="font-medium">{title}</div>
+          <Badge variant="outline">{status}</Badge>
+        </div>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SecurityActionCard({
+  title,
+  body,
+  actionLabel,
+  onClick,
+  disabled,
+}: {
+  title: string;
+  body: string;
+  actionLabel: string;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-3">
+        <div className="space-y-1">
+          <div className="font-medium">{title}</div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {body}
+          </p>
+        </div>
+        <Button
+          onClick={onClick}
+          disabled={disabled}
+          variant="outline"
+          size="sm"
+        >
+          {actionLabel}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

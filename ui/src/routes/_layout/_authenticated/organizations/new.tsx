@@ -2,15 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createOrganization, sessionQueryOptions, organizationsQueryOptions } from "@/lib/session";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { createOrganization, organizationsQueryOptions, sessionQueryOptions } from "@/lib/session";
 
 export const Route = createFileRoute("/_layout/_authenticated/organizations/new")({
   head: () => ({
     meta: [
-      { title: "New Organization | demo.everything" },
+      { title: "New Organization | everything.dev" },
       { name: "description", content: "Create a new organization." },
     ],
   }),
@@ -33,7 +33,10 @@ function NewOrganization() {
       await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
       toast.success(`Organization "${data?.name}" created`);
       if (data?.id) {
-        router.navigate({ to: "/organizations/$id", params: { id: data.id } });
+        await router.navigate({
+          to: "/organizations/$id" as never,
+          params: { id: data.id } as never,
+        });
       }
     },
     onError: (error: Error) => {
@@ -58,19 +61,22 @@ function NewOrganization() {
   return (
     <div className="space-y-8">
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-mono">New Organization</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Create a new workspace for your team
-            </p>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/organizations">
-              back
-            </Link>
-          </Button>
-        </div>
+        <Card>
+          <CardContent className="p-6 sm:p-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                New Organization
+              </h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Create a new workspace for your team, then move directly into membership and API key
+                management.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/organizations">back to organizations</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </section>
 
       <form
@@ -124,9 +130,7 @@ function NewOrganization() {
 
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link to="/organizations">
-              cancel
-            </Link>
+            <Link to="/organizations">cancel</Link>
           </Button>
           <Button
             type="submit"

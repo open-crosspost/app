@@ -2,15 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Badge, Button, Card, CardContent, Input } from "@/components";
 import { apiClient } from "@/remote/orpc";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_layout/_authenticated/keys/")({
   head: () => ({
     meta: [
-      { title: "KV Store | demo.everything" },
+      { title: "KV Store | everything.dev" },
       { name: "description", content: "Key-value store for testing." },
     ],
   }),
@@ -68,57 +66,75 @@ function KeysList() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-mono">KV Store</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              {total} key{total !== 1 ? "s" : ""} stored
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              variant="outline"
-              size="sm"
-            >
-              {showCreateForm ? "cancel" : "new key"}
-            </Button>
-            {keys.length < 10 && (
+      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card>
+          <CardContent className="p-6 sm:p-8 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">developer tools</Badge>
+              <Badge variant="outline">kv</Badge>
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">KV Test Store</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Create sample keys, inspect stored values, and walk through the authenticated API
+                tooling without leaving the workspace.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => setShowCreateForm((value) => !value)}
+                variant="outline"
+                size="sm"
+              >
+                {showCreateForm ? "close form" : "new key"}
+              </Button>
               <Button
                 onClick={() => generateSampleKeys.mutate()}
-                disabled={generateSampleKeys.isPending}
+                disabled={generateSampleKeys.isPending || keys.length >= 10}
                 variant="outline"
                 size="sm"
               >
                 {generateSampleKeys.isPending ? "creating..." : "generate samples"}
               </Button>
-            )}
-          </div>
-        </div>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/home">back to workspace</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <StatBox label="total keys" value={String(total)} />
+            <StatBox label="showing" value={String(keys.length)} />
+            <StatBox label="more" value={hasMore ? "yes" : "no"} />
+          </CardContent>
+        </Card>
       </section>
 
       {showCreateForm && (
         <Card>
-          <CardContent className="p-4 space-y-4">
-            <Input
-              type="text"
-              value={newKey}
-              onChange={(e) => setNewKey(e.target.value)}
-              placeholder="key name"
-            />
-            <Input
-              type="text"
-              value={newValue}
-              onChange={(e) => setNewValue(e.target.value)}
-              placeholder="value"
-            />
+          <CardContent className="p-5 space-y-4">
+            <div className="font-medium">Create key</div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                type="text"
+                value={newKey}
+                onChange={(e) => setNewKey(e.target.value)}
+                placeholder="key name"
+              />
+              <Input
+                type="text"
+                value={newValue}
+                onChange={(e) => setNewValue(e.target.value)}
+                placeholder="value"
+              />
+            </div>
             <Button
               onClick={() => createMutation.mutate({ key: newKey, value: newValue })}
               disabled={createMutation.isPending || !newKey || !newValue}
               variant="outline"
               size="sm"
-              className="w-full"
             >
               {createMutation.isPending ? "creating..." : "create key"}
             </Button>
@@ -128,53 +144,70 @@ function KeysList() {
 
       {keysQuery.isLoading ? (
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground text-center">Loading...</p>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+            Loading keys...
+          </CardContent>
+        </Card>
+      ) : keysQuery.isError ? (
+        <Card>
+          <CardContent className="p-8 text-center space-y-3">
+            <p className="text-sm">The KV list could not be loaded.</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => keysQuery.refetch()}>
+              retry
+            </Button>
           </CardContent>
         </Card>
       ) : keys.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-xs text-muted-foreground">No keys yet</p>
-            <p className="text-xs text-muted-foreground mt-2">Create your first key or generate sample data</p>
+          <CardContent className="p-8 text-center space-y-2">
+            <p className="text-sm">No keys yet.</p>
+            <p className="text-sm text-muted-foreground">
+              Create your first key or generate sample data.
+            </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            {keys.map((item, index) => (
-              <Link
-                key={item.key}
-                to="/keys/$key"
-                params={{ key: item.key }}
-                className={`block p-4 hover:bg-muted/20 transition-colors ${
-                  index !== keys.length - 1 ? "border-b border-border" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground font-mono w-6 text-right">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs font-mono">{item.key}</span>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {keys.map((item, index) => (
+            <Card key={item.key}>
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <div className="text-xs text-muted-foreground font-mono">#{index + 1}</div>
+                    <Link
+                      to="/keys/$key"
+                      params={{ key: item.key }}
+                      className="font-medium break-all hover:underline"
+                    >
+                      {item.key}
+                    </Link>
                   </div>
-                  <span className="text-xs text-muted-foreground font-mono">
+                  <div className="text-xs font-mono text-muted-foreground whitespace-nowrap">
                     {new Date(item.updatedAt).toLocaleDateString()}
-                  </span>
+                  </div>
                 </div>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {hasMore && (
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground font-mono">
-            Showing {keys.length} of {total} keys
-          </p>
+                <div className="rounded-sm border border-border bg-muted/10 p-3 text-xs font-mono text-muted-foreground break-all">
+                  updated {new Date(item.updatedAt).toLocaleString()}
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/keys/$key" params={{ key: item.key }}>
+                    open key
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xl font-semibold tracking-tight">{value}</div>
     </div>
   );
 }

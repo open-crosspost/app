@@ -1,13 +1,23 @@
+import { eq } from "drizzle-orm";
 import { createPlugin } from "every-plugin";
 import { Cause, Effect, Exit, Layer } from "every-plugin/effect";
 import { ORPCError } from "every-plugin/orpc";
 import { z } from "every-plugin/zod";
-import { eq } from "drizzle-orm";
+import type { Auth } from "../../host/src/services/auth";
+import type { Database } from "../../host/src/services/database";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
 import { KvService, KvServiceLive } from "./services/kv";
-import type { Database } from "../../host/src/services/database";
-import type { Auth } from "../../host/src/services/auth";
+import {
+  getRegistryApp,
+  getRegistryAppByHost,
+  getRegistryAppsByAccount,
+  getRegistryRelaySender,
+  getRegistryStatus,
+  listRegistryApps,
+  prepareRegistryMetadataWrite,
+  relayRegistryMetadataWrite,
+} from "./services/registry";
 
 // Extended context with unified identity model
 export interface AuthContext {
@@ -41,6 +51,9 @@ export default createPlugin({
   secrets: z.object({
     API_DATABASE_URL: z.string().default("file:./api.db"),
     API_DATABASE_AUTH_TOKEN: z.string().optional(),
+    REGISTRY_RELAY_ACCOUNT_ID: z.string().optional(),
+    REGISTRY_RELAY_PRIVATE_KEY: z.string().optional(),
+    REGISTRY_RELAY_NETWORK: z.enum(["mainnet", "testnet"]).optional(),
   }),
 
   context: z.object({
@@ -157,7 +170,7 @@ export default createPlugin({
     });
 
     // Organization role check - requires membership with specific role
-    const requireOrgRole = (requiredRole: "owner" | "admin" | "member") => 
+    const requireOrgRole = (requiredRole: "owner" | "admin" | "member") =>
       builder.middleware(async ({ context, next }, input: any) => {
         if (!context.user || !context.userId) {
           throw new ORPCError("UNAUTHORIZED", {
@@ -178,10 +191,8 @@ export default createPlugin({
 
         // Check membership in the target organization
         const membership = await context.db!.query.member.findFirst({
-          where: (member: any, { and, eq }: any) => and(
-            eq(member.userId, context.userId),
-            eq(member.organizationId, targetOrgId),
-          ),
+          where: (member: any, { and, eq }: any) =>
+            and(eq(member.userId, context.userId), eq(member.organizationId, targetOrgId)),
         });
 
         if (!membership) {
@@ -230,6 +241,92 @@ export default createPlugin({
         timestamp: new Date().toISOString(),
       })),
 
+      listRegistryApps: builder.listRegistryApps.handler(async ({ input }) => {
+        return listRegistryApps(input);
+      }),
+
+      getRegistryAppsByAccount: builder.getRegistryAppsByAccount.handler(
+        async ({ input, errors }) => {
+          const result = await getRegistryAppsByAccount(input.accountId);
+          if (result.data.length === 0) {
+            throw errors.NOT_FOUND({
+              message: "No published apps found for account",
+              data: { resource: "registry-account", resourceId: input.accountId },
+            });
+          }
+
+          return result;
+        },
+      ),
+
+      getRegistryApp: builder.getRegistryApp.handler(async ({ input, errors }) => {
+        const result = await getRegistryApp(input.accountId, input.gatewayId);
+        if (!result) {
+          throw errors.NOT_FOUND({
+            message: "Published app not found",
+            data: {
+              resource: "published-app",
+              resourceId: `${input.accountId}/${input.gatewayId}`,
+            },
+          });
+        }
+
+        return { data: result };
+      }),
+
+      getRegistryAppByHost: builder.getRegistryAppByHost.handler(async ({ input, errors }) => {
+        const result = await getRegistryAppByHost(input.hostUrl);
+        if (!result) {
+          throw errors.NOT_FOUND({
+            message: "Published app not found for host",
+            data: {
+              resource: "published-app-host",
+              resourceId: input.hostUrl,
+            },
+          });
+        }
+
+        return { data: result };
+      }),
+
+      getRegistryStatus: builder.getRegistryStatus.handler(async () => {
+        return getRegistryStatus();
+      }),
+
+      prepareRegistryMetadataWrite: builder.prepareRegistryMetadataWrite.handler(
+        async ({ input }) => {
+          return { data: prepareRegistryMetadataWrite(input) };
+        },
+      ),
+
+      relayRegistryMetadataWrite: builder.relayRegistryMetadataWrite
+        .use(requireNearAccount)
+        .handler(async ({ input, context, errors }) => {
+          try {
+            const senderId = getRegistryRelaySender(input.payload);
+
+            if (context.nearAccountId && senderId !== context.nearAccountId) {
+              throw errors.FORBIDDEN({
+                message: "Signed delegate payload does not match your linked NEAR account",
+                data: { action: "relay" },
+              });
+            }
+
+            const result = await relayRegistryMetadataWrite(input.payload);
+
+            return { data: result };
+          } catch (error) {
+            if (error instanceof ORPCError) {
+              throw error;
+            }
+
+            throw errors.BAD_REQUEST({
+              message: error instanceof Error ? error.message : "Failed to relay metadata write",
+              data: {},
+            });
+          }
+        }),
+
       // Auth health check - shows email/SMS configuration status
       authHealth: builder.authHealth.use(requireAuth).handler(async () => ({
         status: "ok",
@@ -259,104 +356,94 @@ export default createPlugin({
         return exit.value;
       }),
 
-      getValue: builder.getValue
-        .use(requireAuth)
-        .handler(async ({ input, context, errors }) => {
-          const exit = await Effect.runPromiseExit(
-            services.getValue(input.key, context.userId),
-          );
+      getValue: builder.getValue.use(requireAuth).handler(async ({ input, context, errors }) => {
+        const exit = await Effect.runPromiseExit(services.getValue(input.key, context.userId));
 
-          if (Exit.isFailure(exit)) {
-            const squashed = Cause.squash(exit.cause);
-            if (squashed instanceof ORPCError) {
-              if (squashed.code === "NOT_FOUND") {
-                throw errors.NOT_FOUND({
-                  message: "Key not found",
-                  data: { resource: "kv", resourceId: input.key },
-                });
-              }
-              if (squashed.code === "FORBIDDEN") {
-                throw errors.FORBIDDEN({
-                  message: "Access denied",
-                  data: { action: "read" },
-                });
-              }
-              throw squashed;
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            if (squashed.code === "NOT_FOUND") {
+              throw errors.NOT_FOUND({
+                message: "Key not found",
+                data: { resource: "kv", resourceId: input.key },
+              });
             }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: squashed instanceof Error ? squashed.message : String(squashed),
-              data: {
-                originalError: squashed instanceof Error ? squashed.message : String(squashed),
-              },
-            });
-          }
-
-          return exit.value;
-        }),
-
-      setValue: builder.setValue
-        .use(requireAuth)
-        .handler(async ({ input, context, errors }) => {
-          const exit = await Effect.runPromiseExit(
-            services.setValue(input.key, input.value, context.userId),
-          );
-
-          if (Exit.isFailure(exit)) {
-            const squashed = Cause.squash(exit.cause);
-            if (squashed instanceof ORPCError) {
-              if (squashed.code === "FORBIDDEN") {
-                throw errors.FORBIDDEN({
-                  message: "Access denied",
-                  data: { action: "write" },
-                });
-              }
-              throw squashed;
+            if (squashed.code === "FORBIDDEN") {
+              throw errors.FORBIDDEN({
+                message: "Access denied",
+                data: { action: "read" },
+              });
             }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: squashed instanceof Error ? squashed.message : String(squashed),
-              data: {
-                originalError: squashed instanceof Error ? squashed.message : String(squashed),
-              },
-            });
+            throw squashed;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+            data: {
+              originalError: squashed instanceof Error ? squashed.message : String(squashed),
+            },
+          });
+        }
 
-          return exit.value;
-        }),
+        return exit.value;
+      }),
 
-      deleteKey: builder.deleteKey
-        .use(requireAuth)
-        .handler(async ({ input, context, errors }) => {
-          const exit = await Effect.runPromiseExit(
-            services.deleteKey(input.key, context.userId),
-          );
+      setValue: builder.setValue.use(requireAuth).handler(async ({ input, context, errors }) => {
+        const exit = await Effect.runPromiseExit(
+          services.setValue(input.key, input.value, context.userId),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const squashed = Cause.squash(exit.cause);
-            if (squashed instanceof ORPCError) {
-              if (squashed.code === "NOT_FOUND") {
-                throw errors.NOT_FOUND({
-                  message: "Key not found",
-                  data: { resource: "kv", resourceId: input.key },
-                });
-              }
-              if (squashed.code === "FORBIDDEN") {
-                throw errors.FORBIDDEN({
-                  message: "Access denied",
-                  data: { action: "delete" },
-                });
-              }
-              throw squashed;
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            if (squashed.code === "FORBIDDEN") {
+              throw errors.FORBIDDEN({
+                message: "Access denied",
+                data: { action: "write" },
+              });
             }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: squashed instanceof Error ? squashed.message : String(squashed),
-              data: {
-                originalError: squashed instanceof Error ? squashed.message : String(squashed),
-              },
-            });
+            throw squashed;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+            data: {
+              originalError: squashed instanceof Error ? squashed.message : String(squashed),
+            },
+          });
+        }
 
-          return exit.value;
-        }),
+        return exit.value;
+      }),
+
+      deleteKey: builder.deleteKey.use(requireAuth).handler(async ({ input, context, errors }) => {
+        const exit = await Effect.runPromiseExit(services.deleteKey(input.key, context.userId));
+
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            if (squashed.code === "NOT_FOUND") {
+              throw errors.NOT_FOUND({
+                message: "Key not found",
+                data: { resource: "kv", resourceId: input.key },
+              });
+            }
+            if (squashed.code === "FORBIDDEN") {
+              throw errors.FORBIDDEN({
+                message: "Access denied",
+                data: { action: "delete" },
+              });
+            }
+            throw squashed;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+            data: {
+              originalError: squashed instanceof Error ? squashed.message : String(squashed),
+            },
+          });
+        }
+
+        return exit.value;
+      }),
 
       publicError: builder.publicError.handler(() => {
         throw new ORPCError("UNAUTHORIZED", {
@@ -406,153 +493,167 @@ export default createPlugin({
         };
       }),
 
-      createApiKey: builder.createApiKey.use(requireAuth).handler(async ({ context, input, errors }) => {
-        try {
-          const result = await context.auth.api.createApiKey({
-            body: {
-              name: input.name,
-              organizationId: input.organizationId,
-              expiresIn: input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : undefined,
-              permissions: input.permissions ? JSON.stringify(input.permissions) : undefined,
+      createApiKey: builder.createApiKey
+        .use(requireAuth)
+        .handler(async ({ context, input, errors }) => {
+          try {
+            const result = await context.auth.api.createApiKey({
+              body: {
+                name: input.name,
+                organizationId: input.organizationId,
+                expiresIn: input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : undefined,
+                permissions: input.permissions ? JSON.stringify(input.permissions) : undefined,
+              },
+              headers: context.reqHeaders!,
+            });
+
+            if (!result) {
+              throw errors.BAD_REQUEST({
+                message: "Failed to create API key",
+                data: {},
+              });
+            }
+
+            return {
+              id: result.id,
+              name: result.name || input.name,
+              key: result.key || result.start || "",
+              prefix: result.prefix || "api_",
+              permissions: input.permissions || ["read"],
+              createdAt: new Date(result.createdAt).toISOString(),
+              expiresAt: result.expiresAt ? new Date(result.expiresAt).toISOString() : null,
+            };
+          } catch (error) {
+            throw errors.BAD_REQUEST({
+              message: error instanceof Error ? error.message : "Failed to create API key",
+              data: {},
+            });
+          }
+        }),
+
+      deleteApiKey: builder.deleteApiKey
+        .use(requireAuth)
+        .handler(async ({ context, input, errors }) => {
+          try {
+            await context.auth.api.deleteApiKey({
+              body: {
+                id: input.keyId,
+              },
+              headers: context.reqHeaders!,
+            });
+
+            return { deleted: true };
+          } catch (error) {
+            throw errors.NOT_FOUND({
+              message: error instanceof Error ? error.message : "API key not found",
+              data: {},
+            });
+          }
+        }),
+
+      // Organization Members - query database directly
+      listOrgMembers: builder.listOrgMembers
+        .use(requireOrgRole("member"))
+        .handler(async ({ context, input }) => {
+          const members = await context.db.query.member.findMany({
+            where: (member, { eq }) => eq(member.organizationId, input.organizationId),
+            with: {
+              user: true,
             },
-            headers: context.reqHeaders!,
           });
 
-          if (!result) {
-            throw errors.BAD_REQUEST({
-              message: "Failed to create API key",
+          return {
+            members: members.map((m) => ({
+              id: m.id,
+              userId: m.userId,
+              role: m.role as "owner" | "admin" | "member",
+              name: m.user?.name || null,
+              email: m.user?.email || null,
+              createdAt: m.createdAt.toISOString(),
+            })),
+          };
+        }),
+
+      // Organization Invitations - query database directly
+      listOrgInvitations: builder.listOrgInvitations
+        .use(requireOrgRole("member"))
+        .handler(async ({ context, input }) => {
+          const invitations = await context.db.query.invitation.findMany({
+            where: (invitation, { and, eq }) =>
+              and(
+                eq(invitation.organizationId, input.organizationId),
+                eq(invitation.status, "pending"),
+              ),
+          });
+
+          return {
+            invitations: invitations.map((inv) => ({
+              id: inv.id,
+              email: inv.email,
+              role: inv.role as "admin" | "member",
+              status: inv.status as "pending" | "accepted" | "rejected" | "expired",
+              expiresAt: inv.expiresAt.toISOString(),
+              createdAt: inv.createdAt.toISOString(),
+            })),
+          };
+        }),
+
+      // Cancel invitation - requires admin role
+      cancelInvitation: builder.cancelInvitation
+        .use(requireOrgRole("admin"))
+        .handler(async ({ context, input, errors }) => {
+          const invitation = await context.db.query.invitation.findFirst({
+            where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
+          });
+
+          if (!invitation) {
+            throw errors.NOT_FOUND({
+              message: "Invitation not found",
               data: {},
             });
           }
 
-          return {
-            id: result.id,
-            name: result.name || input.name,
-            key: result.key || result.start || "",
-            prefix: result.prefix || "api_",
-            permissions: input.permissions || ["read"],
-            createdAt: new Date(result.createdAt).toISOString(),
-            expiresAt: result.expiresAt ? new Date(result.expiresAt).toISOString() : null,
-          };
-        } catch (error) {
-          throw errors.BAD_REQUEST({
-            message: error instanceof Error ? error.message : "Failed to create API key",
-            data: {},
-          });
-        }
-      }),
+          if (invitation.organizationId !== context.organizationId) {
+            throw errors.FORBIDDEN({
+              message: "Invitation does not belong to your organization",
+              data: {},
+            });
+          }
 
-      deleteApiKey: builder.deleteApiKey.use(requireAuth).handler(async ({ context, input, errors }) => {
-        try {
-          await context.auth.api.deleteApiKey({
-            body: {
-              id: input.keyId,
-            },
-            headers: context.reqHeaders!,
-          });
+          const { invitation: invitationTable } = await import("../../host/src/db/schema/auth");
+          await context.db
+            .delete(invitationTable)
+            .where(eq(invitationTable.id, input.invitationId));
 
-          return { deleted: true };
-        } catch (error) {
-          throw errors.NOT_FOUND({
-            message: error instanceof Error ? error.message : "API key not found",
-            data: {},
-          });
-        }
-      }),
-
-      // Organization Members - query database directly
-      listOrgMembers: builder.listOrgMembers.use(requireOrgRole("member")).handler(async ({ context, input }) => {
-        const members = await context.db.query.member.findMany({
-          where: (member, { eq }) => eq(member.organizationId, input.organizationId),
-          with: {
-            user: true,
-          },
-        });
-
-        return {
-          members: members.map((m) => ({
-            id: m.id,
-            userId: m.userId,
-            role: m.role as "owner" | "admin" | "member",
-            name: m.user?.name || null,
-            email: m.user?.email || null,
-            createdAt: m.createdAt.toISOString(),
-          })),
-        };
-      }),
-
-      // Organization Invitations - query database directly
-      listOrgInvitations: builder.listOrgInvitations.use(requireOrgRole("member")).handler(async ({ context, input }) => {
-        const invitations = await context.db.query.invitation.findMany({
-          where: (invitation, { and, eq }) => and(
-            eq(invitation.organizationId, input.organizationId),
-            eq(invitation.status, "pending"),
-          ),
-        });
-
-        return {
-          invitations: invitations.map((inv) => ({
-            id: inv.id,
-            email: inv.email,
-            role: inv.role as "admin" | "member",
-            status: inv.status as "pending" | "accepted" | "rejected" | "expired",
-            expiresAt: inv.expiresAt.toISOString(),
-            createdAt: inv.createdAt.toISOString(),
-          })),
-        };
-      }),
-
-      // Cancel invitation - requires admin role
-      cancelInvitation: builder.cancelInvitation.use(requireOrgRole("admin")).handler(async ({ context, input, errors }) => {
-        const invitation = await context.db.query.invitation.findFirst({
-          where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
-        });
-
-        if (!invitation) {
-          throw errors.NOT_FOUND({
-            message: "Invitation not found",
-            data: {},
-          });
-        }
-
-        if (invitation.organizationId !== context.organizationId) {
-          throw errors.FORBIDDEN({
-            message: "Invitation does not belong to your organization",
-            data: {},
-          });
-        }
-
-        const { invitation: invitationTable } = await import("../../host/src/db/schema/auth");
-        await context.db.delete(invitationTable)
-          .where(eq(invitationTable.id, input.invitationId));
-
-        return { cancelled: true };
-      }),
+          return { cancelled: true };
+        }),
 
       // Resend invitation - requires admin role
-      resendInvitation: builder.resendInvitation.use(requireOrgRole("admin")).handler(async ({ context, input, errors }) => {
-        const invitation = await context.db.query.invitation.findFirst({
-          where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
-        });
-
-        if (!invitation) {
-          throw errors.NOT_FOUND({
-            message: "Invitation not found",
-            data: {},
+      resendInvitation: builder.resendInvitation
+        .use(requireOrgRole("admin"))
+        .handler(async ({ context, input, errors }) => {
+          const invitation = await context.db.query.invitation.findFirst({
+            where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
           });
-        }
 
-        if (invitation.organizationId !== context.organizationId) {
-          throw errors.FORBIDDEN({
-            message: "Invitation does not belong to your organization",
-            data: {},
-          });
-        }
+          if (!invitation) {
+            throw errors.NOT_FOUND({
+              message: "Invitation not found",
+              data: {},
+            });
+          }
 
-        // TODO: Actually resend the email via Better Auth
-        // For now, just return success
-        return { sent: true };
-      }),
+          if (invitation.organizationId !== context.organizationId) {
+            throw errors.FORBIDDEN({
+              message: "Invitation does not belong to your organization",
+              data: {},
+            });
+          }
+
+          // TODO: Actually resend the email via Better Auth
+          // For now, just return success
+          return { sent: true };
+        }),
     };
   },
 });

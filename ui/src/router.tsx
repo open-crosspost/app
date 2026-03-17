@@ -8,6 +8,7 @@
 
 import { dehydrate, hydrate, QueryClient } from "@tanstack/react-query";
 import { createBrowserHistory, createRouter as createTanStackRouter } from "@tanstack/react-router";
+import { getRuntimeBasePath } from "./lib/active-runtime";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 import type { CreateRouterOptions } from "./types";
@@ -60,10 +61,12 @@ export function createRouter(opts: CreateRouterOptions = {}) {
     });
 
   const history = opts.history ?? createBrowserHistory();
+  const basepath = getRuntimeBasePath(opts.context?.runtimeConfig);
 
   const router = createTanStackRouter({
     routeTree,
     history,
+    basepath,
     context: {
       queryClient,
       assetsUrl: opts.context?.assetsUrl ?? "",

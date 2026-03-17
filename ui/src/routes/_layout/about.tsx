@@ -1,52 +1,267 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useCallback } from "react";
+import { Badge, Card, CardContent } from "@/components";
+import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/about")({
   head: () => ({
     meta: [
       { title: "About | everything.dev" },
-      { name: "description", content: "About everything.dev" },
+      {
+        name: "description",
+        content:
+          "everything.dev is a runtime-composed site on NEAR where published config defines how host, UI, and API load together.",
+      },
     ],
   }),
   component: About,
 });
 
 function About() {
+  const router = useRouter();
+
+  const preloadApps = useCallback(() => {
+    router.preloadRoute({ to: "/apps" } as Parameters<typeof router.preloadRoute>[0]);
+  }, [router]);
+
+  const navigateApps = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      router.navigate({ to: "/apps" } as Parameters<typeof router.navigate>[0]);
+    },
+    [router],
+  );
+
+  const configQuery = useQuery({
+    queryKey: ["registry-app", "every.near", "everything.dev"],
+    queryFn: () =>
+      apiClient.getRegistryApp({
+        accountId: "every.near",
+        gatewayId: "everything.dev",
+      }),
+    staleTime: 5 * 60_000,
+  });
+
+  const resolvedConfig = configQuery.data?.data?.resolvedConfig;
+
   return (
-    <div className="space-y-8">
-      <section className="space-y-4">
+    <div className="space-y-10">
+      <section className="space-y-5">
         <Link
           to="/"
           className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
         >
-          ← back
+          &larr; back home
         </Link>
-        <h1 className="text-lg font-mono">About</h1>
+        <div className="space-y-4 max-w-3xl">
+          <Badge variant="outline">about</Badge>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            Runtime composition, published in public
+          </h1>
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <strong className="text-foreground">everything.dev</strong> is a runtime-composed site
+            on{" "}
+            <a
+              href="https://near.org"
+              className="underline hover:text-foreground transition-colors"
+            >
+              NEAR
+            </a>
+            . A published <code>bos.config.json</code> record defines how the host, UI, and API fit
+            together, and the running site is built from that composition instead of a single fixed
+            bundle.
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+            The goal is not only to browse apps, but to make software easier to inspect, reuse, and
+            keep building over. The same host can support multiple sites, while each published
+            config can point at its own remotes, plugins, and interfaces.
+          </p>
+        </div>
       </section>
-      
-      <section className="space-y-4">
+
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card>
-          <CardContent className="p-6">
-            <h2 className="text-sm font-mono mb-4">everything.dev</h2>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              A pursuit for the open web.
-            </p>
+          <CardContent className="p-6 space-y-4">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              how it works
+            </div>
+            <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                1. discover the published runtime record from{" "}
+                <a
+                  href="https://near.org"
+                  className="underline hover:text-foreground transition-colors"
+                >
+                  NEAR
+                </a>
+              </p>
+              <p>
+                2. resolve the effective config, including inherited <code>bos://</code> values
+              </p>
+              <p>
+                3. load the UI through{" "}
+                <a
+                  href="https://module-federation.io/"
+                  className="underline hover:text-foreground transition-colors"
+                >
+                  Module Federation
+                </a>{" "}
+                and the API through <code>every-plugin</code>
+              </p>
+              <p>
+                4. layer public metadata and tooling around the canonical runtime without replacing
+                it
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">start here</div>
+            <div className="grid gap-3">
+              <BoxLink
+                href="/apps"
+                title="browse published apps"
+                body="inspect accounts, gateways, remotes, and public runtime metadata"
+                onMouseEnter={preloadApps}
+                onFocus={preloadApps}
+                onClick={navigateApps}
+              />
+              <BoxLink
+                href="/README.md"
+                title="read the public overview"
+                body="human-readable context for what everything.dev is and how it is composed"
+              />
+              <BoxLink
+                href="/skill.md"
+                title="open the agent guide"
+                body="task-oriented notes for agents, crawlers, and AI-native clients"
+              />
+            </div>
           </CardContent>
         </Card>
       </section>
-      
-      <section className="space-y-4">
-        <h2 className="text-xs font-mono text-muted-foreground border-b border-border pb-2">
-          features
-        </h2>
-        <ul className="text-xs text-muted-foreground space-y-2">
-          <li>• NEAR wallet authentication</li>
-          <li>• Email & phone authentication</li>
-          <li>• Passkey support</li>
-          <li>• Organization management</li>
-          <li>• API keys for developers</li>
-        </ul>
+
+      {resolvedConfig && (
+        <section className="space-y-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            canonical runtime record
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground max-w-3xl">
+            This is the live resolved <code>bos.config.json</code> for{" "}
+            <code>every.near/everything.dev</code>, fetched from NEAR Social and merged with any
+            inherited values.
+          </p>
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <pre className="overflow-x-auto text-xs leading-relaxed text-muted-foreground font-mono whitespace-pre">
+                {JSON.stringify(resolvedConfig, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <FactCard
+          title="canonical runtime"
+          body="The published bos.config.json stays the source of truth for runtime composition. Other metadata can help describe the app, but it does not replace how the system boots."
+        />
+        <FactCard
+          title="runtime-loaded product"
+          body="The host acts as the shell, loading the UI at runtime through Module Federation and the API through every-plugin, so each part can evolve independently."
+        />
+        <FactCard
+          title="shared host, different sites"
+          body="Multiple sites can share the same stable host configuration while publishing different runtime records that point to different remotes, plugins, and product surfaces."
+        />
+        <FactCard
+          title="AI-friendly surface"
+          body="Public files such as /README.md, /skill.md, and /llms.txt make the project easier for agents to understand without losing the visual atmosphere of the site itself."
+        />
+      </section>
+
+      <section className="space-y-4 max-w-3xl">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">wider context</div>
+        <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <strong className="text-foreground">everything.dev</strong> sits in a broader{" "}
+          <a href="https://near.org" className="underline hover:text-foreground transition-colors">
+            NEAR
+          </a>{" "}
+          direction around BOS, Web4, intents, naming, and portable app infrastructure. This site is
+          one product surface inside that arc: a place to inspect runtime composition today and keep
+          building richer runtime-native experiences over time.
+        </p>
+        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <a
+            href="https://github.com/frol/near-dns"
+            className="hover:text-foreground transition-colors"
+          >
+            near-dns
+          </a>
+          <a
+            href="https://outlayer.fastnear.com/"
+            className="hover:text-foreground transition-colors"
+          >
+            outlayer
+          </a>
+          <a href="https://web4.near.page" className="hover:text-foreground transition-colors">
+            web4
+          </a>
+          <a
+            href="https://plugin.everything.dev"
+            className="hover:text-foreground transition-colors"
+          >
+            every-plugin
+          </a>
+          <a
+            href="https://github.com/petersalomonsen/wasm-git-apps"
+            className="hover:text-foreground transition-colors"
+          >
+            wasm-git-apps
+          </a>
+        </div>
       </section>
     </div>
+  );
+}
+
+function BoxLink({
+  title,
+  body,
+  href,
+  onMouseEnter,
+  onFocus,
+  onClick,
+}: {
+  title: string;
+  body: string;
+  href: string;
+  onMouseEnter?: () => void;
+  onFocus?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <a href={href} onMouseEnter={onMouseEnter} onFocus={onFocus} onClick={onClick}>
+      <Card className="transition-colors hover:bg-muted/20">
+        <CardContent className="p-4 space-y-1">
+          <div className="font-medium">{title}</div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+        </CardContent>
+      </Card>
+    </a>
+  );
+}
+
+function FactCard({ title, body }: { title: string; body: string }) {
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-2">
+        <div className="text-sm font-medium">{title}</div>
+        <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+      </CardContent>
+    </Card>
   );
 }

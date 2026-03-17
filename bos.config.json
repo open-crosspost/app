@@ -2,6 +2,11 @@
   "extends": "bos://every.near/everything.dev",
   "account": "dev.everything.near",
   "app": {
+    "host": {
+      "name": "host",
+      "development": "http://localhost:3000",
+      "production": "https://elliot-braem-2352-host-monorepo-elliot-braem-2dc683f6d-ze.zephyrcloud.app"
+    },
     "ui": {
       "name": "ui",
       "development": "http://localhost:3002"

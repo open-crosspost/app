@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { Badge, Button, Card, CardContent } from "@/components";
 import { apiClient } from "@/remote/orpc";
-import { Button } from "@/components/ui/button";
 
 export type KvValueResult = Awaited<ReturnType<typeof apiClient.getValue>>;
 
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_layout/_authenticated/keys/$key")({
   head: ({ params, loaderData }) => {
     const keyName = params.key;
     const hasData = loaderData?.data !== null;
-    const title = `Key: ${keyName} | demo.everything`;
+    const title = `Key: ${keyName} | everything.dev`;
     const description = hasData
       ? `View the value for key "${keyName}" in the key-value store.`
       : `Key "${keyName}" not found in the store.`;
@@ -60,101 +60,145 @@ function KeyValue() {
   const deleteMutation = useMutation({
     mutationFn: () => apiClient.deleteKey({ key }),
     onSuccess: async () => {
-      await queryClient.refetchQueries({ queryKey: ["listKeys"] });
+      await queryClient.invalidateQueries({ queryKey: ["kv-keys"] });
       router.navigate({ to: "/keys" });
     },
   });
 
-  const handleBack = () => {
-    if (router.history.canGoBack()) {
-      router.history.back();
-    } else {
-      router.navigate({ to: "/keys" });
-    }
-  };
-
-  const handleDelete = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = () => {
-    deleteMutation.mutate();
-  };
-
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between pb-4 border-b border-border/50">
-        <div>
-          <Button
-            onClick={handleBack}
-            variant="ghost"
-            size="sm"
-          >
-            ← back
-          </Button>
-          <h1 className="text-lg font-mono mt-2">Key: {key}</h1>
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
+          <Link to="/keys" className="hover:text-foreground transition-colors">
+            keys
+          </Link>
+          <span>/</span>
+          <span className="break-all">{key}</span>
         </div>
-        {data && (
-          <Button
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-            variant="destructive"
-            size="sm"
-          >
-            {deleteMutation.isPending ? "deleting..." : "delete"}
-          </Button>
-        )}
-      </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <Card>
+            <CardContent className="p-6 sm:p-8 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">kv key</Badge>
+                {data ? (
+                  <Badge variant="outline">present</Badge>
+                ) : (
+                  <Badge variant="outline">missing</Badge>
+                )}
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight break-all">
+                  {key}
+                </h1>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Inspect the stored value, copy the payload, or remove the key entirely from the
+                  test KV store.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/keys">back to keys</Link>
+                </Button>
+                {data && (
+                  <Button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    copy value
+                  </Button>
+                )}
+                {data && (
+                  <Button
+                    onClick={() => setShowDeleteConfirm((value) => !value)}
+                    disabled={deleteMutation.isPending}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    {deleteMutation.isPending
+                      ? "deleting..."
+                      : showDeleteConfirm
+                        ? "cancel delete"
+                        : "delete key"}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <StatBox label="state" value={data ? "present" : "missing"} />
+              <StatBox label="error" value={error ? "yes" : "no"} />
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
       {showDeleteConfirm && (
-        <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <p className="text-sm mb-3">Are you sure you want to delete key "{key}"?</p>
-          <div className="flex gap-2">
-            <Button
-              onClick={confirmDelete}
-              disabled={deleteMutation.isPending}
-              variant="destructive"
-              size="sm"
-            >
-              {deleteMutation.isPending ? "deleting..." : "confirm delete"}
-            </Button>
-            <Button
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={deleteMutation.isPending}
-              variant="secondary"
-              size="sm"
-            >
-              cancel
-            </Button>
-          </div>
-          {deleteMutation.isError && (
-            <p className="text-xs text-destructive mt-2">
-              Error: {deleteMutation.error?.message || "Failed to delete"}
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            <div className="font-medium">Confirm delete</div>
+            <p className="text-sm text-muted-foreground break-all">
+              Are you sure you want to delete key "{key}"?
             </p>
-          )}
-        </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                variant="destructive"
+                size="sm"
+              >
+                {deleteMutation.isPending ? "deleting..." : "confirm delete"}
+              </Button>
+              <Button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleteMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                keep key
+              </Button>
+            </div>
+            {deleteMutation.isError && (
+              <p className="text-xs text-destructive">
+                {deleteMutation.error?.message || "Failed to delete key"}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      <div className="space-y-4">
-        {error ? (
-          <div className="p-6 bg-destructive/10 rounded-lg border border-destructive/20">
-            <p className="text-sm text-destructive">
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">value</div>
+          {error ? (
+            <div className="rounded-sm border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
               Error: {error.message || "Failed to load key"}
-            </p>
-          </div>
-        ) : data ? (
-          <div className="p-6 bg-muted/20 rounded-lg border border-border/50">
-            <h3 className="text-sm font-mono mb-2">Value</h3>
-            <pre className="text-xs font-mono text-muted-foreground overflow-auto bg-background p-3 rounded border">
+            </div>
+          ) : data ? (
+            <pre className="overflow-auto rounded-sm border border-border bg-muted/10 p-4 text-xs font-mono text-foreground">
               {JSON.stringify(data, null, 2)}
             </pre>
-          </div>
-        ) : (
-          <div className="p-6 bg-muted/20 rounded-lg border border-border/50">
-            <p className="text-sm text-muted-foreground">No value found for key "{key}"</p>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="rounded-sm border border-border bg-muted/10 p-4 text-sm text-muted-foreground">
+              No value found for key "{key}".
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xl font-semibold tracking-tight break-all">{value}</div>
     </div>
   );
 }

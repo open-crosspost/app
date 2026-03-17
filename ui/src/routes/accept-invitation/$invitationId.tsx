@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
-import { sessionQueryOptions, organizationsQueryOptions } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { authClient } from "@/lib/auth-client";
+import { organizationsQueryOptions, sessionQueryOptions } from "@/lib/session";
 
 export const Route = createFileRoute("/accept-invitation/$invitationId")({
   beforeLoad: async ({ params, location }) => {
@@ -40,7 +40,7 @@ function AcceptInvitation() {
       await queryClient.invalidateQueries({ queryKey: organizationsQueryOptions().queryKey });
       toast.success("Invitation accepted! Welcome to the organization.");
       if (data?.invitation?.organizationId) {
-        router.navigate({ to: "/organizations/$id", params: { id: data.invitation.organizationId } });
+        window.location.href = `/organizations/${encodeURIComponent(data.invitation.organizationId)}`;
       } else {
         router.navigate({ to: "/organizations" });
       }
@@ -81,8 +81,19 @@ function AcceptInvitation() {
         <Card>
           <CardContent className="p-6 text-center space-y-4">
             <div className="w-12 h-12 mx-auto border border-border flex items-center justify-center">
-              <svg className="w-6 h-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <svg
+                className="w-6 h-6 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <title>Organization invitation</title>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
               </svg>
             </div>
 

@@ -9,15 +9,19 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
-import { getBaseStyles, getRemoteScripts } from "@/remote/head";
+import { getRuntimeBasePath } from "@/lib/active-runtime";
+import { type SessionData, sessionQueryOptions } from "@/lib/session";
+import { getBaseStyles } from "@/remote/head";
 import type { RouterContext } from "@/types";
-import { sessionQueryOptions, type SessionData } from "@/lib/session";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context }) => {
-    const session = (context as unknown as Record<string, unknown>).session as SessionData | undefined | null;
-    
+    const session = (context as unknown as Record<string, unknown>).session as
+      | SessionData
+      | undefined
+      | null;
+
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
@@ -26,16 +30,16 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   },
   loader: async ({ context }) => {
     const { queryClient } = context;
-    const session = (context as unknown as Record<string, unknown>).session as SessionData | undefined | null;
-    
+    const session = (context as unknown as Record<string, unknown>).session as
+      | SessionData
+      | undefined
+      | null;
+
     // Pre-populate session cache from SSR data
     if (session && queryClient) {
-      queryClient.setQueryData(
-        sessionQueryOptions(session).queryKey,
-        session
-      );
+      queryClient.setQueryData(sessionQueryOptions(session).queryKey, session);
     }
-    
+
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
@@ -45,20 +49,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   head: ({ loaderData }) => {
     const assetsUrl = loaderData?.assetsUrl || "";
     const runtimeConfig = loaderData?.runtimeConfig;
-    const siteUrl = runtimeConfig?.hostUrl || "";
-    const title = "demo.everything";
+    const runtimeBasePath = getRuntimeBasePath(runtimeConfig);
+    const siteUrl = runtimeConfig?.hostUrl
+      ? `${runtimeConfig.hostUrl}${runtimeBasePath === "/" ? "" : runtimeBasePath}`
+      : "";
+    const title = "everything.dev";
     const description =
-      "Demo application showcasing Module Federation with SSR, TanStack Router, and oRPC";
-    const siteName = "Every Demo";
+      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.";
+    const siteName = "everything.dev";
     const ogImage = `${assetsUrl}/metadata.png`;
-
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      name: siteName,
-      description,
-      url: siteUrl,
-    };
 
     return {
       meta: [
@@ -82,16 +81,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: siteUrl },
         { property: "og:image", content: ogImage },
         { property: "og:site_name", content: siteName },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: ogImage },
+        ...(siteUrl ? [{ property: "og:url", content: siteUrl }] : []),
       ],
       links: [
-        { rel: "canonical", href: siteUrl },
         { rel: "stylesheet", href: `${assetsUrl}/static/css/async/style.css` },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         {
@@ -107,15 +105,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           href: `${assetsUrl}/apple-touch-icon.png`,
         },
         { rel: "manifest", href: `${assetsUrl}/manifest.json` },
-      ],
-      scripts: [
-        {
-          type: "application/ld+json",
-          children: JSON.stringify(structuredData),
-        },
-        // Module Federation Remote scripts - DO NOT MODIFY unless you understand
-        // how this injects runtime config and hydration triggers
-        ...getRemoteScripts({ assetsUrl, runtimeConfig }),
+        ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
     };
   },
@@ -123,10 +113,28 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
+  const { assetsUrl, runtimeConfig } = Route.useLoaderData();
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "everything.dev",
+    description:
+      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.",
+    url: runtimeConfig?.hostUrl || undefined,
+  };
+
+  const hydrateBootstrap = `window.__RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig ?? null)};window.addEventListener('load', function handleEverythingDevHydrate() { window.__hydrate?.(); }, { once: true });`;
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        {assetsUrl ? <script src={`${assetsUrl}/remoteEntry.js`} /> : null}
+        <script dangerouslySetInnerHTML={{ __html: hydrateBootstrap }} />
         <style dangerouslySetInnerHTML={{ __html: getBaseStyles() }} />
       </head>
       <body>

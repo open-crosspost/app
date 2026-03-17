@@ -1,12 +1,18 @@
-import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createFileRoute,
+  Navigate,
+  redirect,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
-import { sessionQueryOptions, organizationsQueryOptions } from "@/lib/session";
-import type { SessionData } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
+import type { SessionData } from "@/lib/session";
+import { organizationsQueryOptions, sessionQueryOptions } from "@/lib/session";
 
 type SearchParams = {
   redirect?: string;
@@ -18,19 +24,29 @@ export const Route = createFileRoute("/_layout/login")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
-  beforeLoad: async ({ context, search }) => {
+  beforeLoad: ({ context, search }) => {
     const { queryClient } = context;
-    
-    const session = await queryClient.ensureQueryData(
-      sessionQueryOptions((context as unknown as Record<string, unknown>).session as SessionData | undefined | null)
-    );
-    
+    const initialSession = (context as unknown as Record<string, unknown>).session as
+      | SessionData
+      | undefined
+      | null;
+    const session =
+      initialSession ??
+      queryClient.getQueryData<SessionData | null>(sessionQueryOptions(initialSession).queryKey);
+
     if (session?.user) {
-      const redirectTo = search.redirect && search.redirect.startsWith("/") 
-        ? search.redirect 
-        : "/home";
-      throw redirect({ to: redirectTo });
+      const redirectTo =
+        search.redirect && search.redirect.startsWith("/") ? search.redirect : "/home";
+      throw redirect({ to: redirectTo as never, search: {} as never });
     }
+  },
+  loader: ({ context }) => {
+    const initialSession = (context as unknown as Record<string, unknown>).session as
+      | SessionData
+      | undefined
+      | null;
+
+    void context.queryClient.prefetchQuery(sessionQueryOptions(initialSession));
   },
   component: LoginPage,
 });
@@ -40,7 +56,8 @@ function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { redirect } = Route.useSearch();
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("near");
+  const { data: session } = useQuery(sessionQueryOptions());
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("anonymous");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +72,7 @@ function LoginPage() {
     await queryClient.invalidateQueries({ queryKey: organizationsQueryOptions().queryKey });
     router.invalidate();
     const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/home";
-    navigate({ to: redirectTo, replace: true });
+    navigate({ to: redirectTo as never, replace: true, search: {} as never });
     toast.success(message);
   };
 
@@ -121,7 +138,8 @@ function LoginPage() {
           password,
           fetchOptions: {
             onSuccess: () => resolve(),
-            onError: (ctx: { error?: { message?: string } }) => reject(new Error(ctx.error?.message || "Sign in failed")),
+            onError: (ctx: { error?: { message?: string } }) =>
+              reject(new Error(ctx.error?.message || "Sign in failed")),
           },
         });
       });
@@ -175,7 +193,8 @@ function LoginPage() {
           code: otpCode,
           fetchOptions: {
             onSuccess: () => resolve(),
-            onError: (ctx: { error?: { message?: string } }) => reject(new Error(ctx.error?.message || "Invalid code")),
+            onError: (ctx: { error?: { message?: string } }) =>
+              reject(new Error(ctx.error?.message || "Invalid code")),
           },
         });
       });
@@ -216,7 +235,7 @@ function LoginPage() {
     verifyOtpMutation.mutate();
   };
 
-  const isPending = 
+  const isPending =
     nearMutation.isPending ||
     passkeyMutation.isPending ||
     anonymousMutation.isPending ||
@@ -224,6 +243,19 @@ function LoginPage() {
     emailSignUpMutation.isPending ||
     sendOtpMutation.isPending ||
     verifyOtpMutation.isPending;
+
+  const renderConstructionImage = (methodLabel: string) => (
+    <img
+      src="https://ipfs.near.social/ipfs/bafkreidhy7zo33wqjxhqsv2dd6dp2wzloitaa4lmj3rzq5zvcdtp2smeaa"
+      alt={`${methodLabel} under construction`}
+      className="mx-auto w-full max-w-xs rounded-xl border border-border object-cover"
+    />
+  );
+
+  if (session?.user) {
+    const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/home";
+    return <Navigate to={redirectTo as never} replace search={{} as never} />;
+  }
 
   const renderAuthMethod = () => {
     switch (authMethod) {
@@ -233,11 +265,7 @@ function LoginPage() {
             <p className="text-xs text-muted-foreground text-center leading-relaxed">
               Connect your NEAR wallet for on-chain identity
             </p>
-            <Button
-              onClick={() => nearMutation.mutate()}
-              disabled={isPending}
-              className="w-full"
-            >
+            <Button onClick={() => nearMutation.mutate()} disabled={isPending} className="w-full">
               {nearMutation.isPending ? "connecting..." : "connect NEAR wallet"}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
@@ -249,6 +277,7 @@ function LoginPage() {
       case "passkey":
         return (
           <div className="space-y-6">
+            {renderConstructionImage("Passkey")}
             <p className="text-xs text-muted-foreground text-center leading-relaxed">
               Use Face ID, Touch ID, or security key
             </p>
@@ -266,7 +295,7 @@ function LoginPage() {
         return (
           <div className="space-y-6">
             <p className="text-xs text-muted-foreground text-center leading-relaxed">
-              Start without creating an account
+              Start without creating an account or saving persistent data
             </p>
             <Button
               onClick={() => anonymousMutation.mutate()}
@@ -276,7 +305,7 @@ function LoginPage() {
               {anonymousMutation.isPending ? "starting..." : "continue anonymously"}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              Data will be lost when you sign out
+              Your session will not persist after you sign out
             </p>
           </div>
         );
@@ -284,6 +313,7 @@ function LoginPage() {
       case "email":
         return (
           <div className="space-y-6">
+            {renderConstructionImage("Email")}
             <Input
               type="email"
               value={email}
@@ -296,14 +326,14 @@ function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="password"
             />
-            <Button
-              onClick={handleEmailSubmit}
-              disabled={isPending}
-              className="w-full"
-            >
+            <Button onClick={handleEmailSubmit} disabled={isPending} className="w-full">
               {emailSignInMutation.isPending || emailSignUpMutation.isPending
-                ? isSignUp ? "creating..." : "signing in..."
-                : isSignUp ? "create account" : "sign in"}
+                ? isSignUp
+                  ? "creating..."
+                  : "signing in..."
+                : isSignUp
+                  ? "create account"
+                  : "sign in"}
             </Button>
             <Button
               variant="ghost"
@@ -319,6 +349,7 @@ function LoginPage() {
       case "phone":
         return (
           <div className="space-y-6">
+            {renderConstructionImage("Phone")}
             {!otpSent ? (
               <>
                 <Input
@@ -327,11 +358,7 @@ function LoginPage() {
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="+1 (555) 123-4567"
                 />
-                <Button
-                  onClick={handleSendOtp}
-                  disabled={isPending}
-                  className="w-full"
-                >
+                <Button onClick={handleSendOtp} disabled={isPending} className="w-full">
                   {sendOtpMutation.isPending ? "sending..." : "send code"}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
@@ -348,16 +375,15 @@ function LoginPage() {
                   maxLength={6}
                   className="text-center tracking-widest"
                 />
-                <Button
-                  onClick={handleVerifyOtp}
-                  disabled={isPending}
-                  className="w-full"
-                >
+                <Button onClick={handleVerifyOtp} disabled={isPending} className="w-full">
                   {verifyOtpMutation.isPending ? "verifying..." : "verify & sign in"}
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
+                  onClick={() => {
+                    setOtpSent(false);
+                    setOtpCode("");
+                  }}
                   disabled={isPending}
                   className="w-full"
                 >
@@ -371,10 +397,10 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-[80vh] w-full flex items-center justify-center px-6">
+    <div className="min-h-[70vh] w-full flex items-start justify-center px-6 pt-[15vh] animate-fade-in">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-wrap justify-center gap-2">
-          {(["near", "email", "phone", "passkey", "anonymous"] as AuthMethod[]).map((method) => (
+          {(["anonymous", "near", "passkey", "email", "phone"] as AuthMethod[]).map((method) => (
             <Button
               key={method}
               variant={authMethod === method ? "default" : "outline"}
@@ -387,7 +413,9 @@ function LoginPage() {
           ))}
         </div>
 
-        {renderAuthMethod()}
+        <div className="animate-fade-in-up" key={authMethod}>
+          {renderAuthMethod()}
+        </div>
 
         {authMethod !== "near" && (
           <div className="pt-6 border-t border-border">
