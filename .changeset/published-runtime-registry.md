@@ -1,5 +1,4 @@
 ---
-"host": minor
 "api": minor
 "ui": minor
 ---
