@@ -18,7 +18,7 @@ type SearchParams = {
   redirect?: string;
 };
 
-type AuthMethod = "near" | "email" | "phone" | "passkey" | "anonymous";
+type AuthMethod = "near" | "email" | "phone" | "passkey" | "anonymous" | "github";
 
 export const Route = createFileRoute("/_layout/login")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
@@ -203,6 +203,23 @@ function LoginPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const githubMutation = useMutation({
+    mutationFn: async () => {
+      return new Promise<void>((resolve, reject) => {
+        authClient.signIn.social({
+          provider: "github",
+          callbackURL: redirect && redirect.startsWith("/") ? redirect : "/home",
+          fetchOptions: {
+            onSuccess: () => resolve(),
+            onError: (ctx) => reject(new Error(ctx.error?.message || "GitHub sign in failed")),
+          },
+        });
+      });
+    },
+    onSuccess: () => handleSuccess("Signed in with GitHub"),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const handleEmailSubmit = () => {
     if (!email || !password) {
       toast.error("Please enter email and password");
@@ -242,7 +259,8 @@ function LoginPage() {
     emailSignInMutation.isPending ||
     emailSignUpMutation.isPending ||
     sendOtpMutation.isPending ||
-    verifyOtpMutation.isPending;
+    verifyOtpMutation.isPending ||
+    githubMutation.isPending;
 
   const renderConstructionImage = (methodLabel: string) => (
     <img
@@ -393,6 +411,19 @@ function LoginPage() {
             )}
           </div>
         );
+
+      case "github":
+        return (
+          <div className="space-y-6">
+            {renderConstructionImage("GitHub")}
+            <p className="text-xs text-muted-foreground text-center leading-relaxed">
+              Sign in with your GitHub account
+            </p>
+            <Button onClick={() => githubMutation.mutate()} disabled={isPending} className="w-full">
+              {githubMutation.isPending ? "redirecting..." : "sign in with GitHub"}
+            </Button>
+          </div>
+        );
     }
   };
 
@@ -400,17 +431,19 @@ function LoginPage() {
     <div className="min-h-[70vh] w-full flex items-start justify-center px-6 pt-[15vh] animate-fade-in">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-wrap justify-center gap-2">
-          {(["anonymous", "near", "passkey", "email", "phone"] as AuthMethod[]).map((method) => (
-            <Button
-              key={method}
-              variant={authMethod === method ? "default" : "outline"}
-              size="sm"
-              onClick={() => setAuthMethod(method)}
-              disabled={isPending}
-            >
-              {method}
-            </Button>
-          ))}
+          {(["anonymous", "near", "github", "passkey", "email", "phone"] as AuthMethod[]).map(
+            (method) => (
+              <Button
+                key={method}
+                variant={authMethod === method ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAuthMethod(method)}
+                disabled={isPending}
+              >
+                {method}
+              </Button>
+            ),
+          )}
         </div>
 
         <div className="animate-fade-in-up" key={authMethod}>

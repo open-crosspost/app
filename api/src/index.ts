@@ -8,6 +8,7 @@ import type { Database } from "../../host/src/services/database";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
 import { KvService, KvServiceLive } from "./services/kv";
+import { ProjectService, ProjectServiceLive } from "./services/projects";
 import {
   getRegistryApp,
   getRegistryAppByHost,
@@ -102,12 +103,18 @@ export default createPlugin({
         config.secrets.API_DATABASE_AUTH_TOKEN,
       );
 
-      const Services = KvServiceLive.pipe(Layer.provide(Database));
+      const KvServices = KvServiceLive.pipe(Layer.provide(Database));
+      const ProjectServices = ProjectServiceLive.pipe(Layer.provide(Database));
 
-      const services = yield* Effect.provide(KvService, Services);
+      const AllServices = Layer.merge(KvServices, ProjectServices);
+
+      const [kv, project] = yield* Effect.provide(
+        Effect.all([KvService, ProjectService]),
+        AllServices,
+      );
 
       console.log("[API] Services Initialized");
-      return services;
+      return { kv, project };
     }),
 
   shutdown: () => Effect.log("[API] Shutdown"),
@@ -337,7 +344,7 @@ export default createPlugin({
       // KV endpoints - any auth method
       listKeys: builder.listKeys.use(requireAuth).handler(async ({ input, context }) => {
         const exit = await Effect.runPromiseExit(
-          services.listKeys(context.userId, input.limit, input.offset),
+          services.kv.listKeys(context.userId, input.limit, input.offset),
         );
 
         if (Exit.isFailure(exit)) {
@@ -357,7 +364,7 @@ export default createPlugin({
       }),
 
       getValue: builder.getValue.use(requireAuth).handler(async ({ input, context, errors }) => {
-        const exit = await Effect.runPromiseExit(services.getValue(input.key, context.userId));
+        const exit = await Effect.runPromiseExit(services.kv.getValue(input.key, context.userId));
 
         if (Exit.isFailure(exit)) {
           const squashed = Cause.squash(exit.cause);
@@ -389,7 +396,7 @@ export default createPlugin({
 
       setValue: builder.setValue.use(requireAuth).handler(async ({ input, context, errors }) => {
         const exit = await Effect.runPromiseExit(
-          services.setValue(input.key, input.value, context.userId),
+          services.kv.setValue(input.key, input.value, context.userId),
         );
 
         if (Exit.isFailure(exit)) {
@@ -415,7 +422,7 @@ export default createPlugin({
       }),
 
       deleteKey: builder.deleteKey.use(requireAuth).handler(async ({ input, context, errors }) => {
-        const exit = await Effect.runPromiseExit(services.deleteKey(input.key, context.userId));
+        const exit = await Effect.runPromiseExit(services.kv.deleteKey(input.key, context.userId));
 
         if (Exit.isFailure(exit)) {
           const squashed = Cause.squash(exit.cause);
@@ -654,6 +661,214 @@ export default createPlugin({
           // For now, just return success
           return { sent: true };
         }),
+
+      // Projects
+      listProjects: builder.listProjects.handler(async ({ input }) => {
+        const exit = await Effect.runPromiseExit(services.project.listProjects(input));
+
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            throw squashed;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+          });
+        }
+
+        return exit.value;
+      }),
+
+      getProject: builder.getProject.handler(async ({ input, errors }) => {
+        const exit = await Effect.runPromiseExit(services.project.getProject(input.id));
+
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            throw squashed;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+          });
+        }
+
+        if (!exit.value) {
+          throw errors.NOT_FOUND({
+            message: "Project not found",
+            data: { resource: "project", resourceId: input.id },
+          });
+        }
+
+        return { data: exit.value };
+      }),
+
+      createProject: builder.createProject
+        .use(requireAuth)
+        .handler(async ({ input, context, errors }) => {
+          const exit = await Effect.runPromiseExit(
+            services.project.createProject(input, context.userId),
+          );
+
+          if (Exit.isFailure(exit)) {
+            const squashed = Cause.squash(exit.cause);
+            if (squashed instanceof ORPCError) {
+              throw squashed;
+            }
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: squashed instanceof Error ? squashed.message : String(squashed),
+            });
+          }
+
+          return exit.value;
+        }),
+
+      updateProject: builder.updateProject
+        .use(requireAuth)
+        .handler(async ({ input, context, errors }) => {
+          const exit = await Effect.runPromiseExit(
+            services.project.updateProject(input.id, input, context.userId),
+          );
+
+          if (Exit.isFailure(exit)) {
+            const squashed = Cause.squash(exit.cause);
+            if (squashed instanceof ORPCError) {
+              if (squashed.code === "NOT_FOUND") {
+                throw errors.NOT_FOUND({
+                  message: "Project not found",
+                  data: { resource: "project", resourceId: input.id },
+                });
+              }
+              throw squashed;
+            }
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: squashed instanceof Error ? squashed.message : String(squashed),
+            });
+          }
+
+          return exit.value;
+        }),
+
+      deleteProject: builder.deleteProject
+        .use(requireAuth)
+        .handler(async ({ input, context, errors }) => {
+          const exit = await Effect.runPromiseExit(
+            services.project.deleteProject(input.id, context.userId),
+          );
+
+          if (Exit.isFailure(exit)) {
+            const squashed = Cause.squash(exit.cause);
+            if (squashed instanceof ORPCError) {
+              if (squashed.code === "NOT_FOUND") {
+                throw errors.NOT_FOUND({
+                  message: "Project not found",
+                  data: { resource: "project", resourceId: input.id },
+                });
+              }
+              throw squashed;
+            }
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: squashed instanceof Error ? squashed.message : String(squashed),
+            });
+          }
+
+          return exit.value;
+        }),
+
+      listProjectApps: builder.listProjectApps.handler(async ({ input, errors }) => {
+        const exit = await Effect.runPromiseExit(services.project.listProjectApps(input.projectId));
+
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            throw squashed;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+          });
+        }
+
+        return { data: exit.value };
+      }),
+
+      linkAppToProject: builder.linkAppToProject
+        .use(requireAuth)
+        .handler(async ({ input, context, errors }) => {
+          const exit = await Effect.runPromiseExit(
+            services.project.linkAppToProject(
+              input.projectId,
+              input.accountId,
+              input.gatewayId,
+              context.userId,
+            ),
+          );
+
+          if (Exit.isFailure(exit)) {
+            const squashed = Cause.squash(exit.cause);
+            if (squashed instanceof ORPCError) {
+              if (squashed.code === "NOT_FOUND") {
+                throw errors.NOT_FOUND({
+                  message: "Project not found",
+                  data: { resource: "project", resourceId: input.projectId },
+                });
+              }
+              throw squashed;
+            }
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: squashed instanceof Error ? squashed.message : String(squashed),
+            });
+          }
+
+          return exit.value;
+        }),
+
+      unlinkAppFromProject: builder.unlinkAppFromProject
+        .use(requireAuth)
+        .handler(async ({ input, context, errors }) => {
+          const exit = await Effect.runPromiseExit(
+            services.project.unlinkAppFromProject(
+              input.projectId,
+              input.accountId,
+              input.gatewayId,
+              context.userId,
+            ),
+          );
+
+          if (Exit.isFailure(exit)) {
+            const squashed = Cause.squash(exit.cause);
+            if (squashed instanceof ORPCError) {
+              if (squashed.code === "NOT_FOUND") {
+                throw errors.NOT_FOUND({
+                  message: "Project or app not found",
+                  data: { resource: "project-app" },
+                });
+              }
+              throw squashed;
+            }
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: squashed instanceof Error ? squashed.message : String(squashed),
+            });
+          }
+
+          return exit.value;
+        }),
+
+      listProjectsForApp: builder.listProjectsForApp.handler(async ({ input }) => {
+        const exit = await Effect.runPromiseExit(
+          services.project.listProjectsForApp(input.accountId, input.gatewayId),
+        );
+
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            throw squashed;
+          }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+          });
+        }
+
+        return { data: exit.value };
+      }),
     };
   },
 });

@@ -31,6 +31,10 @@ function AppDetailPage() {
     queryKey: ["registry-app", accountId, gatewayId],
     queryFn: () => apiClient.getRegistryApp({ accountId, gatewayId }),
   });
+  const projectsQuery = useQuery({
+    queryKey: ["app-projects", accountId, gatewayId],
+    queryFn: () => apiClient.listProjectsForApp({ accountId, gatewayId }),
+  });
   const registryStatusQuery = useQuery({
     queryKey: ["registry-status"],
     queryFn: () => apiClient.getRegistryStatus(),
@@ -401,6 +405,63 @@ function AppDetailPage() {
           ) : (
             <div className="rounded-sm border border-border bg-muted/10 p-4 text-sm text-muted-foreground">
               No FastKV metadata has been published for this runtime yet.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="projects">
+        <CardContent className="p-6 space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold tracking-tight">In Projects</h2>
+            <p className="text-sm text-muted-foreground">Projects that include this app.</p>
+          </div>
+
+          {projectsQuery.isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading projects...</div>
+          ) : projectsQuery.data?.data && projectsQuery.data.data.length > 0 ? (
+            <div className="space-y-3">
+              {projectsQuery.data.data.map((project) => (
+                <div
+                  key={project.id}
+                  className="rounded-sm border border-border bg-muted/10 p-4 flex items-start justify-between gap-4"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant={
+                          project.status === "active"
+                            ? "default"
+                            : project.status === "paused"
+                              ? "secondary"
+                              : "destructive"
+                        }
+                      >
+                        {project.status}
+                      </Badge>
+                      <Badge variant="outline">{project.visibility}</Badge>
+                    </div>
+                    <a
+                      href={`/projects/${project.id}`}
+                      className="font-medium hover:underline break-all"
+                    >
+                      {project.title}
+                    </a>
+                    {project.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={`/projects/${project.id}`}>view</a>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              This app is not included in any projects yet.
             </div>
           )}
         </CardContent>

@@ -12,6 +12,7 @@ import {
   sessionQueryOptions,
   setActiveOrganization,
 } from "@/lib/session";
+import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/_authenticated/home")({
   head: () => ({
@@ -29,6 +30,10 @@ function Home() {
   const { data: session } = useQuery(sessionQueryOptions());
   const { data: organizations = [] } = useQuery(organizationsQueryOptions());
   const { data: passkeys = [] } = useQuery(passkeysQueryOptions());
+  const { data: projectsData } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => apiClient.listProjects({ ownerId: user?.id, limit: 5 }),
+  });
 
   const user = session?.user;
   const activeOrgId = session?.session?.activeOrganizationId;
@@ -82,11 +87,9 @@ function Home() {
     );
   }
 
-  const capabilityCount = [
-    profile.hasEmail,
-    profile.hasNear,
-    profile.hasPasskeys,
-  ].filter(Boolean).length;
+  const capabilityCount = [profile.hasEmail, profile.hasNear, profile.hasPasskeys].filter(
+    Boolean,
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -95,9 +98,7 @@ function Home() {
           <CardContent className="p-6 sm:p-8 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">workspace</Badge>
-              {profile.isAnonymous && (
-                <Badge variant="outline">anonymous</Badge>
-              )}
+              {profile.isAnonymous && <Badge variant="outline">anonymous</Badge>}
               {profile.isAdmin && <Badge variant="outline">admin</Badge>}
             </div>
             <div className="space-y-2">
@@ -105,8 +106,8 @@ function Home() {
                 {user.name || user.email || user.id.slice(0, 8)}
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Manage identity, switch organizations, create API keys, and jump
-                back into the published runtime browser.
+                Manage identity, switch organizations, create API keys, and jump back into the
+                published runtime browser.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -125,10 +126,7 @@ function Home() {
 
         <Card>
           <CardContent className="p-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <StatBox
-              label="organizations"
-              value={String(organizations.length)}
-            />
+            <StatBox label="organizations" value={String(organizations.length)} />
             <StatBox label="linked methods" value={String(capabilityCount)} />
             <StatBox label="passkeys" value={String(passkeys.length)} />
             <StatBox label="active org" value={activeOrg ? "yes" : "no"} />
@@ -145,38 +143,26 @@ function Home() {
             <div className="grid gap-3">
               <InfoRow
                 label="email"
-                value={
-                  profile.hasEmail ? (user.email ?? "linked") : "not linked"
-                }
+                value={profile.hasEmail ? (user.email ?? "linked") : "not linked"}
               />
               <InfoRow
                 label="near"
-                value={
-                  profile.hasNear ? (nearAccountId ?? "linked") : "not linked"
-                }
+                value={profile.hasNear ? (nearAccountId ?? "linked") : "not linked"}
                 mono
               />
               <InfoRow
                 label="passkeys"
-                value={
-                  profile.hasPasskeys
-                    ? `${passkeys.length} registered`
-                    : "not linked"
-                }
+                value={profile.hasPasskeys ? `${passkeys.length} registered` : "not linked"}
               />
               <InfoRow
                 label="profile"
-                value={
-                  profile.isAnonymous
-                    ? "anonymous session"
-                    : "persistent account"
-                }
+                value={profile.isAnonymous ? "anonymous session" : "persistent account"}
               />
             </div>
             {profile.isAnonymous && (
               <div className="rounded-sm border border-border bg-muted/10 p-4 text-sm text-muted-foreground">
-                Link an email or NEAR wallet before signing out so your progress
-                stays attached to a durable identity.
+                Link an email or NEAR wallet before signing out so your progress stays attached to a
+                durable identity.
               </div>
             )}
           </CardContent>
@@ -184,9 +170,7 @@ function Home() {
 
         <Card>
           <CardContent className="p-6 space-y-4">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              navigator
-            </div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">navigator</div>
             <div className="grid gap-3 sm:grid-cols-2">
               <WorkspaceTile
                 title="organizations"
@@ -216,9 +200,7 @@ function Home() {
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">
-              Active Organization
-            </h2>
+            <h2 className="text-lg font-semibold tracking-tight">Active Organization</h2>
             <p className="text-sm text-muted-foreground">
               The current workspace target for organization-scoped actions.
             </p>
@@ -245,43 +227,31 @@ function Home() {
                 )}
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="font-medium break-all">
-                      {activeOrg.name}
-                    </div>
+                    <div className="font-medium break-all">{activeOrg.name}</div>
                     {isPersonalOrganization(activeOrg, user.id) && (
                       <Badge variant="outline">personal</Badge>
                     )}
                   </div>
-                  <div className="text-xs font-mono text-muted-foreground">
-                    @{activeOrg.slug}
-                  </div>
+                  <div className="text-xs font-mono text-muted-foreground">@{activeOrg.slug}</div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm">
-                  <a
-                    href={`/organizations/${encodeURIComponent(activeOrg.id)}`}
-                  >
-                    open org
-                  </a>
+                  <a href={`/organizations/${encodeURIComponent(activeOrg.id)}`}>open org</a>
                 </Button>
                 {organizations.length > 1 && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const otherOrg = organizations.find(
-                        (org) => org.id !== activeOrgId,
-                      );
+                      const otherOrg = organizations.find((org) => org.id !== activeOrgId);
                       if (otherOrg) {
                         switchOrgMutation.mutate(otherOrg.id);
                       }
                     }}
                     disabled={switchOrgMutation.isPending}
                   >
-                    {switchOrgMutation.isPending
-                      ? "switching..."
-                      : "switch org"}
+                    {switchOrgMutation.isPending ? "switching..." : "switch org"}
                   </Button>
                 )}
               </div>
@@ -290,9 +260,7 @@ function Home() {
         ) : (
           <Card>
             <CardContent className="p-5 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                No active organization is selected.
-              </p>
+              <p className="text-sm text-muted-foreground">No active organization is selected.</p>
               <Button asChild variant="outline" size="sm">
                 <Link to="/organizations">choose organization</Link>
               </Button>
@@ -302,13 +270,74 @@ function Home() {
       </section>
 
       <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">My Projects</h2>
+            <p className="text-sm text-muted-foreground">
+              Projects you can access across your organizations.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <a href="/projects/new">new project</a>
+          </Button>
+        </div>
+
+        {projectsData && projectsData.data.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {projectsData.data.map((project) => (
+              <Card key={project.id}>
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant={
+                            project.status === "active"
+                              ? "default"
+                              : project.status === "paused"
+                                ? "secondary"
+                                : "destructive"
+                          }
+                        >
+                          {project.status}
+                        </Badge>
+                        <Badge variant="outline">{project.visibility}</Badge>
+                      </div>
+                      <a
+                        href={`/projects/${project.id}`}
+                        className="font-medium hover:underline break-all"
+                      >
+                        {project.title}
+                      </a>
+                      {project.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {project.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                No projects yet. Create your first project to start organizing apps.
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <a href="/projects/new">create project</a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">
-            Quick Actions
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Shortcuts for the most common next steps.
-          </p>
+          <h2 className="text-lg font-semibold tracking-tight">Quick Actions</h2>
+          <p className="text-sm text-muted-foreground">Shortcuts for the most common next steps.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
@@ -316,9 +345,7 @@ function Home() {
           </Button>
           {activeOrgId ? (
             <Button asChild variant="outline" size="sm">
-              <a href={`/organizations/${encodeURIComponent(activeOrgId)}`}>
-                invite member
-              </a>
+              <a href={`/organizations/${encodeURIComponent(activeOrgId)}`}>invite member</a>
             </Button>
           ) : (
             <Button variant="outline" size="sm" disabled>
@@ -345,33 +372,17 @@ function Home() {
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="text-2xl font-semibold tracking-tight">{value}</div>
     </div>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-3 grid gap-1 sm:grid-cols-[100px_1fr] sm:gap-4">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div
-        className={mono ? "text-xs font-mono break-all" : "text-sm break-all"}
-      >
-        {value}
-      </div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={mono ? "text-xs font-mono break-all" : "text-sm break-all"}>{value}</div>
     </div>
   );
 }

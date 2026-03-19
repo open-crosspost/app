@@ -4,9 +4,9 @@ import { Context, Effect, Layer } from "every-plugin/effect";
 import * as fs from "fs";
 import * as path from "path";
 import * as schema from "../db/schema/auth";
+import { getPlugins } from "./auth-plugins";
 import { ConfigService } from "./config";
 import { DatabaseService } from "./database";
-import { getPlugins } from "./auth-plugins";
 
 // Dev preview directory for email/SMS
 const DEV_PREVIEW_DIR = path.join(process.cwd(), ".dev-preview");
@@ -21,9 +21,19 @@ function ensureDevPreviewDir() {
 }
 
 // Email sending function - dev preview mode
-async function sendEmail({ to, subject, text, html }: { to: string; subject: string; text: string; html?: string }) {
+async function sendEmail({
+  to,
+  subject,
+  text,
+  html,
+}: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}) {
   ensureDevPreviewDir();
-  
+
   const entry = {
     type: "email",
     timestamp: new Date().toISOString(),
@@ -33,10 +43,10 @@ async function sendEmail({ to, subject, text, html }: { to: string; subject: str
     html,
     previewUrl: null as string | null,
   };
-  
+
   // Append to preview log
   fs.appendFileSync(EMAIL_PREVIEW_FILE, JSON.stringify(entry) + "\n");
-  
+
   // Also log to console for visibility
   console.log(`\n📧 [Email Preview] ============================================`);
   console.log(`To: ${to}`);
@@ -44,7 +54,7 @@ async function sendEmail({ to, subject, text, html }: { to: string; subject: str
   console.log(`----------------------------------------------------------------`);
   console.log(text);
   console.log(`================================================================\n`);
-  
+
   // In production, integrate with your email provider:
   // Example: await resend.emails.send({ to, subject, text, html });
 }
@@ -52,7 +62,7 @@ async function sendEmail({ to, subject, text, html }: { to: string; subject: str
 // SMS sending function - dev preview mode
 async function sendSMS({ phoneNumber, code }: { phoneNumber: string; code: string }) {
   ensureDevPreviewDir();
-  
+
   const entry = {
     type: "sms",
     timestamp: new Date().toISOString(),
@@ -60,33 +70,34 @@ async function sendSMS({ phoneNumber, code }: { phoneNumber: string; code: strin
     code,
     message: `Your verification code is: ${code}`,
   };
-  
+
   // Append to preview log
   fs.appendFileSync(SMS_PREVIEW_FILE, JSON.stringify(entry) + "\n");
-  
+
   // Also log to console for visibility
   console.log(`\n📱 [SMS Preview] ================================================`);
   console.log(`To: ${phoneNumber}`);
   console.log(`Code: ${code}`);
   console.log(`Message: Your verification code is: ${code}`);
   console.log(`================================================================\n`);
-  
+
   // In production, integrate with your SMS provider:
   // Example: await twilioClient.messages.create({ to: phoneNumber, body: `Your code: ${code}` });
 }
 
 // Helper to create personal organization for a user
-async function createPersonalOrganization(database: any, user: { id: string; name?: string; email?: string; isAnonymous?: boolean }) {
+async function createPersonalOrganization(
+  database: any,
+  user: { id: string; name?: string; email?: string; isAnonymous?: boolean },
+) {
   if (user.isAnonymous) {
     return null;
   }
 
   // Check if user already has a personal organization
   const existingOrg = await database.query.organization.findFirst({
-    where: (org: any, { eq, and }: any) => and(
-      eq(org.slug, user.id),
-      eq(org.metadata, JSON.stringify({ isPersonal: true }))
-    ),
+    where: (org: any, { eq, and }: any) =>
+      and(eq(org.slug, user.id), eq(org.metadata, JSON.stringify({ isPersonal: true }))),
   });
 
   if (existingOrg) {
@@ -94,14 +105,18 @@ async function createPersonalOrganization(database: any, user: { id: string; nam
   }
 
   // Create personal organization
-  const personalOrg = await database.insert(schema.organization).values({
-    id: crypto.randomUUID(),
-    name: user.name || "My Organization",
-    slug: user.id,
-    logo: null,
-    metadata: JSON.stringify({ isPersonal: true }),
-    createdAt: new Date(),
-  }).returning().get();
+  const personalOrg = await database
+    .insert(schema.organization)
+    .values({
+      id: crypto.randomUUID(),
+      name: user.name || "My Organization",
+      slug: user.id,
+      logo: null,
+      metadata: JSON.stringify({ isPersonal: true }),
+      createdAt: new Date(),
+    })
+    .returning()
+    .get();
 
   // Create owner membership
   await database.insert(schema.member).values({
@@ -128,6 +143,12 @@ export const createAuth = Effect.gen(function* () {
     trustedOrigins: process.env.CORS_ORIGIN?.split(",") || ["*"],
     secret: process.env.BETTER_AUTH_SECRET || "default-secret-change-in-production",
     baseURL: process.env.BETTER_AUTH_URL,
+    socialProviders: {
+      github: {
+        clientId: process.env.GITHUB_CLIENT_ID!,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      },
+    },
     plugins: getPlugins({
       account: config.account,
       baseUrl: process.env.BETTER_AUTH_URL || "http://localhost:3000",
@@ -163,12 +184,12 @@ export const createAuth = Effect.gen(function* () {
     databaseHooks: {
       user: {
         create: {
-        after: async (user) => {
-          const userData = user as typeof schema.user.$inferInsert & { isAnonymous?: boolean };
-          if (!userData.isAnonymous) {
-            await createPersonalOrganization(db, user);
-          }
-        },
+          after: async (user) => {
+            const userData = user as typeof schema.user.$inferInsert & { isAnonymous?: boolean };
+            if (!userData.isAnonymous) {
+              await createPersonalOrganization(db, user);
+            }
+          },
         },
       },
     },
