@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Building2, Code, Globe, Home, Key, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import builtOn from "@/assets/built_on.png";
 import builtOnRev from "@/assets/built_on_rev.png";
+import { Splash } from "@/components/splash";
 import { useClientValue } from "@/hooks/use-client";
 import { ThemeToggle } from "../components/theme-toggle";
 import { UserNav } from "../components/user-nav";
@@ -37,25 +37,17 @@ function Layout() {
     () => localStorage.getItem(HAS_AUTHENTICATED_KEY) === "1",
     false,
   );
-  const showIntro = !isAuthenticated && isHomepage && !hasAuthenticatedBefore;
-  const [introVisible, setIntroVisible] = useState(showIntro);
+  const showSplash = !isAuthenticated && isHomepage && !hasAuthenticatedBefore;
+  const [splashVisible, setSplashVisible] = useState(showSplash);
 
   useEffect(() => {
     if (isAuthenticated) {
       localStorage.setItem(HAS_AUTHENTICATED_KEY, "1");
     }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!showIntro) {
-      setIntroVisible(false);
-      return;
+    if (!showSplash) {
+      setSplashVisible(false);
     }
-
-    setIntroVisible(true);
-  }, [showIntro]);
-
-  const dismissIntro = () => setIntroVisible(false);
+  }, [isAuthenticated, showSplash]);
 
   const isActive = (item: (typeof authenticatedSidebarItems)[number]) => {
     if (item.to) {
@@ -203,40 +195,7 @@ function Layout() {
         )}
       </div>
 
-      <AnimatePresence>
-        {introVisible && (
-          <motion.div
-            key="legacy-intro"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background cursor-pointer"
-            onClick={dismissIntro}
-          >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="flex flex-col items-center justify-center gap-6 px-4 pb-[8vh] text-center sm:px-6"
-            >
-              <h1
-                className="text-5xl font-semibold tracking-tight sm:text-7xl"
-                style={{
-                  textShadow: "rgba(0,0,0,0.08) 1px 1px 1px, rgba(0,0,0,0.06) 3px 3px 3px",
-                }}
-              >
-                everything.dev
-              </h1>
-              <img
-                src="https://ipfs.near.social/ipfs/bafkreidhy7zo33wqjxhqsv2dd6dp2wzloitaa4lmj3rzq5zvcdtp2smeaa"
-                alt="under construction"
-                className="h-auto w-full max-w-xl"
-              />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Splash visible={splashVisible} onDismiss={() => setSplashVisible(false)} />
     </div>
   );
 }

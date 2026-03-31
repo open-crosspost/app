@@ -373,8 +373,8 @@ function AppDetailPage() {
           <div className="space-y-1">
             <h2 className="text-lg font-semibold tracking-tight">Resolved Config</h2>
             <p className="text-sm text-muted-foreground">
-              The live resolved <code>bos.config.json</code> for this app, fetched from NEAR Social
-              and merged with any inherited values.
+              The live resolved <code>bos.config.json</code> for this app, fetched from the NEAR
+              Social smart contract and merged with any inherited values.
             </p>
           </div>
           <pre className="overflow-x-auto text-xs leading-relaxed text-muted-foreground font-mono whitespace-pre rounded-sm border border-border bg-muted/10 p-4">

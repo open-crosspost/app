@@ -151,8 +151,8 @@ function About() {
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground max-w-3xl">
             This is the live resolved <code>bos.config.json</code> for{" "}
-            <code>every.near/everything.dev</code>, fetched from NEAR Social and merged with any
-            inherited values.
+            <code>every.near/everything.dev</code>, fetched from the NEAR Social smart contract and
+            merged with any inherited values.
           </p>
           <Card>
             <CardContent className="p-4 sm:p-6">
@@ -186,43 +186,60 @@ function About() {
       <section className="space-y-4 max-w-3xl">
         <div className="text-xs uppercase tracking-wide text-muted-foreground">wider context</div>
         <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-          <strong className="text-foreground">everything.dev</strong> sits in a broader{" "}
+          <strong className="text-foreground">everything.dev</strong> sits within a broader
+          ecosystem of internet forward ideas coming from{" "}
           <a href="https://near.org" className="underline hover:text-foreground transition-colors">
-            NEAR
-          </a>{" "}
-          direction around BOS, Web4, intents, naming, and portable app infrastructure. This site is
-          one product surface inside that arc: a place to inspect runtime composition today and keep
-          building richer runtime-native experiences over time.
-        </p>
-        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            NEAR Protocol
+          </a>
+          , such as Intents (
+          <a href="https://near.com" className="underline hover:text-foreground transition-colors">
+            near.com
+          </a>
+          ), named accounts (
+          <a
+            href="https://namesky.app/"
+            className="underline hover:text-foreground transition-colors"
+          >
+            namesky.app
+          </a>
+          ),{" "}
           <a
             href="https://github.com/frol/near-dns"
-            className="hover:text-foreground transition-colors"
+            className="underline hover:text-foreground transition-colors"
           >
-            near-dns
+            neardns
           </a>
+          ,{" "}
           <a
-            href="https://outlayer.fastnear.com/"
-            className="hover:text-foreground transition-colors"
+            href="https://web4.near.page"
+            className="underline hover:text-foreground transition-colors"
           >
-            outlayer
-          </a>
-          <a href="https://web4.near.page" className="hover:text-foreground transition-colors">
             web4
           </a>
-          <a
-            href="https://plugin.everything.dev"
-            className="hover:text-foreground transition-colors"
-          >
-            every-plugin
-          </a>
+          ,{" "}
           <a
             href="https://github.com/petersalomonsen/wasm-git-apps"
-            className="hover:text-foreground transition-colors"
+            className="underline hover:text-foreground transition-colors"
           >
             wasm-git-apps
           </a>
-        </div>
+          ,{" "}
+          <a
+            href="https://outlayer.fastnear.com/"
+            className="underline hover:text-foreground transition-colors"
+          >
+            outlayer
+          </a>
+          , and the{" "}
+          <a
+            href="https://near.social/"
+            className="underline hover:text-foreground transition-colors"
+          >
+            blockchain operating system (BOS)
+          </a>
+          . This site is one product surface inside that arc: a place to inspect runtime composition
+          today and keep building richer runtime-native experiences over time.
+        </p>
       </section>
     </div>
   );
