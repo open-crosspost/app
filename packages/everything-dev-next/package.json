@@ -1,86 +1,128 @@
 {
-	"name": "everything-dev-next",
-	"version": "0.0.1",
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./src/index.ts",
-			"import": "./src/index.ts"
-		},
-		"./types": {
-			"types": "./src/types.ts",
-			"import": "./src/types.ts"
-		},
-		"./config": {
-			"types": "./src/config.ts",
-			"import": "./src/config.ts"
-		},
-		"./shared": {
-			"types": "./src/shared.ts",
-			"import": "./src/shared.ts"
-		},
-		"./mf": {
-			"types": "./src/mf.ts",
-			"import": "./src/mf.ts"
-		},
-		"./plugin": {
-			"types": "./src/plugin.ts",
-			"import": "./src/plugin.ts"
-		},
-		"./api": {
-			"types": "./src/api.ts",
-			"import": "./src/api.ts"
-		},
-		"./host": {
-			"types": "./src/host.ts",
-			"import": "./src/host.ts"
-		},
-		"./orchestrator": {
-			"types": "./src/orchestrator.ts",
-			"import": "./src/orchestrator.ts"
-		},
-		"./app": {
-			"types": "./src/app.ts",
-			"import": "./src/app.ts"
-		},
-		"./cli": {
-			"types": "./src/cli.ts",
-			"import": "./src/cli.ts"
-		}
-	},
-	"files": [
-		"src",
-		"cli.js"
-	],
-	"bin": {
-		"everything-dev-next": "./cli.js"
-	},
-	"scripts": {
-		"build": "echo 'Source exports - no build needed'",
-		"dev": "echo 'Source exports - no build needed'",
-		"typecheck": "tsc --noEmit"
-	},
-	"dependencies": {
-		"@hono/node-server": "^1.14.4",
-		"@module-federation/enhanced": "^0.24.1",
-		"@module-federation/node": "^2.7.32",
-		"@module-federation/runtime-core": "^0.24.1",
-		"@orpc/contract": "^1.13.4",
-		"@orpc/server": "^1.13.4",
-		"@orpc/openapi": "^1.13.4",
-		"@orpc/zod": "^1.13.4",
-		"effect": "^3.16.0",
-		"every-plugin": "workspace:*",
-		"hono": "^4.7.11",
-		"zod": "^3.25.0"
-	},
-	"peerDependencies": {
-		"effect": "^3.16.0",
-		"zod": "^3.25.0"
-	},
-	"devDependencies": {
-		"@types/node": "^22.10.2",
-		"tsdown": "^0.12.0",
-		"typescript": "^5.7.2"
-	}
+  "name": "everything-dev",
+  "version": "0.3.3",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "import": "./src/types.ts"
+    },
+    "./config": {
+      "types": "./src/config.ts",
+      "import": "./src/config.ts"
+    },
+    "./shared": {
+      "types": "./src/shared.ts",
+      "import": "./src/shared.ts"
+    },
+    "./mf": {
+      "types": "./src/mf.ts",
+      "import": "./src/mf.ts"
+    },
+    "./plugin": {
+      "types": "./src/plugin.ts",
+      "import": "./src/plugin.ts"
+    },
+    "./api": {
+      "types": "./src/api.ts",
+      "import": "./src/api.ts"
+    },
+    "./host": {
+      "types": "./src/host.ts",
+      "import": "./src/host.ts"
+    },
+    "./orchestrator": {
+      "types": "./src/orchestrator.ts",
+      "import": "./src/orchestrator.ts"
+    },
+    "./app": {
+      "types": "./src/app.ts",
+      "import": "./src/app.ts"
+    },
+    "./cli": {
+      "types": "./src/cli.ts",
+      "import": "./src/cli.ts"
+    },
+    "./ui": {
+      "types": "./src/ui/index.ts",
+      "import": "./src/ui/index.ts"
+    },
+    "./ui/types": {
+      "types": "./src/ui/types.ts",
+      "import": "./src/ui/types.ts"
+    },
+    "./ui/runtime": {
+      "types": "./src/ui/runtime.ts",
+      "import": "./src/ui/runtime.ts"
+    },
+    "./ui/head": {
+      "types": "./src/ui/head.ts",
+      "import": "./src/ui/head.ts"
+    },
+    "./ui/router": {
+      "types": "./src/ui/router.ts",
+      "import": "./src/ui/router.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "cli.js"
+  ],
+  "bin": {
+    "everything-dev": "./cli.js",
+    "bos": "./cli.js"
+  },
+  "scripts": {
+    "build": "echo 'Source exports - no build needed'",
+    "dev": "echo 'Source exports - no build needed'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.4",
+    "@module-federation/enhanced": "^0.24.1",
+    "@module-federation/node": "^2.7.32",
+    "@module-federation/runtime-core": "^0.24.1",
+    "@orpc/contract": "^1.13.4",
+    "@orpc/server": "^1.13.4",
+    "@orpc/openapi": "^1.13.4",
+    "@orpc/zod": "^1.13.4",
+    "chalk": "^5.6.2",
+    "effect": "^3.16.0",
+    "every-plugin": "workspace:*",
+    "gradient-string": "^3.0.0",
+    "hono": "^4.7.11",
+    "ink": "^5.2.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.0.0",
+    "@tanstack/react-router": ">=1.0.0",
+    "effect": "^3.16.0",
+    "zod": "^3.25.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "@tanstack/react-router": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-router": "^1.0.0",
+    "@types/gradient-string": "^1.1.6",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "tsdown": "^0.12.0",
+    "typescript": "^5.7.2"
+  }
 }

@@ -36,7 +36,7 @@ bos start --no-interactive   # All remotes, production URLs
 
 ```bash
 bos build               # Build all packages (updates bos.config.json)
-bos publish             # Publish config to Near Social
+bos publish             # Publish config to the FastKV registry
 bos sync                # Sync from every.near/everything.dev
 ```
 

@@ -1,0 +1,97 @@
+type NetworkId = "mainnet" | "testnet";
+
+interface FastKvEntry {
+  value: unknown;
+}
+
+interface FastKvListResponse {
+  entries?: Array<FastKvEntry | null>;
+}
+
+const FASTKV_TIMEOUT_MS = 10_000;
+
+function getNetworkIdForAccount(accountId: string): NetworkId {
+  return accountId.endsWith(".testnet") ? "testnet" : "mainnet";
+}
+
+function getFastKvBaseUrlForAccount(accountId: string): string {
+  return getNetworkIdForAccount(accountId) === "testnet"
+    ? process.env.REGISTRY_FASTKV_TESTNET_URL || "https://kv.test.fastnear.com"
+    : process.env.REGISTRY_FASTKV_MAINNET_URL || "https://kv.main.fastnear.com";
+}
+
+function getRegistryNamespaceForAccount(accountId: string): string {
+  return accountId.endsWith(".testnet")
+    ? process.env.REGISTRY_FASTKV_TESTNET_NAMESPACE || "registry.everything.testnet"
+    : process.env.REGISTRY_FASTKV_MAINNET_NAMESPACE || "registry.everything.near";
+}
+
+function getRegistryConfigKey(accountId: string, gatewayId: string): string {
+  return `apps/${accountId}/${gatewayId}/bos.config.json`;
+}
+
+function parseBosUrl(bosUrl: string): { accountId: string; gatewayId: string } {
+  const match = bosUrl.match(/^bos:\/\/([^/]+)\/(.+)$/);
+  if (!match?.[1] || !match[2]) {
+    throw new Error(`Invalid BOS URL: ${bosUrl}`);
+  }
+
+  return {
+    accountId: match[1],
+    gatewayId: match[2],
+  };
+}
+
+export async function fetchBosConfigFromFastKv<T>(bosUrl: string): Promise<T> {
+  const { accountId, gatewayId } = parseBosUrl(bosUrl);
+  const payload = await fetchJson<FastKvListResponse>(
+    `${getFastKvBaseUrlForAccount(accountId)}/v0/latest/${encodeURIComponent(getRegistryNamespaceForAccount(accountId))}/${encodeURIComponent(accountId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        key: getRegistryConfigKey(accountId, gatewayId),
+        limit: 1,
+      }),
+    },
+  );
+  const value = payload?.entries?.find(Boolean)?.value;
+
+  if (!value) {
+    throw new Error(`No config found for ${bosUrl}`);
+  }
+
+  if (typeof value === "string") {
+    return JSON.parse(value) as T;
+  }
+
+  if (typeof value !== "object") {
+    throw new Error(`Invalid config value for ${bosUrl}`);
+  }
+
+  return value as T;
+}
+
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FASTKV_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

@@ -91,7 +91,7 @@ function createClientConfig() {
       },
     },
     server: {
-      port: 3002,
+      port: isServerBuild ? 3003 : 3002,
       printUrls: ({ urls }) => urls.filter((url) => url.includes("localhost")),
       headers: {
         "Access-Control-Allow-Origin": "*",
@@ -156,6 +156,19 @@ function createServerConfig() {
         "@": "./src",
         "@tanstack/react-devtools": false,
         "@tanstack/react-router-devtools": false,
+      },
+    },
+    server: {
+      port: 3003,
+      printUrls: ({ urls }) => urls.filter((url) => url.includes("localhost")),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+      publicDir: {
+        name: "dist",
+        copyOnBuild: false,
       },
     },
     tools: {

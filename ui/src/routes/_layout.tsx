@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { BookOpen, Building2, Code, Globe, Home, Key, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import builtOn from "@/assets/built_on.png";
@@ -195,7 +195,9 @@ function Layout() {
         )}
       </div>
 
-      <Splash visible={splashVisible} onDismiss={() => setSplashVisible(false)} />
+      <ClientOnly>
+        <Splash visible={splashVisible} onDismiss={() => setSplashVisible(false)} />
+      </ClientOnly>
     </div>
   );
 }

@@ -17,8 +17,7 @@
     "@orpc/server": "^1.13.4",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
-    "near-kit": "catalog:",
-    "near-social-js": "^2.0.4"
+    "near-kit": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "^0.41.1",
@@ -27,6 +26,7 @@
     "@rspack/core": "^1.6.8",
     "@types/node": "catalog:",
     "dotenv": "^17.2.3",
+    "everything-dev": "workspace:*",
     "every-plugin": "0.9.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "catalog:",

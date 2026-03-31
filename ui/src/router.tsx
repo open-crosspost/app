@@ -42,8 +42,23 @@ function ErrorComponent({ error }: { error: Error }) {
   );
 }
 
+function NotFoundComponent() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-semibold text-foreground">Not Found</h1>
+        <p className="mt-2 text-muted-foreground">The requested page could not be found.</p>
+      </div>
+    </div>
+  );
+}
+
 function PendingComponent() {
-  return <div className="min-h-screen w-full bg-background" />;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  );
 }
 
 export function createRouter(opts: CreateRouterOptions = {}) {
@@ -77,6 +92,7 @@ export function createRouter(opts: CreateRouterOptions = {}) {
     defaultStructuralSharing: true,
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: ErrorComponent,
+    defaultNotFoundComponent: NotFoundComponent,
     defaultPendingComponent: PendingComponent,
     defaultPendingMinMs: 0,
     dehydrate: () => {

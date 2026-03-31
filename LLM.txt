@@ -413,9 +413,9 @@ if (session?.user?.walletAddress) {
   
   // Call contracts
   await nearClient.callContract({
-    contractId: 'social.near',
-    method: 'set',
-    args: { data: { ... } }
+    contractId: 'registry.everything.near',
+    method: '__fastdata_kv',
+    args: { 'apps/my.near/site/bos.config.json': { ... } }
   });
 }
 ```

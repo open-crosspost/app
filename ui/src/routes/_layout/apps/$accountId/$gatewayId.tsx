@@ -57,7 +57,7 @@ function AppDetailPage() {
       title: app?.metadata?.title ?? "",
       description: app?.metadata?.description ?? "",
       repoUrl: app?.metadata?.repoUrl ?? "",
-      homepageUrl: app?.metadata?.homepageUrl ?? app?.hostUrl ?? "",
+      homepageUrl: app?.metadata?.homepageUrl ?? app?.openUrl ?? app?.hostUrl ?? "",
       imageUrl: app?.metadata?.imageUrl ?? "",
     }),
     [app],
@@ -278,9 +278,9 @@ function AppDetailPage() {
                     <a href={buildGatewayRunHref(accountId, gatewayId)}>run in host</a>
                   </Button>
                 )}
-                {app.hostUrl && (
+                {app.openUrl && (
                   <Button asChild variant="outline" size="sm">
-                    <a href={app.hostUrl} target="_blank" rel="noreferrer">
+                    <a href={app.openUrl} target="_blank" rel="noreferrer">
                       open app
                     </a>
                   </Button>

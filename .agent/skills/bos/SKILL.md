@@ -1,6 +1,6 @@
 ---
 name: bos
-description: CLI for everything-dev Module Federation projects. Use when creating new BOS projects, publishing bos.config.json to Near Social, syncing with remote configs (every.near/everything.dev), running development servers (bos dev), or building/deploying federated apps. Deploy → publish → sync workflow for shared configuration.
+description: CLI for everything-dev Module Federation projects. Use when creating new BOS projects, publishing bos.config.json to the FastKV registry, syncing with remote configs (every.near/everything.dev), running development servers (bos dev), or building/deploying federated apps. Deploy → publish → sync workflow for shared configuration.
 ---
 
 # everything-dev CLI
@@ -58,7 +58,7 @@ The core workflow for sharing configuration:
 # 1. Deploy apps to Zephyr (updates bos.config.json with production URLs)
 bos deploy
 
-# 2. Publish config to Near Social (on-chain registry)
+# 2. Publish config to the FastKV registry
 bos publish
 
 # 3. Others sync from your published config
@@ -77,7 +77,7 @@ bos sync --account your.near --gateway your-gateway.com
 | `bos start --no-interactive` | Production mode |
 | `bos build` | Build existing packages (skips missing) |
 | `bos deploy` | Deploy existing packages to Zephyr |
-| `bos publish` | Publish config to Near Social |
+| `bos publish` | Publish config to the FastKV registry |
 | `bos info` | Show current configuration |
 | `bos status` | Check remote health |
 
@@ -140,7 +140,7 @@ Process tracking uses `.bos/pids.json` to track spawned processes for cleanup.
 | `bos docker stop --all` | Stop all BOS containers |
 
 **Docker modes:**
-- `start` (default): Production mode, fetches config from Near Social
+- `start` (default): Production mode, fetches config from the FastKV registry
 - `serve`: Exposes CLI as RPC API (agent-ready)
 - `dev`: Full development mode
 

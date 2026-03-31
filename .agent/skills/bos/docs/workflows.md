@@ -16,7 +16,7 @@ bun install
 bos dev --host remote
 ```
 
-The default template comes from `every.near/everything.dev` published on Near Social.
+The default template comes from `every.near/everything.dev` published in the FastKV registry.
 
 ## Updating from Upstream
 
@@ -100,7 +100,7 @@ The core sharing workflow:
 
 ### 1. Publish (Full Release)
 
-`bos publish` builds, deploys to Zephyr Cloud, and publishes config to Near Social in one step:
+`bos publish` builds, deploys to Zephyr Cloud, and publishes config to the FastKV registry in one step:
 
 ```bash
 # Preview first
@@ -119,7 +119,7 @@ bos publish ui,api
 The publish command:
 1. Builds packages locally (`bun run build`)
 2. Deploys to Zephyr Cloud (updates `production` URLs in config)
-3. Publishes config to Near Social
+3. Publishes config to the FastKV registry
 
 Your config is now at: `{account}/bos/gateways/{gateway}/bos.config.json`
 
@@ -297,14 +297,14 @@ bos secrets sync --env .env.my-tenant
 
 Each tenant can have their own:
 - `bos.config.json` with their account
-- Published config on Near Social
+- Published config in the FastKV registry
 - NOVA secrets group
 
 ## Docker Deployment
 
 ### Production Container
 
-Build and run a production container that fetches config from Near Social:
+Build and run a production container that fetches config from the FastKV registry:
 
 ```bash
 # Build production image

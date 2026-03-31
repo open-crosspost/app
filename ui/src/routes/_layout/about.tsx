@@ -88,7 +88,7 @@ function About() {
             </div>
             <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
               <p>
-                1. discover the published runtime record from{" "}
+                1. discover the published runtime record from the FastKV registry on{" "}
                 <a
                   href="https://near.org"
                   className="underline hover:text-foreground transition-colors"
@@ -151,8 +151,8 @@ function About() {
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground max-w-3xl">
             This is the live resolved <code>bos.config.json</code> for{" "}
-            <code>every.near/everything.dev</code>, fetched from the NEAR Social smart contract and
-            merged with any inherited values.
+            <code>every.near/everything.dev</code>, fetched from the FastKV-backed public registry
+            and merged with any inherited values.
           </p>
           <Card>
             <CardContent className="p-4 sm:p-6">

@@ -20,8 +20,6 @@ export async function hydrate() {
       return;
     }
 
-    const { hydrateRoot } = await import("react-dom/client");
-    const { RouterClient } = await import("@tanstack/react-router/ssr/client");
     const { QueryClientProvider } = await import("@tanstack/react-query");
     const { createRouter } = await import("./router");
 
@@ -32,13 +30,28 @@ export async function hydrate() {
       },
     });
 
-    console.log("[Hydrate] Calling hydrateRoot...");
-    hydrateRoot(
-      document,
-      <QueryClientProvider client={queryClient}>
-        <RouterClient router={router} />
-      </QueryClientProvider>,
-    );
+    if (window.$_TSR) {
+      const { hydrateRoot } = await import("react-dom/client");
+      const { RouterClient } = await import("@tanstack/react-router/ssr/client");
+
+      console.log("[Hydrate] Calling hydrateRoot...");
+      hydrateRoot(
+        document,
+        <QueryClientProvider client={queryClient}>
+          <RouterClient router={router} />
+        </QueryClientProvider>,
+      );
+    } else {
+      const { createRoot } = await import("react-dom/client");
+      const { RouterProvider } = await import("@tanstack/react-router");
+
+      console.log("[Hydrate] Calling createRoot...");
+      createRoot(document).render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>,
+      );
+    }
 
     console.log("[Hydrate] Complete!");
   })();

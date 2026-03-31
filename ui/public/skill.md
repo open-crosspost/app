@@ -12,9 +12,16 @@ Understand and interact with everything.dev as a runtime-composed site on NEAR.
 - The API is loaded at runtime through `every-plugin`.
 - Public metadata may describe the runtime, but should not replace the runtime manifest.
 
+## Bootstrap flow
+
+- Publish the root `bos.config.json` first at `dev.everything.near/everything.dev`.
+- The root record should not extend anything while it is the bootstrap source of truth.
+- After that root is live, other configs can extend it with `bos://dev.everything.near/everything.dev`.
+- `domain` is the public open-app URL; use it for app launch links, not `hostUrl`.
+
 ## Useful assumptions
 
-- The site is published from `every.near/everything.dev`.
+- The bootstrap site is published from `dev.everything.near/everything.dev`.
 - Multiple sites may share the same host configuration.
 - Host URLs can stay stable while published runtime records change over time.
 - The project is meant to be continuously built over and around.

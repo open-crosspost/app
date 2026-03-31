@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "rsbuild dev",
+    "dev:ssr": "PORT=3003 BUILD_TARGET=server rsbuild dev",
     "build": "bun run build:client && bun run build:ssr",
     "deploy": "DEPLOY=true bun run build",
     "build:client": "BUILD_TARGET=client rsbuild build",
@@ -62,7 +63,7 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "everything-dev": "0.3.2",
+    "everything-dev": "workspace:*",
     "every-plugin": "0.9.0",
     "@module-federation/enhanced": "catalog:",
     "@module-federation/node": "catalog:",

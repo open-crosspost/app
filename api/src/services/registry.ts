@@ -1,11 +1,25 @@
 import { decodeSignedDelegateAction, Near } from "near-kit";
-import { Graph } from "near-social-js";
+import {
+  buildRegistryConfigUrl,
+  fetchBosConfigFromFastKv,
+  getFastKvBaseUrlForAccount,
+  getFastKvBaseUrlForNetwork,
+  getNetworkIdForAccount,
+  getRegistryConfigKey,
+  getRegistryMetadataKey,
+  getRegistryNamespaceForAccount,
+  getRegistryNamespaceForNetwork,
+  listLatestValues,
+  type NetworkId,
+  readLatestValue,
+} from "./fastkv";
 
 type JsonObject = Record<string, unknown>;
 
 type BosConfigInput = {
   extends?: string;
   account?: string;
+  domain?: string;
   gateway?: {
     development?: string;
     production?: string;
@@ -13,6 +27,8 @@ type BosConfigInput = {
   };
   app?: Record<string, JsonObject>;
   shared?: Record<string, Record<string, JsonObject>>;
+  template?: string;
+  testnet?: string;
 };
 
 export interface RegistryListInput {
@@ -48,6 +64,8 @@ export interface RegistryAppSummary {
   canonicalKey: string;
   canonicalConfigUrl: string;
   startCommand: string;
+  domain: string | null;
+  openUrl: string | null;
   hostUrl: string | null;
   uiUrl: string | null;
   uiSsrUrl: string | null;
@@ -81,28 +99,20 @@ export interface RegistryRelayResult {
   senderId: string;
 }
 
-interface FastKvWriterEntry {
-  accountId?: string;
-  value?: unknown;
-}
-
 interface DiscoveredConfig {
   accountId: string;
   gatewayId: string;
   rawConfig: BosConfigInput;
 }
 
-const DISCOVERY_KEY = "*/bos/gateways/*/bos.config.json";
-const DEFAULT_FASTKV_URL = process.env.REGISTRY_FASTKV_URL || "https://fastdata.up.railway.app";
-const DEFAULT_FASTKV_CONTRACT_ID = process.env.REGISTRY_FASTKV_CONTRACT_ID || "contextual.near";
+const DISCOVERY_PREFIX = "apps/";
 const DEFAULT_RELAY_ACCOUNT_ID =
   process.env.REGISTRY_RELAY_ACCOUNT_ID || process.env.NEAR_ACCOUNT_ID || null;
 const DEFAULT_RELAY_PRIVATE_KEY =
   process.env.REGISTRY_RELAY_PRIVATE_KEY || process.env.NEAR_PRIVATE_KEY || null;
 const DEFAULT_RELAY_NETWORK =
-  (process.env.REGISTRY_RELAY_NETWORK as "mainnet" | "testnet" | undefined) || "mainnet";
-
-const graph = new Graph();
+  (process.env.REGISTRY_RELAY_NETWORK as NetworkId | undefined) ||
+  (DEFAULT_RELAY_ACCOUNT_ID ? getNetworkIdForAccount(DEFAULT_RELAY_ACCOUNT_ID) : "mainnet");
 
 export async function listRegistryApps(input: RegistryListInput) {
   const limit = clamp(input.limit ?? 24, 1, 100);
@@ -155,15 +165,15 @@ export async function getRegistryApp(
 
   const resolved = await resolvePublishedConfig(match.rawConfig);
   const normalized = normalizeResolvedConfig(accountId, gatewayId, resolved);
-  const metadataKey = getMetadataKey(accountId, gatewayId);
+  const metadataKey = getRegistryMetadataKey(accountId, gatewayId);
   const metadata = await getRegistryMetadata(accountId, gatewayId);
 
   return {
     ...normalized,
     metadata,
     metadataKey,
-    metadataContractId: DEFAULT_FASTKV_CONTRACT_ID,
-    metadataFastKvUrl: DEFAULT_FASTKV_URL,
+    metadataContractId: getRegistryNamespaceForAccount(accountId),
+    metadataFastKvUrl: getFastKvBaseUrlForAccount(accountId),
     resolvedConfig: resolved as JsonObject,
   };
 }
@@ -179,15 +189,15 @@ export async function getRegistryAppByHost(hostUrl: string): Promise<RegistryApp
       continue;
     }
 
-    const metadataKey = getMetadataKey(item.accountId, item.gatewayId);
+    const metadataKey = getRegistryMetadataKey(item.accountId, item.gatewayId);
     const metadata = await getRegistryMetadata(item.accountId, item.gatewayId);
 
     return {
       ...normalized,
       metadata,
       metadataKey,
-      metadataContractId: DEFAULT_FASTKV_CONTRACT_ID,
-      metadataFastKvUrl: DEFAULT_FASTKV_URL,
+      metadataContractId: getRegistryNamespaceForAccount(item.accountId),
+      metadataFastKvUrl: getFastKvBaseUrlForAccount(item.accountId),
       resolvedConfig: resolved as JsonObject,
     };
   }
@@ -199,9 +209,9 @@ export async function getRegistryStatus() {
   const discovered = await discoverPublishedConfigs();
   return {
     discoveredApps: discovered.length,
-    discoveryKey: DISCOVERY_KEY,
-    metadataContractId: DEFAULT_FASTKV_CONTRACT_ID,
-    metadataFastKvUrl: DEFAULT_FASTKV_URL,
+    discoveryKey: `${DISCOVERY_PREFIX}*/bos.config.json`,
+    metadataContractId: `${getRegistryNamespaceForNetwork("mainnet")} | ${getRegistryNamespaceForNetwork("testnet")}`,
+    metadataFastKvUrl: getFastKvBaseUrlForNetwork("mainnet"),
     relayEnabled: Boolean(DEFAULT_RELAY_ACCOUNT_ID && DEFAULT_RELAY_PRIVATE_KEY),
     relayAccountId: DEFAULT_RELAY_ACCOUNT_ID,
     timestamp: new Date().toISOString(),
@@ -211,11 +221,11 @@ export async function getRegistryStatus() {
 export function prepareRegistryMetadataWrite(
   input: RegistryMetadataDraftInput,
 ): PreparedRegistryMetadataWrite {
-  const key = getMetadataKey(input.accountId, input.gatewayId);
+  const key = getRegistryMetadataKey(input.accountId, input.gatewayId);
   const manifest = buildRegistryManifest(input);
 
   return {
-    contractId: DEFAULT_FASTKV_CONTRACT_ID,
+    contractId: getRegistryNamespaceForAccount(input.accountId),
     methodName: "__fastdata_kv",
     key,
     manifest,
@@ -261,42 +271,58 @@ export function getRegistryRelaySender(signedDelegateActionPayload: string) {
 }
 
 async function discoverPublishedConfigs(): Promise<DiscoveredConfig[]> {
-  const data = await graph.get({ keys: [DISCOVERY_KEY] });
+  const results = await Promise.all([
+    discoverPublishedConfigsForNetwork("mainnet"),
+    discoverPublishedConfigsForNetwork("testnet"),
+  ]);
+  return results.flat().sort(compareDiscovered);
+}
 
-  if (!data || typeof data !== "object") {
-    return [];
-  }
-
+async function discoverPublishedConfigsForNetwork(network: NetworkId): Promise<DiscoveredConfig[]> {
+  const baseUrl = getFastKvBaseUrlForNetwork(network);
+  const currentAccountId = getRegistryNamespaceForNetwork(network);
   const apps: DiscoveredConfig[] = [];
+  let pageToken: string | null = null;
 
-  for (const [accountId, accountValue] of Object.entries(data)) {
-    const gateways = (accountValue as JsonObject)?.bos;
-    const gatewayMap = (gateways as JsonObject)?.gateways;
+  for (;;) {
+    const page = await listLatestValues({
+      baseUrl,
+      currentAccountId,
+      keyPrefix: DISCOVERY_PREFIX,
+      pageToken: pageToken ?? undefined,
+      limit: 200,
+    });
 
-    if (!gatewayMap || typeof gatewayMap !== "object") {
-      continue;
-    }
-
-    for (const [gatewayId, gatewayValue] of Object.entries(gatewayMap)) {
-      const serialized = (gatewayValue as JsonObject)?.["bos.config.json"];
-      if (typeof serialized !== "string") {
+    for (const entry of page.entries) {
+      if (!entry.key.endsWith("/bos.config.json")) {
         continue;
       }
 
-      const rawConfig = parseJson<BosConfigInput>(serialized);
+      const parsedKey = parseRegistryConfigKey(entry.key);
+      if (!parsedKey) {
+        continue;
+      }
+
+      const rawConfig = normalizeConfigValue(entry.value);
       if (!rawConfig) {
         continue;
       }
 
       apps.push({
-        accountId,
-        gatewayId,
+        accountId: parsedKey.accountId,
+        gatewayId: parsedKey.gatewayId,
         rawConfig,
       });
     }
+
+    if (!page.pageToken) {
+      break;
+    }
+
+    pageToken = page.pageToken;
   }
 
-  return apps.sort(compareDiscovered);
+  return apps;
 }
 
 async function resolveAppSummary(item: DiscoveredConfig): Promise<RegistryAppSummary> {
@@ -310,11 +336,7 @@ async function resolveAppSummary(item: DiscoveredConfig): Promise<RegistryAppSum
 }
 
 async function resolvePublishedConfig(config: BosConfigInput): Promise<BosConfigInput> {
-  if (!config.extends) {
-    return config;
-  }
-
-  if (!config.extends.startsWith("bos://")) {
+  if (!config.extends || !config.extends.startsWith("bos://")) {
     return config;
   }
 
@@ -325,11 +347,7 @@ async function resolveConfigWithExtends(
   config: BosConfigInput,
   visited: Set<string>,
 ): Promise<BosConfigInput> {
-  if (!config.extends) {
-    return config;
-  }
-
-  if (!config.extends.startsWith("bos://")) {
+  if (!config.extends || !config.extends.startsWith("bos://")) {
     return config;
   }
 
@@ -340,38 +358,10 @@ async function resolveConfigWithExtends(
   const nextVisited = new Set(visited);
   nextVisited.add(config.extends);
 
-  const parent = await fetchBosConfig(config.extends);
+  const parent = await fetchBosConfigFromFastKv<BosConfigInput>(config.extends);
   const resolvedParent = await resolveConfigWithExtends(parent, nextVisited);
 
   return mergeConfigs(resolvedParent, config);
-}
-
-async function fetchBosConfig(bosUrl: string): Promise<BosConfigInput> {
-  const configPath = resolveBosUrl(bosUrl);
-  const data = await graph.get({ keys: [configPath] });
-
-  if (!data || typeof data !== "object") {
-    throw new Error(`No data returned for ${bosUrl}`);
-  }
-
-  let current: unknown = data;
-  for (const part of configPath.split("/")) {
-    if (!current || typeof current !== "object" || !(part in current)) {
-      throw new Error(`Missing config path ${configPath}`);
-    }
-    current = (current as JsonObject)[part];
-  }
-
-  if (typeof current !== "string") {
-    throw new Error(`Invalid config value at ${configPath}`);
-  }
-
-  const parsed = parseJson<BosConfigInput>(current);
-  if (!parsed) {
-    throw new Error(`Unable to parse config at ${configPath}`);
-  }
-
-  return parsed;
 }
 
 function normalizeResolvedConfig(
@@ -387,14 +377,17 @@ function normalizeResolvedConfig(
   const uiUrl = readString(uiConfig.production);
   const apiUrl = readString(apiConfig.production);
   const uiSsrUrl = readString(uiConfig.ssr);
-  const canonicalKey = `${accountId}/bos/gateways/${gatewayId}/bos.config.json`;
+  const domain = readString(config.domain);
+  const canonicalKey = getRegistryConfigKey(accountId, gatewayId);
 
   return {
     accountId,
     gatewayId,
     canonicalKey,
-    canonicalConfigUrl: `https://near.social/mob.near/widget/State.Inspector?key=${encodeURIComponent(canonicalKey)}`,
+    canonicalConfigUrl: buildRegistryConfigUrl(accountId, gatewayId),
     startCommand: `bos start --account ${accountId} --domain ${gatewayId}`,
+    domain,
+    openUrl: buildOpenUrl(domain),
     hostUrl,
     uiUrl,
     apiUrl,
@@ -409,36 +402,28 @@ async function getRegistryMetadata(
   accountId: string,
   gatewayId: string,
 ): Promise<RegistryMetadata | null> {
-  const metadataKey = getMetadataKey(accountId, gatewayId);
-  const url = new URL(`${DEFAULT_FASTKV_URL}/v1/kv/writers`);
-  url.searchParams.set("contractId", DEFAULT_FASTKV_CONTRACT_ID);
-  url.searchParams.set("key", metadataKey);
-  url.searchParams.set("exclude_deleted", "true");
-  url.searchParams.set("value_format", "json");
-  url.searchParams.set("limit", "20");
+  const value = await readLatestValue({
+    baseUrl: getFastKvBaseUrlForAccount(accountId),
+    currentAccountId: getRegistryNamespaceForAccount(accountId),
+    predecessorId: accountId,
+    key: getRegistryMetadataKey(accountId, gatewayId),
+  });
 
-  const response = await fetchJson<{ data?: FastKvWriterEntry[] }>(url.toString());
-  const writers = Array.isArray(response?.data) ? response.data : [];
-  if (writers.length === 0) {
+  if (!value) {
     return null;
   }
 
-  const chosen = writers.find((entry) => entry.accountId === accountId) ?? writers[0];
-  const value = normalizeMetadataValue(chosen?.value);
+  const normalized = normalizeMetadataValue(value);
 
   return {
-    claimedBy: typeof chosen?.accountId === "string" ? chosen.accountId : null,
-    title: readString(value.title),
-    description: readString(value.description),
-    repoUrl: readString(value.repoUrl),
-    homepageUrl: readString(value.homepageUrl),
-    imageUrl: readString(value.imageUrl),
-    updatedAt: readString(value.updatedAt),
+    claimedBy: accountId,
+    title: readString(normalized.title),
+    description: readString(normalized.description),
+    repoUrl: readString(normalized.repoUrl),
+    homepageUrl: readString(normalized.homepageUrl),
+    imageUrl: readString(normalized.imageUrl),
+    updatedAt: readString(normalized.updatedAt),
   };
-}
-
-function getMetadataKey(accountId: string, gatewayId: string) {
-  return `registry/apps/${accountId}/${gatewayId}/manifest`;
 }
 
 function buildRegistryManifest(input: RegistryMetadataDraftInput): RegistryMetadata {
@@ -474,14 +459,28 @@ function normalizeMetadataValue(value: unknown): JsonObject {
   return {};
 }
 
-function resolveBosUrl(bosUrl: string) {
-  const match = bosUrl.match(/^bos:\/\/([^/]+)\/(.+)$/);
-  if (!match) {
-    throw new Error(`Invalid BOS URL: ${bosUrl}`);
+function normalizeConfigValue(value: unknown): BosConfigInput | null {
+  if (typeof value === "string") {
+    return parseJson<BosConfigInput>(value);
   }
 
-  const [, account, gateway] = match;
-  return `${account}/bos/gateways/${gateway}/bos.config.json`;
+  if (value && typeof value === "object") {
+    return value as BosConfigInput;
+  }
+
+  return null;
+}
+
+function parseRegistryConfigKey(key: string): { accountId: string; gatewayId: string } | null {
+  const match = key.match(/^apps\/([^/]+)\/(.+)\/bos\.config\.json$/);
+  if (!match?.[1] || !match[2]) {
+    return null;
+  }
+
+  return {
+    accountId: match[1],
+    gatewayId: match[2],
+  };
 }
 
 function mergeConfigs(parent: BosConfigInput, child: BosConfigInput): BosConfigInput {
@@ -528,20 +527,6 @@ function mergeConfigs(parent: BosConfigInput, child: BosConfigInput): BosConfigI
   return merged;
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return (await response.json()) as T;
-}
-
 function matchesQuery(accountId: string, gatewayId: string, query?: string) {
   if (!query) {
     return true;
@@ -580,6 +565,10 @@ function parseJson<T>(value: string): T | null {
 
 function readString(value: unknown) {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function buildOpenUrl(domain: string | null) {
+  return domain ? `https://${domain}` : null;
 }
 
 function sanitizeNullable(value: string | undefined) {

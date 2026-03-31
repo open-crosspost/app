@@ -8,6 +8,7 @@ import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Cause, Deferred, Effect, Exit, Fiber, Layer, ManagedRuntime } from "every-plugin/effect";
 import { formatORPCError } from "every-plugin/errors";
 import { onError } from "every-plugin/orpc";
+import { getBaseStyles, getHydrateScript, getThemeInitScript } from "everything-dev/ui/head";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { getRegistryApp, getRegistryAppByHost } from "../../api/src/services/registry";
@@ -262,13 +263,18 @@ function setupApiRoutes(
     startTime: number;
     milestones: string[];
     error: Error | null;
+    ssrEnabled: boolean;
   },
 ) {
   const getHealthStatus = () => {
     const elapsed = Date.now() - loadingState.startTime;
     return {
       status: loadingState.status,
-      ssr: loadingState.status === "ready" ? "available" : "unavailable",
+      ssr: loadingState.ssrEnabled
+        ? loadingState.status === "ready"
+          ? "available"
+          : "unavailable"
+        : "disabled",
       uptime: elapsed,
       milestones: loadingState.milestones,
       ...(loadingState.error ? { error: loadingState.error.message } : {}),
@@ -413,6 +419,55 @@ export const createStartServer = (onReady?: () => void) =>
       startTime: Date.now(),
       milestones: [] as string[],
       error: null as Error | null,
+      ssrEnabled: Boolean(config.ui.ssrUrl),
+    };
+
+    const renderClientShell = (
+      ctx: Context,
+      runtimeConfig: ClientRuntimeConfig,
+      error?: Error | null,
+    ) => {
+      const clientUrl = config.ui.url;
+      const themeInitScript = getThemeInitScript().children ?? "";
+      const hydrateScript = getHydrateScript(runtimeConfig).children ?? "";
+
+      return ctx.html(
+        `<!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+              <title>everything.dev</title>
+              <link rel="icon" type="image/x-icon" href="${clientUrl}/favicon.ico" />
+              <link rel="icon" type="image/svg+xml" href="${clientUrl}/icon.svg" />
+              <link rel="manifest" href="${clientUrl}/manifest.json" />
+              <style>
+                ${getBaseStyles()}
+                .shell { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; }
+                .fade { animation: fadeIn 0.3s ease-in; }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                .error { color: #fca5a5; }
+              </style>
+              <script src="${clientUrl}/remoteEntry.js"></script>
+              <script>${themeInitScript}</script>
+              <script>${hydrateScript}</script>
+            </head>
+            <body>
+              <div id="root">
+                <div class="shell">
+                  <div class="fade">
+                    ${
+                      error
+                        ? `<p class="error">SSR unavailable, showing client app.</p><p>${error.message}</p>`
+                        : `<p>Loading...</p>`
+                    }
+                  </div>
+                </div>
+              </div>
+            </body>
+          </html>`,
+        200,
+      );
     };
 
     const logMilestone = (name: string) => {
@@ -421,6 +476,8 @@ export const createStartServer = (onReady?: () => void) =>
       logger.info(message);
       loadingState.milestones.push(message);
     };
+
+    const proxyUiAssetRequest = (c: Context) => proxyRequest(c.req.raw, config.ui.url);
 
     setupApiRoutes(app, config, auth, db, apiRouter, loadingState);
 
@@ -431,7 +488,9 @@ export const createStartServer = (onReady?: () => void) =>
       logger.info(`[Config] API proxy: ${config.api.proxy}`);
     }
 
-    if (!isDev) {
+    const shouldProxyUiAssets = isDev || config.ui.source === "remote";
+
+    if (!shouldProxyUiAssets) {
       app.use("/static/*", serveStatic({ root: "./dist" }));
       app.use("/favicon.ico", serveStatic({ root: "./dist" }));
       app.use("/icon.svg", serveStatic({ root: "./dist" }));
@@ -440,14 +499,49 @@ export const createStartServer = (onReady?: () => void) =>
       app.use("/README.md", serveStatic({ root: "./dist" }));
       app.use("/skill.md", serveStatic({ root: "./dist" }));
       app.use("/llms.txt", serveStatic({ root: "./dist" }));
+    } else {
+      app.all("/static/*", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/.well-known/*", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/favicon.ico", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/icon.svg", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/manifest.json", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/robots.txt", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/README.md", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/skill.md", (c: Context) => proxyUiAssetRequest(c));
+      app.all("/llms.txt", (c: Context) => proxyUiAssetRequest(c));
     }
 
     logMilestone("Server starting");
 
+    if (config.ui.ssrUrl) {
+      logMilestone("Starting module load");
+      const ssrTarget = config.ui.ssrUrl || config.ui.url || "unknown";
+      const isLocalUI = config.ui.source === "local";
+      logger.info(
+        `[SSR] Loading Router module from ${ssrTarget} (${isLocalUI ? "local" : "remote"} mode)`,
+      );
+
+      const routerModuleResult = yield* loadRouterModule(config).pipe(Effect.either);
+
+      if (routerModuleResult._tag === "Left") {
+        loadingState.status = "failed";
+        loadingState.error = routerModuleResult.left;
+        logMilestone("Load failed");
+        logger.error("[SSR] Failed to load Router module:", routerModuleResult.left);
+        yield* Effect.fail(routerModuleResult.left);
+      }
+
+      ssrRouterModule = routerModuleResult.right;
+      loadingState.status = "ready";
+      logMilestone("Load successful");
+      logger.info("[SSR] Router module loaded successfully, SSR routes active");
+    } else {
+      loadingState.status = "ready";
+      logger.info("[SSR] Disabled for this runtime, serving client shell");
+    }
+
     app.get("*", async (c: Context) => {
       console.log(`[HTTP] ${c.req.method} ${c.req.url}`);
-      const loadingTime = Date.now() - loadingState.startTime;
-      const isTimedOut = loadingTime > 30000;
       const activeRuntime = await resolveActiveRuntime(config, c.req.raw);
 
       if (!activeRuntime) {
@@ -469,64 +563,12 @@ export const createStartServer = (onReady?: () => void) =>
 
       const runtimeConfig = buildRuntimeClientConfig(config, c.req.raw, activeRuntime);
 
-      if (loadingState.status !== "ready") {
-        if (loadingState.status === "failed" || isTimedOut) {
-          loadingState.status = "failed";
+      if (!config.ui.ssrUrl) {
+        return renderClientShell(c, runtimeConfig);
+      }
 
-          const clientUrl = config.ui.url;
-
-          return c.html(
-            `<!DOCTYPE html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <title>Loading...</title>
-              <style>
-                body { background: #171717; color: #fafafa; display: flex; align-items: center; justify-content: center; height: 100vh; }
-                .fade { animation: fadeIn 0.3s ease-in; }
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                .error { color: #fca5a5; }
-              </style>
-              <script src="${clientUrl}/remoteEntry.js"></script>
-              <script>
-                window.__RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig)};
-                window.addEventListener('load', function() { 
-                  window.__hydrate?.(); 
-                });
-              </script>
-            </head>
-            <body>
-              <div class="fade">
-                ${
-                  loadingState.error
-                    ? `<p class="error">❌ SSR Failed to Load</p>
-                     <p>API endpoints remain available.</p>
-                     <p>Error: ${loadingState.error.message}</p>`
-                    : `<p>Loading...</p>`
-                }
-              </div>
-            </body>
-          </html>`,
-            503,
-          );
-        }
-
-        return c.html(
-          `<!DOCTYPE html>
-          <html lang="en">
-            <head>
-              <style>
-                body { background: #171717; color: #fafafa; display: flex; align-items: center; justify-content: center; height: 100vh; }
-                .fade { animation: fadeIn 0.3s ease-in; }
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-              </style>
-            </head>
-            <body>
-              <div class="fade">Loading...</div>
-            </body>
-          </html>`,
-          503,
-        );
+      if (!ssrRouterModule) {
+        return c.text("SSR router unavailable", 503);
       }
 
       try {
@@ -607,33 +649,6 @@ export const createStartServer = (onReady?: () => void) =>
             });
           }),
       ),
-    );
-
-    yield* Effect.fork(
-      Effect.gen(function* () {
-        logMilestone("Starting module load");
-        const ssrTarget = config.ui.ssrUrl || config.ui.url || "unknown";
-        const isLocalUI = config.ui.source === "local";
-        logger.info(
-          `[SSR] Loading Router module from ${ssrTarget} (${isLocalUI ? "local" : "remote"} mode)`,
-        );
-
-        const routerModuleResult = yield* loadRouterModule(config).pipe(Effect.either);
-
-        if (routerModuleResult._tag === "Left") {
-          loadingState.status = "failed";
-          loadingState.error = routerModuleResult.left;
-          logMilestone("Load failed");
-          logger.error("[SSR] Failed to load Router module:", routerModuleResult.left);
-          logger.warn("[SSR] Server running in API-only mode, SSR disabled");
-          return;
-        }
-
-        ssrRouterModule = routerModuleResult.right;
-        loadingState.status = "ready";
-        logMilestone("Load successful");
-        logger.info("[SSR] Router module loaded successfully, SSR routes active");
-      }),
     );
 
     yield* Effect.never;

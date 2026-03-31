@@ -156,7 +156,7 @@ function AppsIndex() {
                       {app.metadata?.claimedBy ? (
                         <Badge variant="outline">claimed</Badge>
                       ) : (
-                        <Badge variant="outline">open</Badge>
+                        <Badge variant="outline">ready</Badge>
                       )}
                     </div>
                     <div className="space-y-1 min-w-0">
@@ -198,9 +198,9 @@ function AppsIndex() {
                   <Button asChild variant="outline" size="sm">
                     <a href={buildAccountHref(app.accountId)}>account view</a>
                   </Button>
-                  {app.hostUrl && (
+                  {app.openUrl && (
                     <Button asChild variant="outline" size="sm">
-                      <a href={app.hostUrl} target="_blank" rel="noreferrer">
+                      <a href={app.openUrl} target="_blank" rel="noreferrer">
                         open app
                       </a>
                     </Button>

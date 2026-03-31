@@ -1,6 +1,8 @@
 export * from "./api";
-export * from "./app";
+export { buildRuntimeConfig, detectLocalPackages } from "./app";
 export * from "./config";
+export * from "./contract";
+export * from "./dev-session";
 export * from "./host";
 export * from "./mf";
 export * from "./orchestrator";

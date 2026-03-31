@@ -29,6 +29,8 @@ const registryAppSummarySchema = z.object({
   canonicalKey: z.string(),
   canonicalConfigUrl: z.string().url(),
   startCommand: z.string(),
+  domain: z.string().nullable(),
+  openUrl: z.string().url().nullable(),
   hostUrl: z.string().url().nullable(),
   uiUrl: z.string().url().nullable(),
   uiSsrUrl: z.string().url().nullable(),

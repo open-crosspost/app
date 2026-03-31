@@ -26,7 +26,7 @@ Run with production modules (all remotes from production URLs).
 bos start                           # Default port 3000
 bos start -p 8080                   # Custom port
 bos start --no-interactive          # Streaming logs
-bos start --account foo.near --domain gateway.foo.com  # Load config from Near Social
+bos start --account foo.near --domain gateway.foo.com  # Load config from the FastKV registry
 ```
 
 ### `bos serve`
@@ -67,7 +67,7 @@ Requires `ZE_SERVER_TOKEN` and `ZE_USER_EMAIL` in `.env.bos` for CI/CD.
 
 ### `bos publish`
 
-Publish `bos.config.json` to Near Social (on-chain registry).
+Publish `bos.config.json` to the FastKV registry.
 
 ```bash
 bos publish                  # Mainnet
@@ -275,7 +275,7 @@ bos docker run --env KEY=value                    # Pass env vars
 ```
 
 **Modes:**
-- `start` (default): Production mode, fetches config from Near Social
+- `start` (default): Production mode, fetches config from the FastKV registry
 - `serve`: Exposes CLI as RPC API at `/api/rpc` (agent-ready)
 - `dev`: Full development mode with hot reload
 

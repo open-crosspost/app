@@ -2,7 +2,7 @@
 
 everything.dev is an open runtime for apps on NEAR.
 
-It is published from `every.near/everything.dev` and composed at runtime from public configuration rather than a single fixed bundle.
+The bootstrap root is published from `dev.everything.near/everything.dev` and composed at runtime from public configuration rather than a single fixed bundle.
 
 ## What it is
 
@@ -13,7 +13,8 @@ It is published from `every.near/everything.dev` and composed at runtime from pu
 ## How it works
 
 1. A published `bos.config.json` record defines the runtime.
-2. The host reads that config and resolves inherited values.
+2. The bootstrap root is published first, without `extends`.
+3. Other configs can extend that root record once it exists.
 3. The UI loads through Module Federation.
 4. The API loads through `every-plugin`.
 5. Public metadata can be layered on without replacing the canonical runtime record.
@@ -42,6 +43,6 @@ It is published from `every.near/everything.dev` and composed at runtime from pu
 
 ## Canonical context
 
-- Published runtime: `every.near/everything.dev`
+- Bootstrap runtime: `dev.everything.near/everything.dev`
 - Stable host URLs can be reused across multiple sites
 - Composition happens through published config, not rebuild-only deployment
