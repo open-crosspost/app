@@ -92,8 +92,5 @@ export const loadRouterModule = (config: RuntimeConfig) =>
   }).pipe(
     Effect.retry(retrySchedule),
     Effect.timeout("30 seconds"),
-    Effect.tapBoth({
-      onSuccess: () => Effect.logInfo("[SSR] Router module ready"),
-      onFailure: (error: Error) => Effect.logError(`[SSR] Failed: ${error.message}`),
-    }),
+    Effect.tapError((error: Error) => Effect.logError(`[SSR] Failed: ${error.message}`)),
   );

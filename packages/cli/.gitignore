@@ -1,7 +1,0 @@
-# Database files
-*.db
-
-# Session reports and dev session artifacts
-dev-session-report.json
-session-report.json
-session-login-report.json

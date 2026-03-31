@@ -14,8 +14,27 @@ function hasFlag(args: string[], name: string, short?: string): boolean {
   return args.includes(name) || (short ? args.includes(short) : false);
 }
 
+function printHelp() {
+  process.stdout.write(`everything-dev commands\n\n`);
+  process.stdout.write(
+    `  everything-dev dev [--host <mode>] [--ui <mode>] [--api <mode>] [--ssr] [--proxy] [--port <port>] [--no-interactive]\n`,
+  );
+  process.stdout.write(
+    `  everything-dev start [--account <account>] [--domain <domain>] [--port <port>] [--no-interactive]\n`,
+  );
+  process.stdout.write(`  everything-dev build [all|host|ui|api] [--force] [--deploy]\n`);
+  process.stdout.write(`  everything-dev logs [--tail <count>]\n\n`);
+  process.stdout.write(`'bos' is an alias for 'everything-dev'.\n`);
+}
+
 async function main() {
   const args = process.argv.slice(2);
+
+  if (hasFlag(args, "--help", "-h")) {
+    printHelp();
+    return;
+  }
+
   const command = args[0] ?? "dev";
   const configPath = findConfigPath();
 

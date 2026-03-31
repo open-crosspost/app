@@ -1,6 +1,6 @@
-# BOS CLI Commands
+# everything-dev / bos Commands
 
-Complete reference for all `bos` commands.
+Complete reference for `everything-dev` and its `bos` alias.
 
 ## Development
 
@@ -9,10 +9,11 @@ Complete reference for all `bos` commands.
 Start development server with configurable remote/local modes.
 
 ```bash
-bos dev                      # Full local development
+everything-dev dev           # Full local development
 bos dev --host remote        # Remote host, local UI + API (typical)
 bos dev --ui remote          # Remote UI, local host + API
 bos dev --api remote         # Remote API, local host + UI
+bos dev --ssr                # Full local development with SSR
 bos dev --proxy              # Proxy API requests to production
 bos dev -p 3001              # Custom port
 bos dev --no-interactive     # Streaming logs (no TUI)

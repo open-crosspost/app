@@ -1,11 +1,11 @@
 ---
 name: bos
-description: CLI for everything-dev Module Federation projects. Use when creating new BOS projects, publishing bos.config.json to the FastKV registry, syncing with remote configs (every.near/everything.dev), running development servers (bos dev), or building/deploying federated apps. Deploy → publish → sync workflow for shared configuration.
+description: CLI alias for everything-dev Module Federation projects. Use when creating new BOS projects, publishing bos.config.json to the FastKV registry, syncing with remote configs (every.near/everything.dev), running development servers (`everything-dev dev` or `bos dev`), or building/deploying federated apps. Deploy → publish → sync workflow for shared configuration.
 ---
 
-# everything-dev CLI
+# everything-dev CLI (`bos` alias)
 
-CLI for **everything-dev** Module Federation projects with runtime-loaded configuration.
+CLI for **everything-dev** Module Federation projects with runtime-loaded configuration. `bos` is the command alias for `everything-dev`.
 
 ## Quick Start
 
@@ -31,10 +31,12 @@ bos dev
 **Auto-detection**: The CLI automatically detects which packages exist locally and uses remote mode for missing ones. No need to explicitly specify `--host=remote`, `--ui=remote`, etc.
 
 ```bash
-bos dev                      # Auto-detects: missing packages use remote
+bos dev                      # Alias for `everything-dev dev`
+everything-dev dev           # Auto-detects: missing packages use remote
 bos dev --host remote        # Explicit remote host (optional)
 bos dev --ui remote          # Explicit remote UI (optional)  
 bos dev --api remote         # Explicit remote API (optional)
+bos dev --ssr                # Explicit local SSR
 ```
 
 **Example output** when packages are missing:

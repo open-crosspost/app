@@ -1,6 +1,6 @@
 # Technical Guide for LLMs
 
-This is the technical guide for a Module Federation monorepo demonstrating every-plugin architecture, runtime-loaded configuration, and NEAR Protocol integration.
+This is the technical guide for a Module Federation monorepo demonstrating every-plugin architecture, runtime-loaded configuration, and NEAR Protocol integration. The canonical runtime package is `everything-dev`; `bos` is its CLI alias.
 
 For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 

@@ -15,21 +15,24 @@ Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
 
 ## CLI Commands
 
-The `bos` CLI manages all workflows. See [.agent/skills/bos/SKILL.md](.agent/skills/bos/SKILL.md) for the full skill reference.
+`everything-dev` is the canonical runtime package and CLI. `bos` is a command alias for the same tool. See [.agent/skills/bos/SKILL.md](.agent/skills/bos/SKILL.md) for the full reference.
 
 ### Development
 
 ```bash
-bos dev --host remote   # Remote host, local UI + API (typical)
-bos dev --ui remote     # Isolate API work
-bos dev --api remote    # Isolate UI work
-bos dev                 # Full local (initial setup)
+everything-dev dev --host remote   # Remote host, local UI + API (typical)
+everything-dev dev --ui remote     # Isolate API work
+everything-dev dev --api remote    # Isolate UI work
+everything-dev dev                 # Full local, client shell by default
+
+# `bos` is an alias for the same commands
+bos dev --ssr                      # Opt into local SSR
 ```
 
 ### Production
 
 ```bash
-bos start --no-interactive   # All remotes, production URLs
+everything-dev start --no-interactive   # All remotes, production URLs
 ```
 
 ### Build & Publish

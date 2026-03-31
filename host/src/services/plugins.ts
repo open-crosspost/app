@@ -38,13 +38,26 @@ const unavailableResult = (
 
 export const initializePlugins = Effect.gen(function* () {
   const config: RuntimeConfig = yield* ConfigService;
-  const pluginConfig = config.api;
+  const pluginConfig = config.api as RuntimeConfig["api"] & {
+    proxy?: string;
+    variables?: Record<string, string>;
+    secrets?: string[];
+  };
   const pluginName = pluginConfig.name;
   const pluginUrl = pluginConfig.url;
 
   if (pluginConfig.proxy) {
     console.log(`[Plugins] Proxy mode enabled, skipping plugin initialization`);
     console.log(`[Plugins] API requests will be proxied to: ${pluginConfig.proxy}`);
+    return {
+      runtime: null,
+      api: null,
+      status: { available: false, pluginName, error: null, errorDetails: null },
+    } satisfies PluginResult;
+  }
+
+  if (!pluginUrl) {
+    console.log("[Plugins] No remote API plugin configured, using host API only");
     return {
       runtime: null,
       api: null,

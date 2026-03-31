@@ -137,7 +137,7 @@
         "zod": "^4.3.6",
       },
     },
-    "packages/everything-dev-next": {
+    "packages/everything-dev": {
       "name": "everything-dev",
       "version": "0.3.3",
       "bin": {
@@ -1542,7 +1542,7 @@
 
     "every-plugin": ["every-plugin@workspace:packages/every-plugin"],
 
-    "everything-dev": ["everything-dev@workspace:packages/everything-dev-next"],
+    "everything-dev": ["everything-dev@workspace:packages/everything-dev"],
 
     "exit-hook": ["exit-hook@4.0.0", "", {}, "sha512-Fqs7ChZm72y40wKjOFXBKg7nJZvQJmewP5/7LtePDdnah/+FH9Hp5sgMujSCMPXlxOAW2//1jrW9pnsY7o20vQ=="],
 

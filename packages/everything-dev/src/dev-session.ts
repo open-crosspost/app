@@ -45,8 +45,20 @@ const LOG_NOISE_PATTERNS = [
   /you may want to dedupe the effect dependencies/,
 ];
 
-const shouldDisplayLog = (line: string): boolean => {
+const SSR_LOG_ALLOWLIST = [
+  /\bready\s+built in\b/i,
+  /\bcompiled\b.*successfully/i,
+  /\berror\b/i,
+  /\bfailed\b/i,
+  /\bexception\b/i,
+];
+
+const shouldDisplayLog = (source: string, line: string, isError?: boolean): boolean => {
   if (process.env.DEBUG === "true" || process.env.DEBUG === "1") return true;
+  if (source === "ui-ssr") {
+    if (isError) return true;
+    return SSR_LOG_ALLOWLIST.some((pattern) => pattern.test(line));
+  }
   return !LOG_NOISE_PATTERNS.some((pattern) => pattern.test(line));
 };
 
@@ -168,7 +180,7 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
       onLog: (name, line, isError) => {
         const entry: LogEntry = { source: name, line, timestamp: Date.now(), isError };
         allLogs.push(entry);
-        if (shouldDisplayLog(line)) {
+        if (shouldDisplayLog(name, line, isError)) {
           view?.addLog(name, line, isError);
         }
         if (!orchestrator.noLogs) {
@@ -224,11 +236,24 @@ export const startApp = (orchestrator: AppOrchestrator) => {
     if (activeCleanup) await activeCleanup();
   };
 
+  const forceExit = () => {
+    console.log("\n[Dev] Force exit");
+    process.exit(0);
+  };
+
   process.on("SIGINT", () => {
-    handleSignal().finally(() => process.exit(0));
+    const timeout = setTimeout(forceExit, 5000);
+    handleSignal().finally(() => {
+      clearTimeout(timeout);
+      process.exit(0);
+    });
   });
   process.on("SIGTERM", () => {
-    handleSignal().finally(() => process.exit(0));
+    const timeout = setTimeout(forceExit, 5000);
+    handleSignal().finally(() => {
+      clearTimeout(timeout);
+      process.exit(0);
+    });
   });
 
   void Effect.runPromise(program);

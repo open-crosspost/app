@@ -6,12 +6,13 @@ This document provides operational guidance for AI agents working on the everyth
 
 **Start Development:**
 ```bash
-bos dev --host remote   # Typical: remote host, local UI + API
+everything-dev dev --host remote   # Typical: remote host, local UI + API
+# `bos` is an alias for the same CLI
 ```
 
 **Production Preview:**
 ```bash
-bos start --no-interactive   # All remotes, production URLs
+everything-dev start --no-interactive   # All remotes, production URLs
 ```
 
 **Check Status:**
@@ -24,15 +25,16 @@ bos info      # Show configuration
 ## Development Workflow
 
 ### Typical Session
-1. Run `bos dev --host remote` to start development
+1. Run `everything-dev dev --host remote` to start development
 2. UI available at http://localhost:3002, API at http://localhost:3014
 3. Check `.bos/logs/` for process logs if issues occur
 4. Use `bos kill` to clean up processes when done
 
 ### Isolating Work
-- `bos dev --api remote` - Work on UI only
-- `bos dev --ui remote` - Work on API only
-- `bos dev` - Full local (rarely needed)
+- `everything-dev dev --api remote` - Work on UI only
+- `everything-dev dev --ui remote` - Work on API only
+- `everything-dev dev` - Full local (client shell by default)
+- `everything-dev dev --ssr` - Full local with SSR enabled
 
 ### Debugging Issues
 

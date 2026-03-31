@@ -8,7 +8,11 @@ export function createRouter(plugins: PluginResult) {
   } as const;
 
   if (!plugins.status.available || !plugins.api) {
-    console.warn("[Router] Plugin router not available, using base router only");
+    if (plugins.status.error) {
+      console.warn("[Router] Plugin router not available, using base router only");
+    } else {
+      console.log("[Router] Using base router only");
+    }
     return baseRouter;
   }
 

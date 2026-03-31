@@ -473,20 +473,12 @@ export const createStartServer = (onReady?: () => void) =>
     const logMilestone = (name: string) => {
       const elapsed = Date.now() - loadingState.startTime;
       const message = `[SSR] [+${elapsed}ms] ${name}`;
-      logger.info(message);
       loadingState.milestones.push(message);
     };
 
     const proxyUiAssetRequest = (c: Context) => proxyRequest(c.req.raw, config.ui.url);
 
     setupApiRoutes(app, config, auth, db, apiRouter, loadingState);
-
-    logger.info(`[Config] Host URL: ${config.hostUrl}`);
-    logger.info(`[Config] UI source: ${config.ui.source} → ${config.ui.url}`);
-    logger.info(`[Config] API source: ${config.api.source} → ${config.api.url}`);
-    if (config.api.proxy) {
-      logger.info(`[Config] API proxy: ${config.api.proxy}`);
-    }
 
     const shouldProxyUiAssets = isDev || config.ui.source === "remote";
 
@@ -511,16 +503,7 @@ export const createStartServer = (onReady?: () => void) =>
       app.all("/llms.txt", (c: Context) => proxyUiAssetRequest(c));
     }
 
-    logMilestone("Server starting");
-
     if (config.ui.ssrUrl) {
-      logMilestone("Starting module load");
-      const ssrTarget = config.ui.ssrUrl || config.ui.url || "unknown";
-      const isLocalUI = config.ui.source === "local";
-      logger.info(
-        `[SSR] Loading Router module from ${ssrTarget} (${isLocalUI ? "local" : "remote"} mode)`,
-      );
-
       const routerModuleResult = yield* loadRouterModule(config).pipe(Effect.either);
 
       if (routerModuleResult._tag === "Left") {
@@ -533,15 +516,11 @@ export const createStartServer = (onReady?: () => void) =>
 
       ssrRouterModule = routerModuleResult.right;
       loadingState.status = "ready";
-      logMilestone("Load successful");
-      logger.info("[SSR] Router module loaded successfully, SSR routes active");
     } else {
       loadingState.status = "ready";
-      logger.info("[SSR] Disabled for this runtime, serving client shell");
     }
 
     app.get("*", async (c: Context) => {
-      console.log(`[HTTP] ${c.req.method} ${c.req.url}`);
       const activeRuntime = await resolveActiveRuntime(config, c.req.raw);
 
       if (!activeRuntime) {
@@ -581,8 +560,6 @@ export const createStartServer = (onReady?: () => void) =>
         const ssrApiClient = pluginApi?.createClient
           ? pluginApi.createClient(requestContext)
           : undefined;
-
-        logger.info(`[SSR] Request: ${c.req.method} ${c.req.path}`);
 
         const render = () =>
           ssrRouterModule?.renderToStream(c.req.raw, {
@@ -626,11 +603,7 @@ export const createStartServer = (onReady?: () => void) =>
 
     const startHttpServer = () => {
       const hostname = process.env.HOST || "0.0.0.0";
-      const mode = isDev ? "dev" : "production";
-      const server = serve({ fetch: app.fetch, port, hostname }, (info) => {
-        logger.info(`Host ${mode} server running at http://${hostname}:${info.port}`);
-        logger.info(`  http://${hostname}:${info.port}/api     → REST API (OpenAPI docs)`);
-        logger.info(`  http://${hostname}:${info.port}/api/rpc → RPC endpoint`);
+      const server = serve({ fetch: app.fetch, port, hostname }, () => {
         onReady?.();
       });
       return server;
@@ -688,7 +661,12 @@ export const runServer = (input: ServerInput): ServerHandle => {
     logger.info("[Server] Shutting down...");
 
     if (serverFiber) {
-      await Effect.runPromise(Fiber.interrupt(serverFiber));
+      await Effect.runPromise(
+        Fiber.interrupt(serverFiber).pipe(
+          Effect.timeout("3 seconds"),
+          Effect.catchAll(() => Effect.void),
+        ),
+      );
     }
 
     await runtime.dispose();
@@ -701,8 +679,27 @@ export const runServer = (input: ServerInput): ServerHandle => {
 export const runServerBlocking = async (input: ServerInput) => {
   const handle = runServer(input);
 
-  process.on("SIGINT", () => void handle.shutdown().then(() => process.exit(0)));
-  process.on("SIGTERM", () => void handle.shutdown().then(() => process.exit(0)));
+  const forceExit = () => {
+    console.log("\n[Server] Force exit");
+    process.exit(0);
+  };
+
+  const gracefulShutdown = () => {
+    const timeout = setTimeout(forceExit, 5000);
+    handle
+      .shutdown()
+      .then(() => {
+        clearTimeout(timeout);
+        process.exit(0);
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        process.exit(1);
+      });
+  };
+
+  process.on("SIGINT", gracefulShutdown);
+  process.on("SIGTERM", gracefulShutdown);
 
   try {
     await handle.ready;

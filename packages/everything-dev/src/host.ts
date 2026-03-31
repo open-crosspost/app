@@ -98,10 +98,15 @@ export function createHostServer(config: HostServerConfig): HostServerHandle {
 
   const shutdown = async () => {
     console.log("[Host] Shutting down...");
+    const timeout = setTimeout(() => {
+      console.log("[Host] Force exit");
+      process.exit(0);
+    }, 5000);
     await ready.catch(() => {});
     if (shutdownImpl) {
       await shutdownImpl().catch(() => {});
     }
+    clearTimeout(timeout);
     console.log("[Host] Shutdown complete");
   };
 

@@ -26,11 +26,18 @@ async function bootstrap() {
 
   let serverHandle: ServerHandle | null = null;
 
+  const forceExit = () => {
+    console.log("\n[Bootstrap] Force exit");
+    process.exit(0);
+  };
+
   const shutdown = async () => {
     console.log("\n[Bootstrap] Shutting down...");
+    const timeout = setTimeout(forceExit, 5000);
     if (serverHandle) {
-      await serverHandle.shutdown();
+      await serverHandle.shutdown().catch(() => {});
     }
+    clearTimeout(timeout);
     process.exit(0);
   };
 

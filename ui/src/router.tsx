@@ -97,7 +97,6 @@ export function createRouter(opts: CreateRouterOptions = {}) {
     defaultPendingMinMs: 0,
     dehydrate: () => {
       if (typeof window === "undefined") {
-        console.log("[Router] Dehydrating query client state...");
         const state = dehydrate(queryClient);
         return { queryClientState: state };
       }

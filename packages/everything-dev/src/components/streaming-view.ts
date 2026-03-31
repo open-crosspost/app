@@ -123,10 +123,17 @@ export function renderStreamingView(
 
   const unmount = () => onExit?.();
 
+  const forceExit = () => {
+    console.log("\n[CLI] Force exit");
+    process.exit(0);
+  };
+
   process.on("SIGINT", () => {
     console.log();
     console.log(colors.dim(`[${getTimestamp()}] Shutting down...`));
+    const timeout = setTimeout(forceExit, 5000);
     Promise.resolve(unmount()).then(() => {
+      clearTimeout(timeout);
       process.exit(0);
     });
   });

@@ -121,6 +121,37 @@ async function buildEnvVars(
   return env;
 }
 
+async function buildEveryPluginQuietly(cwd: string) {
+  const proc = Bun.spawn({
+    cmd: ["bun", "run", "--cwd", "packages/every-plugin", "build"],
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env,
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+
+  if (exitCode === 0) {
+    console.log("[build:ssr] build succeeded");
+    return;
+  }
+
+  if (stdout.trim()) {
+    process.stdout.write(stdout);
+  }
+
+  if (stderr.trim()) {
+    process.stderr.write(stderr);
+  }
+
+  throw new Error(`bun run --cwd packages/every-plugin build failed with exit code ${exitCode}`);
+}
+
 async function fetchPublishedConfig(
   accountId: string,
   gatewayId: string,
@@ -167,9 +198,7 @@ export default createPlugin({
         await run("bun", ["install"], { cwd: deps.configDir });
       }
       if (appConfig.api === "local" && !appConfig.proxy) {
-        await run("bun", ["run", "--cwd", "packages/every-plugin", "build"], {
-          cwd: deps.configDir,
-        });
+        await buildEveryPluginQuietly(deps.configDir);
       }
 
       const refreshed = await loadConfig({ cwd: deps.configDir });
