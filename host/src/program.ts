@@ -18,23 +18,13 @@ import { type ClientRuntimeConfig, ConfigService, type RuntimeConfig } from "./s
 import { createRequestContext } from "./services/context";
 import { type Database, DatabaseService } from "./services/database";
 import { loadRouterModule, type RouterModule } from "./services/federation.server";
-import { PluginsService } from "./services/plugins";
-import { createRouter } from "./services/router";
+import { createAggregateApiClient, type PluginResult, PluginsService } from "./services/plugins";
 import { installSsrApiClientGlobal, runWithSsrApiClient } from "./services/ssr-api-client";
 import { logger } from "./utils/logger";
 
-interface ActiveRuntimeState {
-  accountId: string;
-  gatewayId: string;
-  runtimeBasePath: string;
-  canonicalConfigUrl: string | null;
-  resolvedConfig: Record<string, unknown> | null;
-  title: string | null;
-  hostUrl: string | null;
-}
+type ActiveRuntimeState = NonNullable<ClientRuntimeConfig["runtime"]>;
 
 type RuntimeClientConfig = ClientRuntimeConfig & {
-  networkId: "mainnet" | "testnet";
   runtime?: ActiveRuntimeState;
 };
 
@@ -126,20 +116,35 @@ function buildRuntimeClientConfig(
   activeRuntime: ActiveRuntimeState,
 ): RuntimeClientConfig {
   const requestUrl = new URL(request.url);
+  const uiConfig = config.ui;
+
+  if (!uiConfig) {
+    throw new Error("UI config is required to build the runtime client config");
+  }
 
   return {
     env: config.env,
     account: activeRuntime.accountId,
     networkId: config.account.endsWith(".testnet") ? "testnet" : "mainnet",
     hostUrl: requestUrl.origin,
-    assetsUrl: config.ui.url,
+    assetsUrl: uiConfig.url,
     apiBase: "/api",
     rpcBase: "/api/rpc",
     ui: {
-      name: config.ui.name,
-      url: config.ui.url,
-      entry: config.ui.entry,
+      name: uiConfig.name,
+      url: uiConfig.url,
+      entry: uiConfig.entry,
     },
+    plugins: Object.fromEntries(
+      Object.entries(config.plugins ?? {}).map(([key, plugin]) => [
+        key,
+        {
+          name: plugin.name,
+          url: plugin.url,
+          entry: plugin.entry,
+        },
+      ]),
+    ),
     runtime: activeRuntime,
   } as RuntimeClientConfig;
 }
@@ -259,7 +264,7 @@ function setupApiRoutes(
   config: RuntimeConfig,
   auth: Auth,
   db: Database,
-  router: ReturnType<typeof createRouter>,
+  plugins: PluginResult,
   loadingState: {
     status: string;
     startTime: number;
@@ -268,6 +273,12 @@ function setupApiRoutes(
     ssrEnabled: boolean;
   },
 ) {
+  const apiConfig = config.api;
+
+  if (!apiConfig) {
+    throw new Error("API config is required to start the host");
+  }
+
   const getHealthStatus = () => {
     const elapsed = Date.now() - loadingState.startTime;
     return {
@@ -283,10 +294,10 @@ function setupApiRoutes(
     };
   };
 
-  const isProxyMode = !!config.api.proxy;
+  const isProxyMode = !!apiConfig.proxy;
 
   if (isProxyMode) {
-    const proxyTarget = config.api.proxy!;
+    const proxyTarget = apiConfig.proxy!;
     logger.info(`[API] Proxy mode enabled → ${proxyTarget}`);
 
     app.all("/api/*", async (c: Context) => {
@@ -304,41 +315,9 @@ function setupApiRoutes(
     return c.json(getHealthStatus());
   });
 
-  const rpcHandler = new RPCHandler(router, {
-    plugins: [new BatchHandlerPlugin()],
-    interceptors: [
-      onError((error: unknown) => {
-        formatORPCError(error);
-        throw error;
-      }),
-    ],
-  });
-
-  const apiHandler = new OpenAPIHandler(router, {
-    plugins: [
-      new OpenAPIReferencePlugin({
-        schemaConverters: [new ZodToJsonSchemaConverter()],
-        specGenerateOptions: {
-          info: {
-            title: "API", // TODO: title from api.title
-            // description, other spec gen fields
-            version: "1.0.0", // TODO: version from api.version
-          },
-          servers: [{ url: `${config.hostUrl}/api` }],
-        },
-      }),
-    ],
-    interceptors: [
-      onError((error: unknown) => {
-        formatORPCError(error);
-        throw error;
-      }),
-    ],
-  });
-
   const handleOrpc = async (
     c: Context,
-    handler: typeof rpcHandler | typeof apiHandler,
+    handler: RPCHandler<any> | OpenAPIHandler<any>,
     prefix: `/${string}`,
   ) => {
     // Clone early so raw body can be read later even after oRPC consumes the request body.
@@ -365,9 +344,57 @@ function setupApiRoutes(
       : c.text("Not Found", 404);
   };
 
+  const mountRouter = (router: unknown, suffix: string, title: string) => {
+    const basePath = `/api${suffix}` as const;
+    const rpcPath = `/api/rpc${suffix}` as const;
+    const rpcHandler = new RPCHandler(router as any, {
+      plugins: [new BatchHandlerPlugin()],
+      interceptors: [
+        onError((error: unknown) => {
+          formatORPCError(error);
+          throw error;
+        }),
+      ],
+    });
+
+    const apiHandler = new OpenAPIHandler(router as any, {
+      plugins: [
+        new OpenAPIReferencePlugin({
+          schemaConverters: [new ZodToJsonSchemaConverter()],
+          specGenerateOptions: {
+            info: {
+              title,
+              version: "1.0.0",
+            },
+            servers: [{ url: `${config.hostUrl}${basePath}` }],
+          },
+        }),
+      ],
+      interceptors: [
+        onError((error: unknown) => {
+          formatORPCError(error);
+          throw error;
+        }),
+      ],
+    });
+
+    app.all(basePath, (c: Context) => handleOrpc(c, apiHandler, basePath));
+    app.all(`${basePath}/*`, (c: Context) => handleOrpc(c, apiHandler, basePath));
+    app.all(rpcPath, (c: Context) => handleOrpc(c, rpcHandler, rpcPath));
+    app.all(`${rpcPath}/*`, (c: Context) => handleOrpc(c, rpcHandler, rpcPath));
+  };
+
+  if (plugins.api?.router) {
+    mountRouter(plugins.api.router, "", plugins.api.name);
+  }
+
+  for (const [key, plugin] of Object.entries(plugins.plugins)) {
+    if (key === "api") continue;
+    if (!plugin.router) continue;
+    mountRouter(plugin.router, `/plugins/${encodeURIComponent(key)}`, plugin.name);
+  }
+
   app.on(["POST", "GET"], "/api/auth/*", (c: Context) => auth.handler(c.req.raw));
-  app.all("/api/rpc/*", (c: Context) => handleOrpc(c, rpcHandler, "/api/rpc"));
-  app.all("/api/*", (c: Context) => handleOrpc(c, apiHandler, "/api"));
 }
 
 export const createStartServer = (onReady?: () => void) =>
@@ -376,6 +403,7 @@ export const createStartServer = (onReady?: () => void) =>
     const isDev = process.env.NODE_ENV !== "production";
 
     const config = yield* ConfigService;
+    const uiConfig = config.ui!;
     const db = yield* DatabaseService;
     const auth = yield* AuthService;
     const plugins = yield* PluginsService;
@@ -404,15 +432,13 @@ export const createStartServer = (onReady?: () => void) =>
       cors({
         origin: process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) ?? [
           config.hostUrl,
-          config.ui.url,
+          uiConfig.url,
         ],
         credentials: true,
       }),
     );
 
     app.get("/health", (c: Context) => c.text("OK"));
-
-    const apiRouter = createRouter(plugins);
 
     let ssrRouterModule: RouterModule | null = null;
 
@@ -421,7 +447,7 @@ export const createStartServer = (onReady?: () => void) =>
       startTime: Date.now(),
       milestones: [] as string[],
       error: null as Error | null,
-      ssrEnabled: Boolean(config.ui.ssrUrl),
+      ssrEnabled: Boolean(uiConfig.ssrUrl),
     };
 
     const renderClientShell = (
@@ -429,9 +455,11 @@ export const createStartServer = (onReady?: () => void) =>
       runtimeConfig: ClientRuntimeConfig,
       error?: Error | null,
     ) => {
-      const clientUrl = config.ui.url;
-      const themeInitScript = getThemeInitScript().children ?? "";
-      const hydrateScript = getHydrateScript(runtimeConfig).children ?? "";
+      const clientUrl = uiConfig.url;
+      const themeInitScript = (getThemeInitScript() as { children?: string }).children ?? "";
+      const hydrateScript =
+        (getHydrateScript(runtimeConfig as ClientRuntimeConfig) as { children?: string })
+          .children ?? "";
 
       return ctx.html(
         `<!DOCTYPE html>
@@ -478,11 +506,11 @@ export const createStartServer = (onReady?: () => void) =>
       loadingState.milestones.push(message);
     };
 
-    const proxyUiAssetRequest = (c: Context) => proxyRequest(c.req.raw, config.ui.url);
+    const proxyUiAssetRequest = (c: Context) => proxyRequest(c.req.raw, uiConfig.url);
 
-    setupApiRoutes(app, config, auth, db, apiRouter, loadingState);
+    setupApiRoutes(app, config, auth, db, plugins, loadingState);
 
-    const shouldProxyUiAssets = isDev || config.ui.source === "remote";
+    const shouldProxyUiAssets = isDev || uiConfig.source === "remote";
 
     if (!shouldProxyUiAssets) {
       app.use("/static/*", serveStatic({ root: "./dist" }));
@@ -505,7 +533,7 @@ export const createStartServer = (onReady?: () => void) =>
       app.all("/llms.txt", (c: Context) => proxyUiAssetRequest(c));
     }
 
-    if (config.ui.ssrUrl) {
+    if (uiConfig.ssrUrl) {
       const routerModuleResult = yield* loadRouterModule(config).pipe(Effect.either);
 
       if (routerModuleResult._tag === "Left") {
@@ -514,10 +542,10 @@ export const createStartServer = (onReady?: () => void) =>
         logMilestone("Load failed");
         logger.error("[SSR] Failed to load Router module:", routerModuleResult.left);
         yield* Effect.fail(routerModuleResult.left);
+      } else {
+        ssrRouterModule = routerModuleResult.right;
+        loadingState.status = "ready";
       }
-
-      ssrRouterModule = routerModuleResult.right;
-      loadingState.status = "ready";
     } else {
       loadingState.status = "ready";
     }
@@ -544,7 +572,7 @@ export const createStartServer = (onReady?: () => void) =>
 
       const runtimeConfig = buildRuntimeClientConfig(config, c.req.raw, activeRuntime);
 
-      if (!config.ui.ssrUrl) {
+      if (!uiConfig.ssrUrl) {
         return renderClientShell(c, runtimeConfig);
       }
 
@@ -553,15 +581,10 @@ export const createStartServer = (onReady?: () => void) =>
       }
 
       try {
-        const assetsUrl = config.ui.url;
+        const assetsUrl = uiConfig.url;
 
         const requestContext = await createRequestContext(c.req.raw, auth, db);
-        const pluginApi = plugins.api as {
-          createClient?: (ctx: unknown) => unknown;
-        } | null;
-        const ssrApiClient = pluginApi?.createClient
-          ? pluginApi.createClient(requestContext)
-          : undefined;
+        const ssrApiClient = createAggregateApiClient(plugins, requestContext);
 
         const render = () =>
           ssrRouterModule?.renderToStream(c.req.raw, {
@@ -571,9 +594,7 @@ export const createStartServer = (onReady?: () => void) =>
             runtimeConfig,
           } as any);
 
-        const result = ssrApiClient
-          ? await runWithSsrApiClient(ssrApiClient, render)
-          : await render();
+        const result = await runWithSsrApiClient(ssrApiClient, render);
         return new Response(result?.stream, {
           status: result?.statusCode,
           headers: result?.headers,
@@ -644,7 +665,7 @@ export const runServer = (input: ServerInput): ServerHandle => {
   const ServerLive = Layer.provideMerge(Layer.mergeAll(BaseLive, PluginsLive), ConfigLive);
 
   const runtime = ManagedRuntime.make(ServerLive);
-  let serverFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  let serverFiber: Fiber.RuntimeFiber<void, any> | null = null;
 
   const program = Effect.gen(function* () {
     const readyDeferred = yield* Deferred.make<void>();

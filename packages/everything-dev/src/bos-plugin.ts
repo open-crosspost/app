@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { syncApiContractBridge } from "./api-contract";
-import { buildRuntimeConfig, detectLocalPackages } from "./app";
+import { buildRuntimeConfig, detectLocalPackages, prepareDevelopmentRuntimeConfig } from "./app";
 import { getProjectRoot, loadConfig, parsePort } from "./config";
 import { type BuildOptions, bosContract, type DevOptions, type StartOptions } from "./contract";
 import { type AppConfig, type AppOrchestrator, startApp } from "./dev-session";
@@ -195,7 +195,10 @@ export default createPlugin({
   shutdown: () => Effect.void,
   createRouter: (deps: BosDeps, builder: any) => ({
     dev: builder.dev.handler(async ({ input }: { input: DevOptions }) => {
-      const localPackages = detectLocalPackages(deps.bosConfig ?? undefined);
+      const localPackages = detectLocalPackages(
+        deps.bosConfig ?? undefined,
+        deps.runtimeConfig ?? undefined,
+      );
 
       const appConfig = buildAppConfig({
         host: localPackages.includes("host") ? (input.host as string) : "remote",
@@ -212,12 +215,16 @@ export default createPlugin({
       if (sharedSync.catalogChanged) {
         await run("bun", ["install"], { cwd: deps.configDir });
       }
-      if (appConfig.api === "local" && !appConfig.proxy) {
+      if (
+        (appConfig.api === "local" && !appConfig.proxy) ||
+        localPackages.some((pkg) => pkg.startsWith("plugin:"))
+      ) {
         await buildEveryPluginQuietly(deps.configDir);
       }
 
       const refreshed = await loadConfig({ cwd: deps.configDir });
       deps.bosConfig = refreshed?.config ?? deps.bosConfig;
+      deps.runtimeConfig = refreshed?.runtime ?? deps.runtimeConfig;
 
       if (!deps.bosConfig) {
         return {
@@ -235,10 +242,14 @@ export default createPlugin({
         };
       }
 
-      const processes = determineProcesses(appConfig, localPackages, deps.runtimeConfig);
+      const refreshedLocalPackages = detectLocalPackages(
+        deps.bosConfig ?? undefined,
+        deps.runtimeConfig ?? undefined,
+      );
+      const processes = determineProcesses(appConfig, refreshedLocalPackages, deps.runtimeConfig);
       const env = await buildEnvVars(appConfig, deps.bosConfig);
       const hostPort = input.port ?? parsePort(deps.bosConfig.app.host.development);
-      const runtimeConfig = buildRuntimeConfig(deps.bosConfig, {
+      const developmentRuntime = buildRuntimeConfig(deps.bosConfig, {
         uiSource: appConfig.ui,
         apiSource: appConfig.api,
         hostUrl: `http://localhost:${hostPort}`,
@@ -246,12 +257,14 @@ export default createPlugin({
         env: "development",
         plugins: deps.runtimeConfig?.plugins,
       });
-      if (!appConfig.ssr) {
-        runtimeConfig.ui.ssrUrl = undefined;
-      }
+      const runtimeConfig = await prepareDevelopmentRuntimeConfig(developmentRuntime, {
+        hostPort,
+        ssr: appConfig.ssr,
+      });
 
       await syncApiContractBridge({
         configDir: deps.configDir,
+        runtimeConfig: runtimeConfig,
         apiBaseUrl: runtimeConfig.api.url,
       });
 
@@ -262,7 +275,7 @@ export default createPlugin({
         appConfig,
         bosConfig: deps.bosConfig,
         runtimeConfig,
-        port: hostPort,
+        port: parsePort(runtimeConfig.hostUrl),
         interactive: input.interactive,
       };
 
@@ -308,6 +321,7 @@ export default createPlugin({
 
       await syncApiContractBridge({
         configDir: deps.configDir,
+        runtimeConfig: runtimeConfig,
         apiBaseUrl: runtimeConfig.api.url,
       });
 
@@ -370,6 +384,7 @@ export default createPlugin({
 
         await syncApiContractBridge({
           configDir: deps.configDir,
+          runtimeConfig,
           apiBaseUrl: runtimeConfig.api.url,
         });
       }

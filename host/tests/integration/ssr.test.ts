@@ -1,8 +1,13 @@
 import { Effect } from "every-plugin/effect";
-import { loadBosConfig, type RuntimeConfig } from "everything-dev/config";
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadRouterModule } from "@/services/federation.server";
-import type { RouterModule } from "@/types";
+import type { RouterModule, RuntimeConfig } from "@/types";
+import { createTestApiClient } from "../helpers/api-client";
+import {
+  buildTestRenderOptions,
+  buildTestRouteHeadContext,
+  loadTestRuntimeConfig,
+} from "../helpers/runtime-config";
 
 async function consumeStream(stream: ReadableStream): Promise<string> {
   const reader = stream.getReader();
@@ -17,9 +22,7 @@ async function consumeStream(stream: ReadableStream): Promise<string> {
   return html;
 }
 
-const mockApiClient = {
-  // Kept minimal: the current demo UI SSR routes don't require API calls.
-};
+const mockApiClient = createTestApiClient({});
 
 describe("SSR Stream Lifecycle", () => {
   let routerModule: RouterModule;
@@ -27,11 +30,7 @@ describe("SSR Stream Lifecycle", () => {
 
   beforeAll(async () => {
     globalThis.$apiClient = mockApiClient;
-    config = await loadBosConfig();
-    const uiUrl = process.env.BOS_UI_URL;
-    const uiSsrUrl = process.env.BOS_UI_SSR_URL ?? uiUrl;
-    if (uiUrl) config.ui.url = uiUrl;
-    if (uiSsrUrl) config.ui.ssrUrl = uiSsrUrl;
+    config = await loadTestRuntimeConfig();
     routerModule = await Effect.runPromise(loadRouterModule(config));
   });
 
@@ -39,18 +38,7 @@ describe("SSR Stream Lifecycle", () => {
     it("completes stream for root route without timeout", async () => {
       const startTime = Date.now();
 
-      const head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
 
       const elapsed = Date.now() - startTime;
 
@@ -64,18 +52,7 @@ describe("SSR Stream Lifecycle", () => {
 
   describe("SSR Configuration", () => {
     it("renders layout route metadata", async () => {
-      const head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
 
       const titleMeta = head.meta.find((m) => m && typeof m === "object" && "title" in m);
       expect(titleMeta).toBeDefined();
@@ -91,18 +68,7 @@ describe("SSR Stream Lifecycle", () => {
       const request = new Request("http://localhost/");
       const startTime = Date.now();
 
-      const result = await routerModule.renderToStream(request, {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const result = await routerModule.renderToStream(request, buildTestRenderOptions(config));
 
       const html = await consumeStream(result.stream);
       const elapsed = Date.now() - startTime;
@@ -122,18 +88,7 @@ describe("SSR Stream Lifecycle", () => {
       const request = new Request("http://localhost/");
       const startTime = Date.now();
 
-      const result = await routerModule.renderToStream(request, {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const result = await routerModule.renderToStream(request, buildTestRenderOptions(config));
 
       const html = await consumeStream(result.stream);
       const elapsed = Date.now() - startTime;

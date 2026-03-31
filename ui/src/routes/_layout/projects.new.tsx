@@ -27,7 +27,9 @@ function NewProjectPage() {
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<"private" | "unlisted" | "public">("private");
 
-  const createProjectMutation = useMutation({
+  type CreateProjectResult = Awaited<ReturnType<typeof apiClient.createProject>>;
+
+  const createProjectMutation = useMutation<CreateProjectResult, Error, void>({
     mutationFn: () =>
       apiClient.createProject({
         title: title.trim(),

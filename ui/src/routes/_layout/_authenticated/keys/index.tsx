@@ -21,16 +21,25 @@ function KeysList() {
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
 
-  const keysQuery = useQuery({
+  type KeysListResult = Awaited<ReturnType<typeof apiClient.listKeys>>;
+  type SetValueResult = Awaited<ReturnType<typeof apiClient.setValue>>;
+
+  const keysQuery = useQuery<KeysListResult>({
     queryKey: ["kv-keys"],
     queryFn: () => apiClient.listKeys({ limit: 50 }),
   });
 
-  const createMutation = useMutation({
+  const createMutation = useMutation<
+    SetValueResult,
+    Error,
+    { key: string; value: string }
+  >({
     mutationFn: ({ key, value }: { key: string; value: string }) =>
       apiClient.setValue({ key, value }),
     onSuccess: async (data) => {
-      toast.success(`Key "${data.key}" ${data.created ? "created" : "updated"}`);
+      toast.success(
+        `Key "${data.key}" ${data.created ? "created" : "updated"}`,
+      );
       await queryClient.invalidateQueries({ queryKey: ["kv-keys"] });
       setNewKey("");
       setNewValue("");
@@ -41,14 +50,16 @@ function KeysList() {
     },
   });
 
-  const generateSampleKeys = useMutation({
+  const generateSampleKeys = useMutation<number, Error>({
     mutationFn: async () => {
       const sampleKeys = Array.from({ length: 25 }, (_, i) => ({
         key: `sample-key-${String(i + 1).padStart(3, "0")}`,
         value: `Sample value for key ${i + 1} - ${new Date().toISOString()}`,
       }));
 
-      await Promise.all(sampleKeys.map(({ key, value }) => apiClient.setValue({ key, value })));
+      await Promise.all(
+        sampleKeys.map(({ key, value }) => apiClient.setValue({ key, value })),
+      );
       return sampleKeys.length;
     },
     onSuccess: async (count) => {
@@ -74,10 +85,12 @@ function KeysList() {
               <Badge variant="outline">kv</Badge>
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">KV Test Store</h1>
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                KV Test Store
+              </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Create sample keys, inspect stored values, and walk through the authenticated API
-                tooling without leaving the workspace.
+                Create sample keys, inspect stored values, and walk through the
+                authenticated API tooling without leaving the workspace.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -94,7 +107,9 @@ function KeysList() {
                 variant="outline"
                 size="sm"
               >
-                {generateSampleKeys.isPending ? "creating..." : "generate samples"}
+                {generateSampleKeys.isPending
+                  ? "creating..."
+                  : "generate samples"}
               </Button>
               <Button asChild variant="outline" size="sm">
                 <Link to="/home">back to workspace</Link>
@@ -131,7 +146,9 @@ function KeysList() {
               />
             </div>
             <Button
-              onClick={() => createMutation.mutate({ key: newKey, value: newValue })}
+              onClick={() =>
+                createMutation.mutate({ key: newKey, value: newValue })
+              }
               disabled={createMutation.isPending || !newKey || !newValue}
               variant="outline"
               size="sm"
@@ -152,7 +169,12 @@ function KeysList() {
         <Card>
           <CardContent className="p-8 text-center space-y-3">
             <p className="text-sm">The KV list could not be loaded.</p>
-            <Button type="button" variant="outline" size="sm" onClick={() => keysQuery.refetch()}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => keysQuery.refetch()}
+            >
               retry
             </Button>
           </CardContent>
@@ -173,7 +195,9 @@ function KeysList() {
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 min-w-0">
-                    <div className="text-xs text-muted-foreground font-mono">#{index + 1}</div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      #{index + 1}
+                    </div>
                     <Link
                       to="/keys/$key"
                       params={{ key: item.key }}
@@ -206,7 +230,9 @@ function KeysList() {
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="text-xl font-semibold tracking-tight">{value}</div>
     </div>
   );

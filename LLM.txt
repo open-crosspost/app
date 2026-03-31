@@ -528,8 +528,8 @@ Development Mode (bos dev --host remote):
 ```
 
 **Key Points:**
-1. **Host** orchestrates everything - serves the HTML, loads UI via Module Federation, merges API routes
-2. **UI** is a Module Federation remote - host dynamically loads `remoteEntry.js`
+1. **Host** orchestrates everything - serves the HTML, loads the UI runtime, merges API routes
+2. **UI** owns routes/components; runtime factories live in `everything-dev/ui/client` and `/server`
 3. **API** is an every-plugin - host loads plugin and merges its router
 4. During dev with `--host remote`, host URLs come from `bos.config.json` production URLs
 5. Local UI/API URLs are injected at runtime
@@ -559,7 +559,7 @@ cat .bos/logs/ui.log    # UI process logs
 2. Check browser console for Module Federation errors
 3. Check `bos.config.json` - is `app.ui.development` URL correct?
 4. Clear browser cache and hard reload
-5. Verify `remoteEntry.js` is accessible at the URL
+5. Verify the UI build output is accessible at the URL
 
 **Type Errors After API Changes:**
 1. Ensure `api/src/contract.ts` is updated

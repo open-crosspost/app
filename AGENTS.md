@@ -69,7 +69,7 @@ bos info      # Show configuration
 ### Adding API Endpoints
 1. Define in `api/src/contract.ts`
 2. Implement handler in `api/src/index.ts`
-3. Use in UI via `apiClient` from `@/remote/orpc.ts`
+3. Use in UI via `apiClient` from `@/app`
 
 ## Git Workflow
 
@@ -153,7 +153,7 @@ export const Route = createFileRoute('/_layout/_authenticated')({
 
 ### API Client Usage
 ```typescript
-import { apiClient } from '@/remote/orpc';
+import { apiClient } from '@/app';
 
 const { data } = await apiClient.getData({ id: '123' });
 ```

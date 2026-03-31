@@ -117,10 +117,6 @@ interface SyncConfig {
       "development": "http://localhost:3002",
       "production": "https://my-ui.zephyrcloud.app",
       "ssr": "https://my-ui-ssr.zephyrcloud.app",
-      "exposes": {
-        "./Router": "./src/router.tsx",
-        "./components": "./src/components/index.ts"
-      },
       "template": "near-everything/every-plugin/demo/ui"
     },
     "api": {
@@ -135,6 +131,8 @@ interface SyncConfig {
 ```
 
 ## Key Concepts
+
+UI runtime glue now lives in `everything-dev/ui/client` and `everything-dev/ui/server`; route code should import the app barrel from `ui/src/app.ts`.
 
 ### Nova SDK Configuration
 

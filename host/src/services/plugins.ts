@@ -7,7 +7,7 @@ import { PluginError } from "./errors";
 export interface LoadedPlugin {
   key: string;
   name: string;
-  createClient: () => unknown;
+  createClient: (ctx?: unknown) => unknown;
   api: unknown;
   router: unknown;
   metadata: {
@@ -26,7 +26,7 @@ export interface PluginStatus {
 
 export interface PluginResult {
   runtime: ReturnType<typeof createPluginRuntime> | null;
-  api: unknown;
+  api: LoadedPlugin | null;
   plugins: Record<string, LoadedPlugin>;
   status: PluginStatus;
 }
@@ -54,17 +54,23 @@ const unavailableResult = (
 
 type RuntimePluginInput = NonNullable<RuntimeConfig["plugins"]>[string];
 
-function buildRegistry(config: RuntimeConfig): Record<string, { remote: string }> {
-  const registry: Record<string, { remote: string }> = {};
+interface RuntimePluginEntry {
+  key: string;
+  runtimeId: string;
+  config: RuntimeConfig["api"] | RuntimePluginInput;
+}
+
+function buildRegistryEntries(config: RuntimeConfig): RuntimePluginEntry[] {
+  const entries: RuntimePluginEntry[] = [];
   if (config.api?.url) {
-    registry.api = { remote: config.api.url };
+    entries.push({ key: "api", runtimeId: config.api.name, config: config.api });
   }
   for (const [key, plugin] of Object.entries(config.plugins ?? {})) {
     if (plugin.url) {
-      registry[key] = { remote: plugin.url };
+      entries.push({ key, runtimeId: plugin.name, config: plugin });
     }
   }
-  return registry;
+  return entries;
 }
 
 function collectSecrets(config: RuntimePluginInput): Record<string, string> {
@@ -91,44 +97,40 @@ export const initializePlugins = Effect.gen(function* () {
     } satisfies PluginResult;
   }
 
-  const registry = buildRegistry(config);
-  if (Object.keys(registry).length === 0) {
+  const registryEntries = buildRegistryEntries(config);
+  if (registryEntries.length === 0) {
     console.log("[Plugins] No remote plugins configured, using host API only");
     return unavailableResult(config.api.name, null, null);
   }
 
-  console.log(`[Plugins] Registering ${Object.keys(registry).length} plugin(s)`);
+  console.log(`[Plugins] Registering ${registryEntries.length} plugin(s)`);
 
   const result = yield* Effect.tryPromise({
     try: async () => {
       const runtime = createPluginRuntime({
-        registry,
+        registry: Object.fromEntries(
+          registryEntries.map((entry) => [entry.runtimeId, { remote: entry.config.url }]),
+        ),
         secrets: {},
       });
 
-      const entries = Object.entries(registry);
       const loaded = await Promise.allSettled(
-        entries.map(async ([key]) => {
-          const pluginConfig = key === "api" ? config.api : config.plugins?.[key];
-          if (!pluginConfig) {
-            throw new Error(`Missing plugin config for ${key}`);
-          }
-
-          const plugin = await runtime.usePlugin(key as never, {
+        registryEntries.map(async (entry) => {
+          const plugin = await runtime.usePlugin(entry.runtimeId as never, {
             // @ts-expect-error dynamic runtime config
-            variables: pluginConfig.variables ?? {},
+            variables: entry.config.variables ?? {},
             // @ts-expect-error dynamic runtime config
-            secrets: collectSecrets(pluginConfig),
+            secrets: collectSecrets(entry.config),
           });
 
           return {
-            key,
-            name: pluginConfig.name,
-            createClient: plugin.createClient,
+            key: entry.key,
+            name: entry.config.name,
+            createClient: plugin.createClient as unknown as (ctx?: unknown) => unknown,
             api: plugin.createClient(),
             router: plugin.router,
             metadata: {
-              remoteUrl: pluginConfig.url,
+              remoteUrl: entry.config.url,
               version: plugin.metadata.version,
             },
           } satisfies LoadedPlugin;
@@ -140,16 +142,19 @@ export const initializePlugins = Effect.gen(function* () {
       let baseApi: LoadedPlugin | null = null;
       const errors: string[] = [];
 
-      loaded.forEach((entry, index) => {
-        const key = entries[index]?.[0] ?? "unknown";
-        if (entry.status === "fulfilled") {
-          plugins[key] = entry.value;
+      loaded.forEach((result, index) => {
+        const entry = registryEntries[index];
+        const key = entry?.key ?? "unknown";
+        if (result.status === "fulfilled") {
+          plugins[key] = result.value;
           loadedPlugins.push(key);
           if (key === "api") {
-            baseApi = entry.value;
+            baseApi = result.value;
           }
         } else {
-          errors.push(entry.reason instanceof Error ? entry.reason.message : String(entry.reason));
+          errors.push(
+            result.reason instanceof Error ? result.reason.message : String(result.reason),
+          );
         }
       });
 
@@ -213,4 +218,23 @@ export class PluginsService extends Context.Tag("host/PluginsService")<
       return plugins;
     }),
   );
+}
+
+export function createAggregateApiClient(result: PluginResult, context?: unknown): unknown {
+  const baseClient = (result.api?.createClient ? result.api.createClient(context) : {}) as Record<
+    string,
+    unknown
+  >;
+  const pluginClients: Record<string, unknown> = {};
+
+  for (const [key, plugin] of Object.entries(result.plugins)) {
+    if (key === "api") continue;
+    pluginClients[key] = plugin.createClient(context);
+  }
+
+  return {
+    ...baseClient,
+    api: baseClient,
+    plugins: pluginClients,
+  };
 }

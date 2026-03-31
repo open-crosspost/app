@@ -1,12 +1,16 @@
 import { dehydrate, hydrate, QueryClient } from "@tanstack/react-query";
 import type { AnyRoute, AnyRouter } from "@tanstack/react-router";
 import { createBrowserHistory, createRouter as createTanStackRouter } from "@tanstack/react-router";
+import type { ClientRuntimeConfig } from "../types";
 import type { UiRuntimeComponents } from "./app";
 import type { CreateRouterOptions } from "./types";
 
 export interface CreateUiClientRuntimeOptions {
   routeTree: AnyRoute;
   components?: UiRuntimeComponents;
+  resolveBasepath?: (
+    context?: Partial<{ runtimeConfig?: Partial<ClientRuntimeConfig> }>,
+  ) => string | undefined;
 }
 
 export interface UiClientRuntimeModule {
@@ -70,13 +74,13 @@ export function createUiClientRuntime(
     const router = createTanStackRouter({
       routeTree: options.routeTree,
       history,
+      basepath: opts.basepath ?? options.resolveBasepath?.(opts.context),
       context: {
         queryClient,
         assetsUrl: opts.context?.assetsUrl ?? "",
         runtimeConfig: opts.context?.runtimeConfig,
         session: opts.context?.session,
       },
-      basepath: opts.basepath,
       defaultPreload: "intent",
       scrollRestoration: true,
       defaultStructuralSharing: true,

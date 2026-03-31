@@ -1,21 +1,5 @@
-import { Effect } from "every-plugin/effect";
-import { loadBosConfig, type RuntimeConfig } from "everything-dev/config";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { loadRouterModule } from "@/services/federation.server";
-import type { RouterModule } from "@/types";
-
-async function _consumeStream(stream: ReadableStream): Promise<string> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let html = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    html += decoder.decode(value, { stream: true });
-  }
-  html += decoder.decode();
-  return html;
-}
+import { createTestApiClient } from "../helpers/api-client";
 
 interface ORPCErrorResponse {
   code: string;
@@ -24,25 +8,7 @@ interface ORPCErrorResponse {
   data?: Record<string, unknown>;
 }
 
-const _parseORPCError = async (response: Response): Promise<ORPCErrorResponse | null> => {
-  try {
-    const json = await response.json();
-    if (json && typeof json === "object" && "code" in json) {
-      return json as ORPCErrorResponse;
-    }
-    if (json && typeof json === "object" && "error" in json) {
-      return json.error as ORPCErrorResponse;
-    }
-    return json;
-  } catch {
-    return null;
-  }
-};
-
 describe("Error Propagation & Formatting", () => {
-  let _routerModule: RouterModule;
-  let config: RuntimeConfig;
-
   const createMockApiClient = () => ({
     // Marketplace SSR prefetch
     getFeaturedProducts: vi.fn().mockResolvedValue({ products: [] }),
@@ -87,15 +53,9 @@ describe("Error Propagation & Formatting", () => {
 
   let mockApiClient: ReturnType<typeof createMockApiClient>;
 
-  beforeAll(async () => {
+  beforeAll(() => {
     mockApiClient = createMockApiClient();
-    globalThis.$apiClient = mockApiClient;
-    config = await loadBosConfig();
-    const uiUrl = process.env.BOS_UI_URL;
-    const uiSsrUrl = process.env.BOS_UI_SSR_URL ?? uiUrl;
-    if (uiUrl) config.ui.url = uiUrl;
-    if (uiSsrUrl) config.ui.ssrUrl = uiSsrUrl;
-    _routerModule = await Effect.runPromise(loadRouterModule(config));
+    globalThis.$apiClient = createTestApiClient(mockApiClient);
   });
 
   afterAll(() => {
@@ -130,7 +90,7 @@ describe("Error Propagation & Formatting", () => {
       try {
         await mockApiClient.listKeys({ limit: 10 });
         expect.fail("Should have thrown");
-      } catch (error) {
+      } catch (error: unknown) {
         expect(error).toMatchObject({
           code: "UNAUTHORIZED",
           status: 401,
@@ -170,7 +130,7 @@ describe("Error Propagation & Formatting", () => {
       try {
         await mockApiClient.getValue({ key: "non-existent-key" });
         expect.fail("Should have thrown");
-      } catch (error) {
+      } catch (error: unknown) {
         expect(error).toMatchObject({
           code: "NOT_FOUND",
           status: 404,

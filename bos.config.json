@@ -1,6 +1,11 @@
 {
   "account": "dev.everything.near",
   "domain": "everything.dev",
+  "plugins": {
+    "template": {
+      "development": "local:plugins/_template"
+    }
+  },
   "app": {
     "host": {
       "name": "host",
@@ -9,13 +14,13 @@
     },
     "ui": {
       "name": "ui",
-      "development": "http://localhost:3002",
+      "development": "local:ui",
       "production": "https://elliot-braem-2463-ui-everything-dev-nearbuilders-a8f046d76-ze.zephyrcloud.app",
       "ssr": "https://elliot-braem-2464-ui-everything-dev-nearbuilders-cc2d0e459-ze.zephyrcloud.app"
     },
     "api": {
       "name": "api",
-      "development": "http://localhost:3014",
+      "development": "local:api",
       "variables": {},
       "secrets": []
     }

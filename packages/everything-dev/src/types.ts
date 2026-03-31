@@ -42,7 +42,6 @@ export const ApiPluginConfigSchema = z.object({
 export type ApiPluginConfig = z.infer<typeof ApiPluginConfigSchema>;
 
 export const BosPluginRefSchema = z.object({
-  cwd: z.string().optional(),
   extends: z.string().optional(),
   development: z.string().optional(),
   production: z.string().optional(),
@@ -57,7 +56,7 @@ export const RuntimePluginConfigSchema = z.object({
   url: z.string(),
   entry: z.string(),
   source: SourceModeSchema,
-  cwd: z.string().optional(),
+  localPath: z.string().optional(),
   port: z.number().optional(),
   proxy: z.string().optional(),
   variables: z.record(z.string(), z.string()).optional(),
@@ -79,6 +78,17 @@ export const HostConfigSchema = z.object({
   secrets: z.array(z.string()).optional(),
 });
 export type HostConfig = z.infer<typeof HostConfigSchema>;
+
+export const ActiveRuntimeInfoSchema = z.object({
+  accountId: z.string(),
+  gatewayId: z.string(),
+  runtimeBasePath: z.string(),
+  canonicalConfigUrl: z.string().nullable(),
+  resolvedConfig: z.record(z.string(), z.unknown()).nullable(),
+  title: z.string().nullable(),
+  hostUrl: z.string().nullable(),
+});
+export type ActiveRuntimeInfo = z.infer<typeof ActiveRuntimeInfoSchema>;
 
 export const BosConfigSchema = z.object({
   account: z.string(),
@@ -106,9 +116,13 @@ export const RuntimeConfigSchema = z.object({
     })
     .optional(),
   ui: FederationEntrySchema.extend({
+    localPath: z.string().optional(),
+    port: z.number().optional(),
     ssrUrl: z.string().optional(),
   }),
   api: FederationEntrySchema.extend({
+    localPath: z.string().optional(),
+    port: z.number().optional(),
     proxy: z.string().optional(),
     variables: z.record(z.string(), z.string()).optional(),
     secrets: z.array(z.string()).optional(),
@@ -125,6 +139,7 @@ export const ClientRuntimeConfigSchema = z.object({
   assetsUrl: z.string(),
   apiBase: z.string(),
   rpcBase: z.string(),
+  runtime: ActiveRuntimeInfoSchema.optional(),
   ui: z
     .object({
       name: z.string(),

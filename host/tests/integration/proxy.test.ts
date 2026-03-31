@@ -16,7 +16,7 @@ describe("API Proxy", () => {
 
     beforeAll(() => {
       fetchMock = vi.fn();
-      globalThis.fetch = fetchMock as typeof fetch;
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
     });
 
     afterAll(() => {
@@ -187,7 +187,7 @@ describe("API Proxy", () => {
 
     beforeAll(() => {
       fetchMock = vi.fn();
-      globalThis.fetch = fetchMock as typeof fetch;
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
     });
 
     afterAll(() => {
@@ -223,7 +223,7 @@ describe("API Proxy", () => {
 
       fetchMock.mockResolvedValueOnce(createMockResponse('{"status":"ok"}'));
 
-      const _response = await app.fetch(new Request("http://localhost:3000/api/health"));
+      await app.fetch(new Request("http://localhost:3000/api/health"));
       expect(fetchMock).toHaveBeenCalled();
 
       const proxiedRequest = fetchMock.mock.calls[0][0] as Request;
@@ -241,7 +241,7 @@ describe("API Proxy", () => {
       const rpcBody = JSON.stringify({ method: "getValue", params: { key: "test" } });
       fetchMock.mockResolvedValueOnce(createMockResponse('{"result":"value"}'));
 
-      const _response = await app.fetch(
+      await app.fetch(
         new Request("http://localhost:3000/api/rpc/getValue", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

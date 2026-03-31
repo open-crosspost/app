@@ -21,6 +21,7 @@ export interface LoadedPluginsResult {
 
 export async function loadApiPlugin(opts: {
   key: string;
+  runtimeId: string;
   name: string;
   entry: string;
   variables?: Record<string, string>;
@@ -38,16 +39,16 @@ export async function loadApiPlugin(opts: {
   await ensureNodeRuntimePlugin();
   // Use remoteEntry.js for the plugin runtime for now. mf-manifest.json support
   // is still inconsistent across our stack.
-  await registerRemote({ name: opts.name, entry: remoteEntryUrl });
+  await registerRemote({ name: opts.runtimeId, entry: remoteEntryUrl });
 
   const runtime: any = createPluginRuntime({
     registry: {
-      [opts.name]: { remote: remoteEntryUrl },
+      [opts.runtimeId]: { remote: remoteEntryUrl },
     },
     secrets: opts.secrets ?? {},
   });
 
-  const plugin = await runtime.usePlugin(opts.name, {
+  const plugin = await runtime.usePlugin(opts.runtimeId, {
     variables: opts.variables ?? {},
     secrets: opts.secrets ?? {},
   });
@@ -101,6 +102,7 @@ export async function loadApiPluginsFromRuntimeConfig(
       console.log(`[API] Loading plugin: ${pluginConfig.name} from ${pluginConfig.entry}`);
       return loadApiPlugin({
         key,
+        runtimeId: pluginConfig.name,
         name: pluginConfig.name,
         entry: pluginConfig.entry,
         variables: pluginConfig.variables,

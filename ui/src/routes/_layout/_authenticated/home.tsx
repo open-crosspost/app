@@ -26,15 +26,17 @@ export const Route = createFileRoute("/_layout/_authenticated/home")({
 function Home() {
   const queryClient = useQueryClient();
 
+  type ProjectsResult = Awaited<ReturnType<typeof apiClient.listProjects>>;
+
   const { data: session } = useQuery(sessionQueryOptions());
   const { data: organizations = [] } = useQuery(organizationsQueryOptions());
   const { data: passkeys = [] } = useQuery(passkeysQueryOptions());
-  const { data: projectsData } = useQuery({
+  const user = session?.user;
+  const { data: projectsData } = useQuery<ProjectsResult>({
     queryKey: ["projects"],
     queryFn: () => apiClient.listProjects({ ownerId: user?.id, limit: 5 }),
   });
 
-  const user = session?.user;
   const activeOrgId = session?.session?.activeOrganizationId;
   const nearAccountId = authClient.near.getAccountId();
 

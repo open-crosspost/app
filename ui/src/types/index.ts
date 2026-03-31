@@ -1,4 +1,7 @@
-export type { ClientRuntimeConfig } from "everything-dev/types";
+export type {
+  ActiveRuntimeInfo,
+  ClientRuntimeConfig,
+} from "everything-dev/types";
 export type {
   CreateRouterOptions,
   HeadData,

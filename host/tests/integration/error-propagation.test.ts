@@ -1,20 +1,5 @@
-import { loadBosConfig, type RuntimeConfig } from "everything-dev/config";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { loadRouterModule } from "@/services/federation.server";
-import type { RouterModule } from "@/types";
-
-async function _consumeStream(stream: ReadableStream): Promise<string> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let html = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    html += decoder.decode(value, { stream: true });
-  }
-  html += decoder.decode();
-  return html;
-}
+import { createTestApiClient } from "../helpers/api-client";
 
 interface ORPCErrorResponse {
   code: string;
@@ -23,25 +8,7 @@ interface ORPCErrorResponse {
   data?: Record<string, unknown>;
 }
 
-const _parseORPCError = async (response: Response): Promise<ORPCErrorResponse | null> => {
-  try {
-    const json = await response.json();
-    if (json && typeof json === "object" && "code" in json) {
-      return json as ORPCErrorResponse;
-    }
-    if (json && typeof json === "object" && "error" in json) {
-      return json.error as ORPCErrorResponse;
-    }
-    return json;
-  } catch {
-    return null;
-  }
-};
-
 describe("ORPC Error Propagation to HTTP Response", () => {
-  let _routerModule: RouterModule;
-  let config: RuntimeConfig;
-
   const mockApiClient = {
     getValue: vi.fn(),
     setValue: vi.fn().mockResolvedValue({ key: "test", value: "value", created: true }),
@@ -51,10 +18,8 @@ describe("ORPC Error Propagation to HTTP Response", () => {
     ping: vi.fn().mockResolvedValue({ status: "ok", timestamp: new Date().toISOString() }),
   };
 
-  beforeAll(async () => {
-    globalThis.$apiClient = mockApiClient as any;
-    config = await loadBosConfig();
-    _routerModule = await loadRouterModule(config);
+  beforeAll(() => {
+    globalThis.$apiClient = createTestApiClient(mockApiClient);
   });
 
   afterAll(() => {
@@ -73,26 +38,27 @@ describe("ORPC Error Propagation to HTTP Response", () => {
       try {
         await mockApiClient.protected();
         expect.fail("Should have thrown error");
-      } catch (error) {
+      } catch (error: unknown) {
+        const orpcError = error as ORPCErrorResponse;
         // Critical: Error should NOT be empty object {}
-        expect(error).toBeDefined();
-        expect(error).not.toEqual({});
+        expect(orpcError).toBeDefined();
+        expect(orpcError).not.toEqual({});
 
         // All required fields must be present
-        expect(error).toHaveProperty("code");
-        expect(error).toHaveProperty("message");
-        expect(error).toHaveProperty("status");
-        expect(error).toHaveProperty("data");
+        expect(orpcError).toHaveProperty("code");
+        expect(orpcError).toHaveProperty("message");
+        expect(orpcError).toHaveProperty("status");
+        expect(orpcError).toHaveProperty("data");
 
         // Verify UNAUTHORIZED error is preserved
-        expect(error.code).toBe("UNAUTHORIZED");
-        expect(error.message).toBe("Auth required");
-        expect(error.status).toBe(401);
+        expect(orpcError.code).toBe("UNAUTHORIZED");
+        expect(orpcError.message).toBe("Auth required");
+        expect(orpcError.status).toBe(401);
 
         // Verify data is preserved
-        expect(error.data).toBeDefined();
-        expect(error.data.apiKeyProvided).toBe(false);
-        expect(error.data.authType).toBe("apiKey");
+        expect(orpcError.data).toBeDefined();
+        expect(orpcError.data?.apiKeyProvided).toBe(false);
+        expect(orpcError.data?.authType).toBe("apiKey");
       }
     });
 
@@ -107,20 +73,21 @@ describe("ORPC Error Propagation to HTTP Response", () => {
       try {
         await mockApiClient.getValue({ key: "specific-key-123" });
         expect.fail("Should have thrown NOT_FOUND error");
-      } catch (error) {
+      } catch (error: unknown) {
+        const orpcError = error as ORPCErrorResponse;
         // Error should not be empty
-        expect(error).toBeDefined();
-        expect(error).not.toEqual({});
+        expect(orpcError).toBeDefined();
+        expect(orpcError).not.toEqual({});
 
         // Complete structure check
-        expect(error.code).toBe("NOT_FOUND");
-        expect(error.status).toBe(404);
-        expect(error.message).toBe("Key not found");
+        expect(orpcError.code).toBe("NOT_FOUND");
+        expect(orpcError.status).toBe(404);
+        expect(orpcError.message).toBe("Key not found");
 
         // Data context preserved
-        expect(error.data).toBeDefined();
-        expect(error.data.resource).toBe("kv");
-        expect(error.data.resourceId).toBe("specific-key-123");
+        expect(orpcError.data).toBeDefined();
+        expect(orpcError.data?.resource).toBe("kv");
+        expect(orpcError.data?.resourceId).toBe("specific-key-123");
       }
     });
 
@@ -135,17 +102,18 @@ describe("ORPC Error Propagation to HTTP Response", () => {
       try {
         await mockApiClient.setValue({ key: "test", value: "value" });
         expect.fail("Should have thrown FORBIDDEN error");
-      } catch (error) {
-        expect(error).toBeDefined();
-        expect(error).not.toEqual({});
+      } catch (error: unknown) {
+        const orpcError = error as ORPCErrorResponse;
+        expect(orpcError).toBeDefined();
+        expect(orpcError).not.toEqual({});
 
-        expect(error.code).toBe("FORBIDDEN");
-        expect(error.status).toBe(403);
+        expect(orpcError.code).toBe("FORBIDDEN");
+        expect(orpcError.status).toBe(403);
 
         // Verify action data is preserved
-        expect(error.data).toBeDefined();
-        expect(error.data.action).toBe("write");
-        expect(error.data.requiredPermissions).toEqual(["write:data"]);
+        expect(orpcError.data).toBeDefined();
+        expect(orpcError.data?.action).toBe("write");
+        expect(orpcError.data?.requiredPermissions).toEqual(["write:data"]);
       }
     });
   });
@@ -162,8 +130,8 @@ describe("ORPC Error Propagation to HTTP Response", () => {
       try {
         await mockApiClient.protected();
         expect.fail("Should have thrown");
-      } catch (error) {
-        const errorStr = JSON.stringify(error);
+      } catch (error: unknown) {
+        const errorStr = JSON.stringify(error as ORPCErrorResponse);
 
         // Should NOT be empty object
         expect(errorStr).not.toBe("{}");
@@ -193,8 +161,8 @@ describe("ORPC Error Propagation to HTTP Response", () => {
       try {
         await mockApiClient.getValue({ key: "debug-123" });
         expect.fail("Should have thrown");
-      } catch (error) {
-        const errorStr = JSON.stringify(error);
+      } catch (error: unknown) {
+        const errorStr = JSON.stringify(error as ORPCErrorResponse);
 
         // Should have enough content to debug
         expect(errorStr.length).toBeGreaterThan(50);
@@ -220,15 +188,16 @@ describe("ORPC Error Propagation to HTTP Response", () => {
       try {
         await mockApiClient.protected();
         expect.fail("Should have thrown");
-      } catch (error) {
+      } catch (error: unknown) {
+        const orpcError = error as ORPCErrorResponse;
         // For toast notifications
-        expect(error.message).toBeDefined();
-        expect(error.message.length).toBeGreaterThan(0);
-        expect(error.message).not.toContain("Error: {}");
+        expect(orpcError.message).toBeDefined();
+        expect(orpcError.message.length).toBeGreaterThan(0);
+        expect(orpcError.message).not.toContain("Error: {}");
 
         // For user-friendly display
-        expect(error.data).toBeDefined();
-        expect(error.data.apiKeyProvided).toBe(false);
+        expect(orpcError.data).toBeDefined();
+        expect(orpcError.data?.apiKeyProvided).toBe(false);
       }
     });
 
@@ -246,14 +215,15 @@ describe("ORPC Error Propagation to HTTP Response", () => {
         try {
           await mockApiClient.setValue({ key: "test", value: "value" });
           expect.fail(`Should have thrown ${testCase.code}`);
-        } catch (error) {
-          expect(error.status).toBeDefined();
-          expect(typeof error.status).toBe("number");
-          expect(error.status).toBe(testCase.status);
+        } catch (error: unknown) {
+          const orpcError = error as ORPCErrorResponse;
+          expect(orpcError.status).toBeDefined();
+          expect(typeof orpcError.status).toBe("number");
+          expect(orpcError.status).toBe(testCase.status);
 
-          expect(error.code).toBeDefined();
-          expect(typeof error.code).toBe("string");
-          expect(error.code).toBe(testCase.code);
+          expect(orpcError.code).toBeDefined();
+          expect(typeof orpcError.code).toBe("string");
+          expect(orpcError.code).toBe(testCase.code);
         }
       }
     });
@@ -278,9 +248,10 @@ describe("ORPC Error Propagation to HTTP Response", () => {
         try {
           await mockApiClient.listKeys({ limit: 10 });
           expect.fail(`Should have thrown ${code}`);
-        } catch (error) {
-          expect(error.status).toBe(expectedStatus);
-          expect(error.code).toBe(code);
+        } catch (error: unknown) {
+          const orpcError = error as ORPCErrorResponse;
+          expect(orpcError.status).toBe(expectedStatus);
+          expect(orpcError.code).toBe(code);
         }
       }
     });

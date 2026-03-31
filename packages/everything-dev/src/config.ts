@@ -7,7 +7,6 @@ import { BosConfigSchema } from "./types";
 
 interface BosConfigInput extends Record<string, unknown> {
   extends?: string;
-  cwd?: string;
   development?: string;
   production?: string;
   proxy?: string;
@@ -16,6 +15,15 @@ interface BosConfigInput extends Record<string, unknown> {
   app?: Record<string, Record<string, unknown>>;
   shared?: Record<string, Record<string, Record<string, unknown>>>;
   plugins?: Record<string, BosConfigInput>;
+}
+
+const LOCAL_PREFIX = "local:";
+
+interface RuntimeTarget {
+  source: "local" | "remote";
+  url: string;
+  localPath?: string;
+  port?: number;
 }
 
 let cachedConfig: BosConfig | null = null;
@@ -85,7 +93,7 @@ export async function loadConfig(options?: {
       baseDir,
       options?.env ?? "development",
     );
-    const runtime = buildRuntimeConfig(config, options?.env ?? "development", {
+    const runtime = buildRuntimeConfig(config, baseDir, options?.env ?? "development", {
       plugins: pluginRuntime,
     });
 
@@ -118,11 +126,20 @@ export async function loadBosConfig(options?: {
 
 function buildRuntimeConfig(
   config: BosConfig,
+  baseDir: string,
   env: "development" | "production",
   options?: { plugins?: Record<string, RuntimePluginConfig> },
 ): RuntimeConfig {
   const uiConfig = config.app.ui;
   const apiConfig = config.app.api;
+  const uiRuntime =
+    env === "development"
+      ? resolveRuntimeTarget(uiConfig.development, baseDir)
+      : resolveRuntimeTarget(uiConfig.production, baseDir, "remote");
+  const apiRuntime =
+    env === "development"
+      ? resolveRuntimeTarget(apiConfig.development, baseDir)
+      : resolveRuntimeTarget(apiConfig.production, baseDir, "remote");
 
   return {
     env,
@@ -132,16 +149,20 @@ function buildRuntimeConfig(
     shared: config.shared,
     ui: {
       name: uiConfig.name,
-      url: uiConfig[env] ?? "",
-      entry: `${uiConfig[env] ?? ""}/mf-manifest.json`,
+      url: uiRuntime.url,
+      entry: uiRuntime.url ? `${uiRuntime.url}/mf-manifest.json` : "/mf-manifest.json",
+      localPath: uiRuntime.localPath,
+      port: uiRuntime.port,
       ssrUrl: uiConfig.ssr,
-      source: env === "development" ? "local" : "remote",
+      source: uiRuntime.source,
     },
     api: {
       name: apiConfig.name,
-      url: apiConfig[env] ?? "",
-      entry: `${apiConfig[env] ?? ""}/mf-manifest.json`,
-      source: env === "development" ? "local" : "remote",
+      url: apiRuntime.url,
+      entry: apiRuntime.url ? `${apiRuntime.url}/mf-manifest.json` : "/mf-manifest.json",
+      localPath: apiRuntime.localPath,
+      port: apiRuntime.port,
+      source: apiRuntime.source,
       proxy: apiConfig.proxy,
       variables: apiConfig.variables,
       secrets: apiConfig.secrets,
@@ -242,29 +263,59 @@ function buildRuntimePluginConfig(
   source: BosConfigInput,
 ): RuntimePluginConfig {
   const apiConfig = config.app?.api ?? {};
-  const apiName = typeof apiConfig.name === "string" ? apiConfig.name : pluginId;
   const apiDevelopment =
     typeof apiConfig.development === "string" ? apiConfig.development : undefined;
   const apiProduction = typeof apiConfig.production === "string" ? apiConfig.production : undefined;
   const sourceDevelopment = typeof source.development === "string" ? source.development : undefined;
   const sourceProduction = typeof source.production === "string" ? source.production : undefined;
-  const runtimeUrl =
-    env === "development"
-      ? (apiDevelopment ?? sourceDevelopment ?? "")
-      : (apiProduction ?? sourceProduction ?? "");
   const proxy = typeof apiConfig.proxy === "string" ? apiConfig.proxy : undefined;
+  const runtimeTarget =
+    env === "development"
+      ? resolveRuntimeTarget(apiDevelopment ?? sourceDevelopment, baseDir)
+      : resolveRuntimeTarget(apiProduction ?? sourceProduction, baseDir, "remote");
+  const apiName = resolvePluginRuntimeName(
+    typeof apiConfig.name === "string" ? apiConfig.name : undefined,
+    runtimeTarget.localPath,
+    pluginId,
+  );
 
   return {
     name: apiName,
-    url: runtimeUrl,
-    entry: runtimeUrl ? `${runtimeUrl.replace(/\/$/, "")}/mf-manifest.json` : "/mf-manifest.json",
-    source: source.cwd ? "local" : "remote",
-    cwd: source.cwd ? resolve(baseDir, source.cwd) : undefined,
-    port: runtimeUrl ? parsePort(runtimeUrl) : undefined,
+    url: runtimeTarget.url,
+    entry: runtimeTarget.url
+      ? `${runtimeTarget.url.replace(/\/$/, "")}/mf-manifest.json`
+      : "/mf-manifest.json",
+    source: runtimeTarget.source,
+    localPath: runtimeTarget.localPath,
+    port: runtimeTarget.port,
     proxy: proxy ?? (typeof source.proxy === "string" ? source.proxy : undefined),
     variables: normalizeStringRecord(apiConfig.variables ?? source.variables),
     secrets: normalizeStringArray(apiConfig.secrets ?? source.secrets),
   };
+}
+
+function resolvePluginRuntimeName(
+  explicitName: string | undefined,
+  localPath: string | undefined,
+  fallback: string,
+): string {
+  if (explicitName) {
+    return explicitName;
+  }
+
+  if (!localPath) {
+    return fallback;
+  }
+
+  try {
+    const packageJsonPath = join(localPath, "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { name?: unknown };
+    if (typeof packageJson.name === "string" && packageJson.name.length > 0) {
+      return packageJson.name;
+    }
+  } catch {}
+
+  return fallback;
 }
 
 async function resolveBosConfigInput(
@@ -273,13 +324,6 @@ async function resolveBosConfigInput(
   visited: Set<string>,
   chain: string[],
 ): Promise<{ config: BosConfigInput; baseDir: string }> {
-  if (input.cwd) {
-    const cwd = resolve(baseDir, input.cwd);
-    const configPath = join(cwd, "bos.config.json");
-    const config = await resolveConfigWithExtends(configPath, cwd, visited, chain);
-    return { config: mergeConfigs(config, input), baseDir: cwd };
-  }
-
   if (input.extends) {
     const parentBaseDir = input.extends.startsWith("bos://")
       ? baseDir
@@ -328,6 +372,51 @@ function normalizeStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const out = value.filter((item): item is string => typeof item === "string" && item.length > 0);
   return out.length > 0 ? out : undefined;
+}
+
+function resolveRuntimeTarget(
+  value: string | undefined,
+  baseDir: string,
+  defaultSource: "local" | "remote" = "remote",
+): RuntimeTarget {
+  if (!value) {
+    return { source: defaultSource, url: "" };
+  }
+
+  if (value.startsWith(LOCAL_PREFIX)) {
+    const localTarget = value.slice(LOCAL_PREFIX.length).trim();
+    if (!localTarget) {
+      throw new Error(`Invalid local development target: ${value}`);
+    }
+
+    return {
+      source: "local",
+      url: "",
+      localPath: resolve(baseDir, localTarget),
+    };
+  }
+
+  return {
+    source: defaultSource,
+    url: value.replace(/\/$/, ""),
+    port: parsePort(value),
+  };
+}
+
+export function isLocalDevelopmentTarget(value: string | undefined): boolean {
+  return typeof value === "string" && value.startsWith(LOCAL_PREFIX);
+}
+
+export function resolveLocalDevelopmentPath(
+  value: string | undefined,
+  baseDir: string,
+): string | null {
+  if (!isLocalDevelopmentTarget(value)) {
+    return null;
+  }
+
+  const localTarget = value!.slice(LOCAL_PREFIX.length).trim();
+  return localTarget ? resolve(baseDir, localTarget) : null;
 }
 
 export function parsePort(url: string): number {

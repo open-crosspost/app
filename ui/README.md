@@ -1,19 +1,18 @@
 # ui
 
-Remote frontend module with TanStack Router and Module Federation.
+UI package for the app shell, routes, and client runtime.
 
-## Module Federation
+## Runtime Surface
 
-Exposed as remote module via `remoteEntry.js`:
+The package runtime lives in `everything-dev/ui`:
 
-| Export | Path | Description |
-|--------|------|-------------|
-| `./Router` | `./src/router.tsx` | TanStack Router instance |
-| `./Hydrate` | `./src/hydrate.tsx` | SSR hydration entry |
-| `./components` | `./src/components/index.ts` | Reusable UI components |
-| `./providers` | `./src/providers/index.tsx` | Context providers |
-| `./hooks` | `./src/hooks/index.ts` | React hooks |
-| `./types` | `./src/types/index.ts` | TypeScript types |
+| Export | Purpose |
+|--------|---------|
+| `everything-dev/ui/client` | Browser router/runtime factory |
+| `everything-dev/ui/server` | SSR router/runtime factory |
+| `everything-dev/ui/types` | Shared router and head types |
+
+The app-level barrel is `ui/src/app.ts` and is the preferred import for route code.
 
 **Shared dependencies** (singleton via `bos.config.json → shared.ui`):
 
@@ -31,38 +30,7 @@ bos dev --api remote    # Isolate UI work
 
 ## Configuration
 
-**bos.config.json**:
-
-```json
-{
-  "app": {
-    "ui": {
-      "name": "ui",
-      "development": "http://localhost:3002",
-      "production": "https://example-ui.zephyrcloud.app",
-      "ssr": "https://example-ui-ssr.zephyrcloud.app",
-      "exposes": {
-        "./Router": "./src/router.tsx",
-        "./Hydrate": "./src/hydrate.tsx",
-        "./components": "./src/components/index.ts",
-        "./providers": "./src/providers/index.tsx",
-        "./hooks": "./src/hooks/index.ts",
-        "./types": "./src/types/index.ts"
-      },
-      "template": "near-everything/every-plugin/demo/ui",
-      "files": [
-        "rsbuild.config.ts",
-        "tsconfig.json",
-        "postcss.config.mjs",
-        "components.json"
-      ],
-      "sync": {
-        "scripts": ["dev", "build", "type-check"]
-      }
-    }
-  }
-}
-```
+`bos.config.json` only needs the UI runtime URLs and package metadata. Build-time module exposes stay in `ui/rsbuild.config.ts`.
 
 ## Route Protection
 

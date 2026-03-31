@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { apiClient, getActiveRuntime } from "@/app";
+import {
+  apiClient,
+  buildHostRuntimeHref,
+  buildPublishedAccountHref,
+  buildPublishedGatewayHref,
+  getActiveRuntime,
+} from "@/app";
 import { Button, Card, CardContent } from "@/components";
 import { Route as RootRoute } from "../../../__root";
 
@@ -24,7 +30,9 @@ function AccountRunPage() {
   const { accountId } = Route.useParams() as { accountId: string };
   const { runtimeConfig } = RootRoute.useLoaderData();
   const activeRuntime = getActiveRuntime(runtimeConfig);
-  const accountQuery = useQuery({
+  type RegistryAppsResult = Awaited<ReturnType<typeof apiClient.getRegistryAppsByAccount>>;
+
+  const accountQuery = useQuery<RegistryAppsResult>({
     queryKey: ["registry-account", accountId],
     queryFn: () => apiClient.getRegistryAppsByAccount({ accountId }),
   });
@@ -50,7 +58,7 @@ function AccountRunPage() {
       return;
     }
 
-    window.location.replace(buildRuntimeHref(preferredApp.accountId, preferredApp.gatewayId));
+    window.location.replace(buildHostRuntimeHref(preferredApp.accountId, preferredApp.gatewayId));
   }, [preferredApp]);
 
   if (accountQuery.isLoading) {
@@ -78,7 +86,7 @@ function AccountRunPage() {
               retry
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href={buildAccountHref(accountId)}>inspect account</a>
+              <a href={buildPublishedAccountHref(accountId)}>inspect account</a>
             </Button>
           </div>
         </CardContent>
@@ -102,7 +110,7 @@ function AccountRunPage() {
         <CardContent className="p-8 text-center space-y-3">
           <p className="text-sm">No runnable gateways were found for this account.</p>
           <Button asChild variant="outline" size="sm">
-            <a href={buildAccountHref(accountId)}>inspect account</a>
+            <a href={buildPublishedAccountHref(accountId)}>inspect account</a>
           </Button>
         </CardContent>
       </Card>
@@ -135,10 +143,12 @@ function AccountRunPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a href={buildRuntimeHref(app.accountId, app.gatewayId)}>run app</a>
+                    <a href={buildHostRuntimeHref(app.accountId, app.gatewayId)}>run app</a>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <a href={buildGatewayHref(app.accountId, app.gatewayId)}>inspect runtime</a>
+                    <a href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}>
+                      inspect runtime
+                    </a>
                   </Button>
                 </div>
               </CardContent>
@@ -148,16 +158,4 @@ function AccountRunPage() {
       </CardContent>
     </Card>
   );
-}
-
-function buildAccountHref(accountId: string) {
-  return `/apps/${encodeURIComponent(accountId)}`;
-}
-
-function buildGatewayHref(accountId: string, gatewayId: string) {
-  return `${buildAccountHref(accountId)}/${encodeURIComponent(gatewayId)}`;
-}
-
-function buildRuntimeHref(accountId: string, gatewayId: string) {
-  return `/_runtime/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`;
 }

@@ -1,5 +1,4 @@
 import { createConnection } from "node:net";
-import { join } from "node:path";
 import { Deferred, Effect, Fiber, Ref } from "effect";
 import { getProjectRoot, parsePort } from "./config";
 import { patchManifestFetchForSsrPublicPath } from "./mf";
@@ -95,9 +94,9 @@ export function getProcessConfig(
   if (pkg.startsWith("plugin:")) {
     const pluginId = pkg.slice("plugin:".length);
     const pluginConfig = runtimeConfig?.plugins?.[pluginId] ?? null;
-    const cwd = bosConfig?.plugins?.[pluginId]?.cwd;
+    const localPath = pluginConfig?.localPath;
 
-    if (!cwd || pluginConfig?.source !== "local") return null;
+    if (!localPath || pluginConfig?.source !== "local") return null;
 
     const port =
       portOverride ?? pluginConfig?.port ?? (pluginConfig?.url ? parsePort(pluginConfig.url) : 0);
@@ -106,7 +105,7 @@ export function getProcessConfig(
       name: pkg,
       command: "bun",
       args: ["run", "dev"],
-      cwd: join(getProjectRoot(), cwd),
+      cwd: localPath,
       port,
       readyPatterns: [/ready in/i, /compiled.*successfully/i, /listening/i, /started/i],
       errorPatterns: [/error/i, /failed/i],
@@ -119,25 +118,38 @@ export function getProcessConfig(
 
   let port: number;
   if (pkg === "host") {
-    port = portOverride ?? (bosConfig ? parsePort(bosConfig.app.host.development) : 3000);
+    port =
+      portOverride ??
+      (runtimeConfig?.hostUrl
+        ? parsePort(runtimeConfig.hostUrl)
+        : bosConfig
+          ? parsePort(bosConfig.app.host.development)
+          : 3000);
   } else if (pkg === "ui") {
-    port = bosConfig?.app?.ui
-      ? parsePort(bosConfig.app.ui.development ?? "http://localhost:3002")
-      : 3002;
+    port =
+      runtimeConfig?.ui.port ?? (runtimeConfig?.ui.url ? parsePort(runtimeConfig.ui.url) : 3002);
   } else if (pkg === "ui-ssr") {
-    const uiPort = bosConfig?.app?.ui
-      ? parsePort(bosConfig.app.ui.development ?? "http://localhost:3002")
-      : 3002;
-    port = uiPort + 1;
+    const uiPort = runtimeConfig?.ui.ssrUrl
+      ? parsePort(runtimeConfig.ui.ssrUrl)
+      : runtimeConfig?.ui.port
+        ? runtimeConfig.ui.port + 1
+        : 3003;
+    port = uiPort;
   } else if (pkg === "api") {
-    port = bosConfig?.app?.api
-      ? parsePort(bosConfig.app.api.development ?? "http://localhost:3014")
-      : 3014;
+    port =
+      runtimeConfig?.api.port ?? (runtimeConfig?.api.url ? parsePort(runtimeConfig.api.url) : 3014);
   } else {
     port = 0;
   }
 
-  return { ...base, port, env };
+  const cwd =
+    pkg === "ui"
+      ? (runtimeConfig?.ui.localPath ?? base.cwd)
+      : pkg === "api"
+        ? (runtimeConfig?.api.localPath ?? base.cwd)
+        : base.cwd;
+
+  return { ...base, cwd, port, env };
 }
 
 const stripAnsi = (input: string): string => {
@@ -397,7 +409,7 @@ export const spawnDevProcess = (
     } catch {
       configDir = process.cwd();
     }
-    const fullCwd = `${configDir}/${config.cwd}`;
+    const fullCwd = config.cwd.startsWith("/") ? config.cwd : `${configDir}/${config.cwd}`;
     const readyDeferred = yield* Deferred.make<void, Error>();
     const statusRef = yield* Ref.make<ProcessStatus>("starting");
 

@@ -38,4 +38,17 @@ export function getAuthClient() {
   return _authClient;
 }
 
-export const authClient = getAuthClient();
+export const authClient: ReturnType<typeof createAuthClient> = new Proxy(
+  {} as ReturnType<typeof createAuthClient>,
+  {
+    get(_target, prop) {
+      if (prop === "then") return undefined;
+      const client = getAuthClient() as unknown as Record<string, unknown>;
+      const value = client[prop as string];
+      if (typeof value === "function") {
+        return (...args: unknown[]) => (value as (...a: unknown[]) => unknown)(...args);
+      }
+      return value;
+    },
+  },
+);

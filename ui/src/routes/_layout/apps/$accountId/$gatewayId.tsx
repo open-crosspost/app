@@ -3,7 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { apiClient, authClient } from "@/app";
+import {
+  apiClient,
+  authClient,
+  buildPublishedAccountHref,
+  buildPublishedGatewayRunHref,
+} from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 import { Input } from "@/components/ui/input";
 import { sessionQueryOptions } from "@/lib/session";
@@ -240,7 +245,10 @@ function AppDetailPage() {
             apps
           </a>
           <span>/</span>
-          <a href={buildAccountHref(accountId)} className="hover:text-foreground transition-colors">
+          <a
+            href={buildPublishedAccountHref(accountId)}
+            className="hover:text-foreground transition-colors"
+          >
             {accountId}
           </a>
           <span>/</span>
@@ -274,7 +282,7 @@ function AppDetailPage() {
               <div className="flex flex-wrap gap-2">
                 {app.hostUrl && (
                   <Button asChild size="sm">
-                    <a href={buildGatewayRunHref(accountId, gatewayId)}>run in host</a>
+                    <a href={buildPublishedGatewayRunHref(accountId, gatewayId)}>run in host</a>
                   </Button>
                 )}
                 {app.openUrl && (
@@ -625,14 +633,6 @@ function AppDetailPage() {
       </Card>
     </div>
   );
-}
-
-function buildAccountHref(accountId: string) {
-  return `/apps/${encodeURIComponent(accountId)}`;
-}
-
-function buildGatewayRunHref(accountId: string, gatewayId: string) {
-  return `${buildAccountHref(accountId)}/${encodeURIComponent(gatewayId)}/run`;
 }
 
 function AnchorButton({ href, label }: { href: string; label: string }) {

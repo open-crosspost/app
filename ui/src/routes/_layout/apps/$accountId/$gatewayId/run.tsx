@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { buildHostRuntimeHref, buildPublishedGatewayHref } from "@/app";
 import { Button, Card, CardContent } from "@/components";
 
 export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId/run" as never)({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId/run" a
 
 function GatewayRunPage() {
   const { accountId, gatewayId } = Route.useParams() as { accountId: string; gatewayId: string };
-  const runtimeHref = buildRuntimeHref(accountId, gatewayId);
+  const runtimeHref = buildHostRuntimeHref(accountId, gatewayId);
 
   useEffect(() => {
     window.location.replace(runtimeHref);
@@ -34,18 +35,10 @@ function GatewayRunPage() {
             <a href={runtimeHref}>continue</a>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <a href={buildGatewayHref(accountId, gatewayId)}>inspect runtime</a>
+            <a href={buildPublishedGatewayHref(accountId, gatewayId)}>inspect runtime</a>
           </Button>
         </div>
       </CardContent>
     </Card>
   );
-}
-
-function buildGatewayHref(accountId: string, gatewayId: string) {
-  return `/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`;
-}
-
-function buildRuntimeHref(accountId: string, gatewayId: string) {
-  return `/_runtime/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`;
 }

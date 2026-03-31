@@ -1,14 +1,11 @@
 import { Effect } from "every-plugin/effect";
-import { loadBosConfig, type RuntimeConfig } from "everything-dev/config";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { loadRouterModule } from "@/services/federation.server";
-import type { HeadData, RouterModule } from "@/types";
+import type { HeadData, RouterModule, RuntimeConfig } from "@/types";
+import { createTestApiClient } from "../helpers/api-client";
+import { buildTestRouteHeadContext, loadTestRuntimeConfig } from "../helpers/runtime-config";
 
-declare global {
-  var $apiClient: import("../../../ui/src/lib/api-client").ApiClient | undefined;
-}
-
-const mockApiClient = {
+const mockApiClient = createTestApiClient({
   getFeaturedProducts: vi.fn().mockResolvedValue({ products: [] }),
   getProducts: vi.fn().mockResolvedValue({ products: [] }),
   getCarouselCollections: vi.fn().mockResolvedValue({ collections: [] }),
@@ -28,7 +25,7 @@ const mockApiClient = {
       },
     }),
   ),
-};
+});
 
 function escapeHtml(str: string): string {
   return str
@@ -90,12 +87,7 @@ describe("SEO Head Extraction", () => {
 
   beforeAll(async () => {
     globalThis.$apiClient = mockApiClient;
-
-    config = await loadBosConfig();
-    const uiUrl = process.env.BOS_UI_URL;
-    const uiSsrUrl = process.env.BOS_UI_SSR_URL ?? uiUrl;
-    if (uiUrl) config.ui.url = uiUrl;
-    if (uiSsrUrl) config.ui.ssrUrl = uiSsrUrl;
+    config = await loadTestRuntimeConfig();
     routerModule = await Effect.runPromise(loadRouterModule(config));
   });
 
@@ -112,18 +104,7 @@ describe("SEO Head Extraction", () => {
     let head: HeadData;
 
     beforeAll(async () => {
-      head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
     });
 
     it("returns HeadData structure", () => {
@@ -244,36 +225,14 @@ describe("SEO Head Extraction", () => {
 
   describe("HTML Rendering", () => {
     it("renders valid title tag", async () => {
-      const head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
 
       const html = renderHeadToString(head);
       expect(html).toMatch(/<title>.+<\/title>/);
     });
 
     it("renders meta tags with proper attributes", async () => {
-      const head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
 
       const html = renderHeadToString(head);
       expect(html).toMatch(/<meta charSet="utf-8" \/>/);
@@ -283,18 +242,7 @@ describe("SEO Head Extraction", () => {
     });
 
     it("renders link tags", async () => {
-      const head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
 
       const html = renderHeadToString(head);
       expect(html).toMatch(/<link rel="canonical"/);
@@ -302,18 +250,7 @@ describe("SEO Head Extraction", () => {
     });
 
     it("renders structured data with valid JSON", async () => {
-      const head = await routerModule.getRouteHead("/", {
-        assetsUrl: config.ui.url,
-        runtimeConfig: {
-          env: config.env,
-          account: config.account,
-          networkId: config.networkId,
-          hostUrl: config.hostUrl,
-          apiBase: "/api",
-          rpcBase: "/api/rpc",
-          assetsUrl: config.ui.url,
-        },
-      });
+      const head = await routerModule.getRouteHead("/", buildTestRouteHeadContext(config));
 
       const html = renderHeadToString(head);
       const jsonLdMatch = html.match(/<script type="application\/ld\+json">(.+?)<\/script>/s);

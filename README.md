@@ -123,13 +123,13 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 │  │ Runtime          │      │ Runtime          │         │
 │  └────────┬─────────┘      └────────┬─────────┘         │
 │           ↓                         ↓                   │
-│  Loads UI Remote           Loads API Plugins            │
+│  Loads UI Runtime          Loads API Plugins            │
 └───────────┬─────────────────────────┬───────────────────┘
             ↓                         ↓
 ┌───────────────────────┐ ┌───────────────────────┐
-│    ui/ (Remote)       │ │   api/ (Plugin)       │
+│    ui/ (Runtime)      │ │   api/ (Plugin)       │
 │  React + TanStack     │ │  oRPC + Effect        │
-│  remoteEntry.js       │ │  remoteEntry.js       │
+│  ui/src/app.ts        │ │  remoteEntry.js       │
 └───────────────────────┘ └───────────────────────┘
 ```
 
@@ -137,6 +137,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 - ✅ **Runtime Configuration** - All URLs from `bos.config.json` (no rebuild needed)
 - ✅ **Independent Deployment** - UI, API, and Host deploy separately
 - ✅ **Type Safety** - End-to-end with oRPC contracts
+- ✅ **UI Runtime Boundary** - `everything-dev/ui/client` and `/server` own router/runtime glue
 - ✅ **CDN-Ready** - Module Federation with Zephyr Cloud
 
 ## Configuration
@@ -169,10 +170,7 @@ All runtime configuration lives in `bos.config.json`:
       "name": "ui",
       "development": "http://localhost:3002",
       "production": "https://example-ui.zephyrcloud.app",
-      "exposes": {
-        "./Router": "./src/router.tsx",
-        "./components": "./src/components/index.ts"
-      }
+      "ssr": "https://example-ui-ssr.zephyrcloud.app"
     },
     "api": {
       "name": "api",

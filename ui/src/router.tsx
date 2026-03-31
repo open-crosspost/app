@@ -12,23 +12,21 @@ export type {
   RouterModule,
 } from "./types";
 
-const runtime = createUiClientRuntime({ routeTree });
+const runtime = createUiClientRuntime({
+  routeTree,
+  resolveBasepath: (context) => getRuntimeBasePath(context?.runtimeConfig),
+});
 
-type UiCreateRouterOptions = CreateRouterOptions & { basepath?: string };
-
-export function createRouter(opts: UiCreateRouterOptions = {}) {
-  const basepath = opts.basepath;
-
+export function createRouter(opts: CreateRouterOptions = {}) {
   return runtime.createRouter({
     ...opts,
-    basepath: basepath ?? getRuntimeBasePath(opts.context?.runtimeConfig),
     history: opts.history ?? createBrowserHistory(),
     context: {
       ...opts.context,
       assetsUrl: opts.context?.assetsUrl ?? "",
       runtimeConfig: opts.context?.runtimeConfig,
     },
-  } as Parameters<typeof runtime.createRouter>[0]);
+  });
 }
 
 export { routeTree };

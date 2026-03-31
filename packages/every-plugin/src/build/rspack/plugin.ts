@@ -1,27 +1,26 @@
-import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
-import type { Compiler, RspackPluginInstance } from '@rspack/core';
-import path from 'node:path';
-import { setupPluginMiddleware } from './dev-server-middleware';
-import { buildSharedDependencies } from './module-federation';
-import { getPluginInfo, loadDevConfig } from './utils';
-
+import path from "node:path";
+import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
+import type { Compiler, RspackPluginInstance } from "@rspack/core";
+import { setupPluginMiddleware } from "./dev-server-middleware";
+import { buildSharedDependencies } from "./module-federation";
+import { getPluginInfo, loadDevConfig } from "./utils";
 
 export interface EveryPluginOptions {
-  devConfigPath?: string;  // defaults to './plugin.dev.ts'
-  port?: number;           // override plugin.dev.ts port
-  pluginId?: string;       // override auto-detected
+  devConfigPath?: string; // defaults to './plugin.dev.ts'
+  port?: number; // override plugin.dev.ts port
+  pluginId?: string; // override auto-detected
 }
 
 export class EveryPluginDevServer implements RspackPluginInstance {
-  name = 'EveryPluginDevServer';
+  name = "EveryPluginDevServer";
 
-  constructor(private options: EveryPluginOptions = {}) { }
+  constructor(private options: EveryPluginOptions = {}) {}
 
   apply(compiler: Compiler) {
     // Load configuration
     const pluginInfo = getPluginInfo(compiler.options.context || process.cwd());
-    const devConfig = loadDevConfig(this.options.devConfigPath || './plugin.dev.ts');
-    const port = this.options.port || devConfig?.port || 3999;
+    const devConfig = loadDevConfig(this.options.devConfigPath || "./plugin.dev.ts");
+    const port = Number(process.env.PORT) || this.options.port || devConfig?.port || 3999;
 
     // Configure defaults immediately (no hooks needed)
     this.configureDefaults(compiler, pluginInfo);
@@ -37,18 +36,16 @@ export class EveryPluginDevServer implements RspackPluginInstance {
     // Apply Module Federation plugin
     new ModuleFederationPlugin({
       name: pluginInfo.normalizedName,
-      filename: 'remoteEntry.js',
+      filename: "remoteEntry.js",
       // manifest: true,  // Enable MF 2.0 manifest generation
       dts: false,
-      runtimePlugins: [
-        require.resolve('@module-federation/node/runtimePlugin'),
-      ],
-      library: { type: 'commonjs-module' },
+      runtimePlugins: [require.resolve("@module-federation/node/runtimePlugin")],
+      library: { type: "commonjs-module" },
       exposes: {
-        './plugin': './src/index.ts',
+        "./plugin": "./src/index.ts",
       },
       shared: buildSharedDependencies(pluginInfo),
-      shareStrategy: 'version-first',
+      shareStrategy: "version-first",
     }).apply(compiler);
   }
 
@@ -60,29 +57,29 @@ export class EveryPluginDevServer implements RspackPluginInstance {
       compiler.options.output = {};
     }
     compiler.options.output.uniqueName = pluginInfo.normalizedName;
-    compiler.options.output.publicPath = 'auto';
-    compiler.options.output.path = path.resolve(context, 'dist');
+    compiler.options.output.publicPath = "auto";
+    compiler.options.output.path = path.resolve(context, "dist");
     compiler.options.output.clean = true;
-    compiler.options.output.library = { type: 'commonjs-module' };
+    compiler.options.output.library = { type: "commonjs-module" };
 
     // Configure target and mode defaults
     if (!compiler.options.target) {
-      compiler.options.target = 'async-node';
+      compiler.options.target = "async-node";
     }
 
     if (!compiler.options.mode) {
-      compiler.options.mode = process.env.NODE_ENV === 'development' ? 'development' : 'production';
+      compiler.options.mode = process.env.NODE_ENV === "development" ? "development" : "production";
     }
 
     // Configure devtool
     if (!compiler.options.devtool) {
-      compiler.options.devtool = 'source-map';
+      compiler.options.devtool = "source-map";
     }
 
     // Suppress verbose infrastructure logging
     if (!compiler.options.infrastructureLogging) {
       compiler.options.infrastructureLogging = {
-        level: 'warn',  // Only show warnings and errors
+        level: "warn", // Only show warnings and errors
       };
     }
 
@@ -93,7 +90,7 @@ export class EveryPluginDevServer implements RspackPluginInstance {
     if (!compiler.options.resolve) {
       compiler.options.resolve = {};
     }
-    compiler.options.resolve.extensions = ['...', '.tsx', '.ts'];
+    compiler.options.resolve.extensions = ["...", ".tsx", ".ts"];
   }
 
   private ensureTypeScriptLoader(compiler: Compiler) {
@@ -106,19 +103,20 @@ export class EveryPluginDevServer implements RspackPluginInstance {
     }
 
     // Check if TypeScript loader is already configured
-    const hasTsLoader = compiler.options.module.rules.some((rule: any) =>
-      typeof rule === 'object' &&
-      rule !== null &&
-      'test' in rule &&
-      rule.test instanceof RegExp &&
-      rule.test.test('.ts')
+    const hasTsLoader = compiler.options.module.rules.some(
+      (rule: any) =>
+        typeof rule === "object" &&
+        rule !== null &&
+        "test" in rule &&
+        rule.test instanceof RegExp &&
+        rule.test.test(".ts"),
     );
 
     // Add TypeScript loader if not present
     if (!hasTsLoader) {
       compiler.options.module.rules.push({
         test: /\.tsx?$/,
-        use: 'builtin:swc-loader',
+        use: "builtin:swc-loader",
         exclude: /node_modules/,
       });
     }
@@ -133,21 +131,21 @@ export class EveryPluginDevServer implements RspackPluginInstance {
     const originalSetup = compiler.options.devServer.setupMiddlewares;
 
     compiler.options.devServer.port = port;
-    compiler.options.devServer.static = path.join(context, 'dist');
+    compiler.options.devServer.static = path.join(context, "dist");
     compiler.options.devServer.hot = true;
     compiler.options.devServer.devMiddleware = { writeToDisk: true };
     compiler.options.devServer.headers = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
     };
 
     // Suppress verbose logging
     compiler.options.devServer.client = {
-      logging: 'warn',  // Only show warnings and errors
+      logging: "warn", // Only show warnings and errors
       overlay: {
-        warnings: false,  // Don't show warning overlay
-        errors: true,     // Still show errors
+        warnings: false, // Don't show warning overlay
+        errors: true, // Still show errors
       },
     };
 

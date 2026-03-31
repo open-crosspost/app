@@ -6,6 +6,7 @@
       "api",
       "ui",
       "host",
+      "plugins/*",
       "packages/every-plugin",
       "packages/everything-dev"
     ],

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { apiClient } from "@/app";
+import { apiClient, buildPublishedAccountHref, buildPublishedGatewayHref } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 
 export const Route = createFileRoute("/_layout/apps/" as never)({
@@ -24,16 +24,19 @@ function AppsIndex() {
   const search = Route.useSearch() as { q?: string };
   const [query, setQuery] = useState(search.q ?? "");
 
+  type ListRegistryAppsResult = Awaited<ReturnType<typeof apiClient.listRegistryApps>>;
+  type RegistryStatusResult = Awaited<ReturnType<typeof apiClient.getRegistryStatus>>;
+
   useEffect(() => {
     setQuery(search.q ?? "");
   }, [search.q]);
 
-  const appsQuery = useQuery({
+  const appsQuery = useQuery<ListRegistryAppsResult>({
     queryKey: ["registry-apps", search.q],
     queryFn: () => apiClient.listRegistryApps({ q: search.q || undefined, limit: 48 }),
   });
 
-  const registryStatusQuery = useQuery({
+  const registryStatusQuery = useQuery<RegistryStatusResult>({
     queryKey: ["registry-status"],
     queryFn: () => apiClient.getRegistryStatus(),
     staleTime: 60_000,
@@ -161,7 +164,7 @@ function AppsIndex() {
                     </div>
                     <div className="space-y-1 min-w-0">
                       <a
-                        href={buildGatewayHref(app.accountId, app.gatewayId)}
+                        href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}
                         className="block font-medium hover:underline break-all"
                       >
                         {app.metadata?.title ?? `${app.accountId} / ${app.gatewayId}`}
@@ -193,10 +196,12 @@ function AppsIndex() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a href={buildGatewayHref(app.accountId, app.gatewayId)}>runtime view</a>
+                    <a href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}>
+                      runtime view
+                    </a>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <a href={buildAccountHref(app.accountId)}>account view</a>
+                    <a href={buildPublishedAccountHref(app.accountId)}>account view</a>
                   </Button>
                   {app.openUrl && (
                     <Button asChild variant="outline" size="sm">
@@ -213,14 +218,6 @@ function AppsIndex() {
       )}
     </div>
   );
-}
-
-function buildAccountHref(accountId: string) {
-  return `/apps/${encodeURIComponent(accountId)}`;
-}
-
-function buildGatewayHref(accountId: string, gatewayId: string) {
-  return `/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`;
 }
 
 function StatBox({ label, value }: { label: string; value: string }) {

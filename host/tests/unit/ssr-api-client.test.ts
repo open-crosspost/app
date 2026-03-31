@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { installSsrApiClientGlobal, runWithSsrApiClient } from "@/services/ssr-api-client";
 
-import { apiClient } from "../../../ui/src/utils/orpc";
+import { apiClient } from "../../../ui/src/lib/api-client";
+import { createTestApiClient } from "../helpers/api-client";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -14,12 +15,12 @@ describe("SSR apiClient injection", () => {
   it("uses AsyncLocalStorage store over global override", async () => {
     installSsrApiClientGlobal();
 
-    const baseClient = {
+    const baseClient = createTestApiClient({
       getValue: vi.fn().mockResolvedValue({ key: "k", value: "base" }),
-    };
-    const scopedClient = {
+    });
+    const scopedClient = createTestApiClient({
       getValue: vi.fn().mockResolvedValue({ key: "k", value: "scoped" }),
-    };
+    });
 
     (globalThis as any).$apiClient = baseClient;
     expect((globalThis as any).$apiClient).toBe(baseClient);
@@ -37,15 +38,15 @@ describe("SSR apiClient injection", () => {
 
   it("does not leak across concurrent runs", async () => {
     installSsrApiClientGlobal();
-    const baseClient = {
+    const baseClient = createTestApiClient({
       getValue: vi.fn().mockResolvedValue({ key: "k", value: "base" }),
-    };
-    const clientA = {
+    });
+    const clientA = createTestApiClient({
       getValue: vi.fn().mockResolvedValue({ key: "k", value: "A" }),
-    };
-    const clientB = {
+    });
+    const clientB = createTestApiClient({
       getValue: vi.fn().mockResolvedValue({ key: "k", value: "B" }),
-    };
+    });
     (globalThis as any).$apiClient = baseClient;
 
     const p1 = runWithSsrApiClient(clientA, async () => {

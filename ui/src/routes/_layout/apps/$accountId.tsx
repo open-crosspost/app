@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { apiClient } from "@/app";
+import { apiClient, buildPublishedGatewayHref, buildPublishedGatewayRunHref } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 
 export const Route = createFileRoute("/_layout/apps/$accountId" as never)({
@@ -18,7 +18,9 @@ export const Route = createFileRoute("/_layout/apps/$accountId" as never)({
 
 function AccountAppsPage() {
   const { accountId } = Route.useParams() as { accountId: string };
-  const accountQuery = useQuery({
+  type RegistryAppsResult = Awaited<ReturnType<typeof apiClient.getRegistryAppsByAccount>>;
+
+  const accountQuery = useQuery<RegistryAppsResult>({
     queryKey: ["registry-account", accountId],
     queryFn: () => apiClient.getRegistryAppsByAccount({ accountId }),
   });
@@ -103,7 +105,7 @@ function AccountAppsPage() {
                       {app.metadata?.claimedBy && <Badge variant="outline">claimed</Badge>}
                     </div>
                     <a
-                      href={buildGatewayHref(app.accountId, app.gatewayId)}
+                      href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}
                       className="font-medium hover:underline break-all"
                     >
                       {app.metadata?.title ?? app.gatewayId}
@@ -129,11 +131,15 @@ function AccountAppsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a href={buildGatewayHref(app.accountId, app.gatewayId)}>inspect runtime</a>
+                    <a href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}>
+                      inspect runtime
+                    </a>
                   </Button>
                   {app.hostUrl && (
                     <Button asChild variant="outline" size="sm">
-                      <a href={buildGatewayRunHref(app.accountId, app.gatewayId)}>run in host</a>
+                      <a href={buildPublishedGatewayRunHref(app.accountId, app.gatewayId)}>
+                        run in host
+                      </a>
                     </Button>
                   )}
                   {app.hostUrl && (
@@ -151,14 +157,6 @@ function AccountAppsPage() {
       )}
     </div>
   );
-}
-
-function buildGatewayHref(accountId: string, gatewayId: string) {
-  return `/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`;
-}
-
-function buildGatewayRunHref(accountId: string, gatewayId: string) {
-  return `${buildGatewayHref(accountId, gatewayId)}/run`;
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {

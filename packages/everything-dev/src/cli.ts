@@ -107,6 +107,7 @@ async function main() {
 
     const result = await syncApiContractBridge({
       configDir: dirname(loaded.source.path),
+      runtimeConfig: loaded.runtime,
       apiBaseUrl: loaded.runtime.api.url,
     });
 

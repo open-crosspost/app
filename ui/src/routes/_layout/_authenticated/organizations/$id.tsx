@@ -20,23 +20,28 @@ import {
 
 type OrgApiKeysResult = Awaited<ReturnType<typeof apiClient.listApiKeys>>;
 type CreatedApiKey = Awaited<ReturnType<typeof apiClient.createApiKey>>;
+type OrgMembersResult = Awaited<ReturnType<typeof apiClient.listOrgMembers>>;
+type OrgInvitationsResult = Awaited<ReturnType<typeof apiClient.listOrgInvitations>>;
 
 const orgMembersQueryOptions = (orgId: string) =>
   queryOptions({
     queryKey: ["org-members", orgId],
-    queryFn: () => apiClient.listOrgMembers({ organizationId: orgId }),
+    queryFn: async (): Promise<OrgMembersResult> =>
+      apiClient.listOrgMembers({ organizationId: orgId }),
   });
 
 const orgInvitationsQueryOptions = (orgId: string) =>
   queryOptions({
     queryKey: ["org-invitations", orgId],
-    queryFn: () => apiClient.listOrgInvitations({ organizationId: orgId }),
+    queryFn: async (): Promise<OrgInvitationsResult> =>
+      apiClient.listOrgInvitations({ organizationId: orgId }),
   });
 
 const orgApiKeysQueryOptions = (orgId: string) =>
   queryOptions({
     queryKey: ["org-api-keys", orgId],
-    queryFn: () => apiClient.listApiKeys({ organizationId: orgId }),
+    queryFn: async (): Promise<OrgApiKeysResult> =>
+      apiClient.listApiKeys({ organizationId: orgId }),
   });
 
 export const Route = createFileRoute("/_layout/_authenticated/organizations/$id" as never)({

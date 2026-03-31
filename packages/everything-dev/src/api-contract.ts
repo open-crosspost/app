@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import type { RuntimeConfig, RuntimePluginConfig } from "./types";
 
 export interface ApiPluginManifest {
   schemaVersion: 1;
@@ -23,6 +24,13 @@ export interface ApiPluginManifest {
   };
 }
 
+interface ContractSource {
+  key: string;
+  importName: string;
+  importPath: string;
+  generatedPath?: string;
+}
+
 function sha256(input: string): string {
   return createHash("sha256").update(input).digest("hex");
 }
@@ -31,11 +39,20 @@ function trimTrailingSlash(input: string): string {
   return input.replace(/\/$/, "");
 }
 
-export function getApiPluginManifestUrl(apiBaseUrl: string): string {
+function sanitizeIdentifier(input: string): string {
+  return input.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[^A-Za-z_]+/, "_");
+}
+
+function toImportPath(fromFile: string, targetFile: string): string {
+  const rel = relative(dirname(fromFile), targetFile).replace(/\\/g, "/");
+  return rel.startsWith(".") ? rel : `./${rel}`;
+}
+
+function getApiPluginManifestUrl(apiBaseUrl: string): string {
   return `${trimTrailingSlash(apiBaseUrl)}/plugin.manifest.json`;
 }
 
-export async function fetchApiPluginManifest(apiBaseUrl: string): Promise<ApiPluginManifest> {
+async function fetchApiPluginManifest(apiBaseUrl: string): Promise<ApiPluginManifest> {
   const response = await fetch(getApiPluginManifestUrl(apiBaseUrl));
   if (!response.ok) {
     throw new Error(
@@ -51,58 +68,188 @@ export async function fetchApiPluginManifest(apiBaseUrl: string): Promise<ApiPlu
   return manifest;
 }
 
-export async function syncApiContractBridge(opts: {
+function localApiContractSource(configDir: string): ContractSource {
+  const sourcePath = join(configDir, "api", "src", "contract.ts");
+  return {
+    key: "api",
+    importName: "BaseApiContract",
+    importPath: toImportPath(join(configDir, "ui", "src", "api-contract.ts"), sourcePath),
+  };
+}
+
+async function remoteContractSource(opts: {
   configDir: string;
-  apiBaseUrl: string;
-}): Promise<{
-  bridgePath: string;
-  generatedPath: string;
-  manifest: ApiPluginManifest | null;
-  source: "local" | "remote";
-}> {
-  const bridgePath = join(opts.configDir, "ui", "src", "api-contract.ts");
-  const generatedPath = join(opts.configDir, ".bos", "generated", "api", "contract.d.ts");
-
-  const bridgeTarget = existsSync(join(opts.configDir, "api", "package.json"))
-    ? "../../api/src/contract"
-    : "../../.bos/generated/api/contract";
-
-  if (bridgeTarget === "../../api/src/contract") {
-    writeFileSync(
-      bridgePath,
-      `export type { ContractType as ApiContract } from "${bridgeTarget}";\n`,
-    );
-
-    return { bridgePath, generatedPath, manifest: null, source: "local" };
-  }
-
-  const manifest = await fetchApiPluginManifest(opts.apiBaseUrl);
+  runtimeDir: string;
+  name: string;
+  baseUrl: string;
+  generatedSubdir: string;
+}): Promise<ContractSource> {
+  const manifest = await fetchApiPluginManifest(opts.baseUrl);
   if (!manifest.contract) {
     throw new Error(
-      `API plugin manifest for ${manifest.plugin.name} does not advertise contract types`,
+      `Plugin manifest for ${manifest.plugin.name} does not advertise contract types`,
     );
   }
 
-  const contractUrl = `${trimTrailingSlash(opts.apiBaseUrl)}/${manifest.contract.types.path.replace(/^\.\//, "")}`;
-
+  const contractUrl = `${trimTrailingSlash(opts.baseUrl)}/${manifest.contract.types.path.replace(/^\.\//, "")}`;
   const contractResponse = await fetch(contractUrl);
   if (!contractResponse.ok) {
     throw new Error(
-      `Failed to fetch API contract types: ${contractResponse.status} ${contractResponse.statusText}`,
+      `Failed to fetch contract types: ${contractResponse.status} ${contractResponse.statusText}`,
     );
   }
 
   const contractTypes = await contractResponse.text();
   if (manifest.contract.types.sha256 && manifest.contract.types.sha256 !== sha256(contractTypes)) {
-    throw new Error("Fetched API contract types failed checksum verification");
+    throw new Error("Fetched contract types failed checksum verification");
   }
 
+  const generatedPath = join(opts.runtimeDir, opts.generatedSubdir, "contract.d.ts");
   mkdirSync(dirname(generatedPath), { recursive: true });
   writeFileSync(generatedPath, contractTypes);
-  writeFileSync(
-    bridgePath,
-    `export type { ContractType as ApiContract } from "${bridgeTarget}";\n`,
-  );
 
-  return { bridgePath, generatedPath, manifest, source: "remote" };
+  return {
+    key: opts.name,
+    importName: `${sanitizeIdentifier(opts.name)}Contract`,
+    importPath: toImportPath(join(opts.configDir, "ui", "src", "api-contract.ts"), generatedPath),
+    generatedPath,
+  };
+}
+
+async function resolveContractSource(opts: {
+  configDir: string;
+  runtimeDir: string;
+  key: string;
+  source: RuntimePluginConfig | { url: string; localPath?: string; name: string } | null;
+  baseUrl: string;
+  generatedSubdir: string;
+}): Promise<ContractSource> {
+  if (
+    opts.key === "api" &&
+    (!opts.source || !("localPath" in opts.source) || opts.source.localPath)
+  ) {
+    const localPath = opts.source && "localPath" in opts.source ? opts.source.localPath : undefined;
+    if (localPath) {
+      return {
+        key: opts.key,
+        importName: "BaseApiContract",
+        importPath: toImportPath(
+          join(opts.configDir, "ui", "src", "api-contract.ts"),
+          join(localPath, "src", "contract.ts"),
+        ),
+      };
+    }
+
+    if (!opts.baseUrl) {
+      return localApiContractSource(opts.configDir);
+    }
+  }
+
+  if (opts.source && "localPath" in opts.source && opts.source.localPath) {
+    return {
+      key: opts.key,
+      importName: `${sanitizeIdentifier(opts.key)}Contract`,
+      importPath: toImportPath(
+        join(opts.configDir, "ui", "src", "api-contract.ts"),
+        join(opts.source.localPath, "src", "contract.ts"),
+      ),
+    };
+  }
+
+  return remoteContractSource({
+    configDir: opts.configDir,
+    runtimeDir: opts.runtimeDir,
+    name: opts.key,
+    baseUrl: opts.baseUrl,
+    generatedSubdir: opts.generatedSubdir,
+  });
+}
+
+function writeAggregateContractFile(opts: {
+  configDir: string;
+  sources: ContractSource[];
+  pluginKeys: string[];
+}) {
+  const bridgePath = join(opts.configDir, "ui", "src", "api-contract.ts");
+  const lines: string[] = [];
+
+  for (const source of opts.sources) {
+    lines.push(`import type { ContractType as ${source.importName} } from "${source.importPath}";`);
+  }
+
+  lines.push("");
+  lines.push("export type ApiContract = {");
+  lines.push("  api: BaseApiContract;");
+  lines.push("  plugins: {");
+  for (const key of opts.pluginKeys) {
+    const source = opts.sources.find((entry) => entry.key === key);
+    if (!source) continue;
+    lines.push(`    ${JSON.stringify(key).replace(/^"|"$/g, "")}: ${source.importName};`);
+  }
+  lines.push("  };");
+  lines.push("};");
+  lines.push("");
+  writeFileSync(bridgePath, `${lines.join("\n")}\n`);
+  return bridgePath;
+}
+
+export async function syncApiContractBridge(opts: {
+  configDir: string;
+  runtimeConfig: RuntimeConfig;
+  apiBaseUrl: string;
+}): Promise<{
+  bridgePath: string;
+  generatedPath: string | null;
+  manifest: ApiPluginManifest | null;
+  source: "local" | "remote";
+}> {
+  const runtimeDir = join(opts.configDir, ".bos", "generated");
+  const pluginEntries = Object.entries(opts.runtimeConfig.plugins ?? {}).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  const sources: ContractSource[] = [];
+  let manifest: ApiPluginManifest | null = null;
+  let generatedPath: string | null = null;
+
+  const baseSource = await resolveContractSource({
+    configDir: opts.configDir,
+    runtimeDir,
+    key: "api",
+    source: opts.runtimeConfig.api,
+    baseUrl: opts.apiBaseUrl,
+    generatedSubdir: "api",
+  });
+  sources.push(baseSource);
+
+  for (const [key, plugin] of pluginEntries) {
+    const source = await resolveContractSource({
+      configDir: opts.configDir,
+      runtimeDir,
+      key,
+      source: plugin,
+      baseUrl: plugin.url,
+      generatedSubdir: `plugins/${key}`,
+    });
+    sources.push(source);
+    if (source.generatedPath) {
+      generatedPath = source.generatedPath;
+    }
+  }
+
+  writeAggregateContractFile({
+    configDir: opts.configDir,
+    sources,
+    pluginKeys: pluginEntries.map(([key]) => key),
+  });
+
+  if (opts.runtimeConfig.api.source !== "local") {
+    manifest = await fetchApiPluginManifest(opts.apiBaseUrl);
+  }
+
+  return {
+    bridgePath: join(opts.configDir, "ui", "src", "api-contract.ts"),
+    generatedPath,
+    manifest,
+    source: opts.runtimeConfig.api.source,
+  };
 }

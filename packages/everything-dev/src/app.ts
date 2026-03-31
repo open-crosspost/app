@@ -1,7 +1,13 @@
 import { existsSync } from "node:fs";
+import { createConnection } from "node:net";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { getProjectRoot, parsePort } from "./config";
+import {
+  getProjectRoot,
+  isLocalDevelopmentTarget,
+  parsePort,
+  resolveLocalDevelopmentPath,
+} from "./config";
 import { getNetworkIdForAccount } from "./network";
 import { makeDevProcess, type ProcessCallbacks, type ProcessHandle } from "./orchestrator";
 import type { ProcessRegistry } from "./process-registry";
@@ -18,6 +24,10 @@ export interface AppOrchestrator {
 }
 
 const STARTUP_ORDER = ["ui-ssr", "ui", "api", "plugin", "host-build", "host"];
+const DEFAULT_HOST_PORT = 3000;
+const DEFAULT_UI_PORT = 3002;
+const DEFAULT_API_PORT = 3014;
+const DEFAULT_PLUGIN_PORT_START = 3021;
 
 const sortByOrder = (packages: string[]): string[] => {
   return [...packages].sort((a, b) => {
@@ -94,15 +104,24 @@ export const startDevServers = (
     );
   });
 
-export function detectLocalPackages(bosConfig?: BosConfig): string[] {
+export function detectLocalPackages(
+  bosConfig?: BosConfig,
+  runtimeConfig?: RuntimeConfig,
+): string[] {
   const packages: string[] = [];
   const configDir = getProjectRoot();
 
-  if (existsSync(join(configDir, "ui", "package.json"))) {
+  const uiLocalPath =
+    runtimeConfig?.ui.localPath ??
+    resolveLocalDevelopmentPath(bosConfig?.app.ui.development, configDir);
+  if (uiLocalPath && existsSync(join(uiLocalPath, "package.json"))) {
     packages.push("ui");
   }
 
-  if (existsSync(join(configDir, "api", "package.json"))) {
+  const apiLocalPath =
+    runtimeConfig?.api.localPath ??
+    resolveLocalDevelopmentPath(bosConfig?.app.api.development, configDir);
+  if (apiLocalPath && existsSync(join(apiLocalPath, "package.json"))) {
     packages.push("api");
   }
 
@@ -110,8 +129,8 @@ export function detectLocalPackages(bosConfig?: BosConfig): string[] {
     packages.push("host");
   }
 
-  for (const [pluginId, pluginConfig] of Object.entries(bosConfig?.plugins ?? {})) {
-    if (pluginConfig.cwd && existsSync(join(configDir, pluginConfig.cwd, "package.json"))) {
+  for (const [pluginId, pluginConfig] of Object.entries(runtimeConfig?.plugins ?? {})) {
+    if (pluginConfig.localPath && existsSync(join(pluginConfig.localPath, "package.json"))) {
       packages.push(`plugin:${pluginId}`);
     }
   }
@@ -134,6 +153,17 @@ export function buildRuntimeConfig(
   const apiConfig = bosConfig.app.api;
   const uiSource = options.uiSource ?? "local";
   const apiSource = options.apiSource ?? "local";
+  const configDir = getProjectRoot();
+  const uiLocalPath = resolveLocalDevelopmentPath(uiConfig.development, configDir);
+  const apiLocalPath = resolveLocalDevelopmentPath(apiConfig.development, configDir);
+  const uiLocalUrl =
+    !uiLocalPath && uiConfig.development && !isLocalDevelopmentTarget(uiConfig.development)
+      ? uiConfig.development
+      : "";
+  const apiLocalUrl =
+    !apiLocalPath && apiConfig.development && !isLocalDevelopmentTarget(apiConfig.development)
+      ? apiConfig.development
+      : "";
 
   return {
     env: options.env ?? "development",
@@ -144,13 +174,17 @@ export function buildRuntimeConfig(
     ui: uiConfig
       ? {
           name: uiConfig.name,
-          url: uiSource === "remote" ? (uiConfig.production ?? "") : (uiConfig.development ?? ""),
-          entry: `${uiSource === "remote" ? uiConfig.production : uiConfig.development}/mf-manifest.json`,
-          ssrUrl:
+          url: uiSource === "remote" ? (uiConfig.production ?? "") : uiLocalUrl,
+          entry:
             uiSource === "remote"
-              ? uiConfig.ssr
-              : `http://localhost:${parsePort(uiConfig.development ?? "http://localhost:3002") + 1}`,
-          source: uiSource,
+              ? `${uiConfig.production ?? ""}/mf-manifest.json`
+              : uiLocalUrl
+                ? `${uiLocalUrl}/mf-manifest.json`
+                : "/mf-manifest.json",
+          localPath: uiSource === "local" ? (uiLocalPath ?? undefined) : undefined,
+          port: uiSource === "local" && uiLocalUrl ? parsePort(uiLocalUrl) : undefined,
+          ssrUrl: uiSource === "remote" ? uiConfig.ssr : undefined,
+          source: uiSource === "local" ? (uiLocalPath ? "local" : "remote") : "remote",
         }
       : {
           name: "ui",
@@ -161,10 +195,16 @@ export function buildRuntimeConfig(
     api: apiConfig
       ? {
           name: apiConfig.name,
-          url:
-            apiSource === "remote" ? (apiConfig.production ?? "") : (apiConfig.development ?? ""),
-          entry: `${apiSource === "remote" ? apiConfig.production : apiConfig.development}/mf-manifest.json`,
-          source: apiSource,
+          url: apiSource === "remote" ? (apiConfig.production ?? "") : apiLocalUrl,
+          entry:
+            apiSource === "remote"
+              ? `${apiConfig.production ?? ""}/mf-manifest.json`
+              : apiLocalUrl
+                ? `${apiLocalUrl}/mf-manifest.json`
+                : "/mf-manifest.json",
+          localPath: apiSource === "local" ? (apiLocalPath ?? undefined) : undefined,
+          port: apiSource === "local" && apiLocalUrl ? parsePort(apiLocalUrl) : undefined,
+          source: apiSource === "local" ? (apiLocalPath ? "local" : "remote") : "remote",
           proxy: options.proxy ?? apiConfig.proxy,
           variables: apiConfig.variables,
           secrets: apiConfig.secrets,
@@ -177,4 +217,99 @@ export function buildRuntimeConfig(
         },
     plugins: options.plugins,
   };
+}
+
+function probeTcpOpen(port: number, timeoutMs = 250): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    const timer = setTimeout(() => {
+      socket.destroy();
+      resolve(false);
+    }, timeoutMs);
+
+    socket.once("connect", () => {
+      clearTimeout(timer);
+      socket.destroy();
+      resolve(true);
+    });
+
+    socket.once("error", () => {
+      clearTimeout(timer);
+      resolve(false);
+    });
+  });
+}
+
+async function pickAvailablePort(preferred: number, usedPorts: Set<number>): Promise<number> {
+  let port = preferred;
+  while (usedPorts.has(port) || (await probeTcpOpen(port))) {
+    port += 1;
+  }
+  usedPorts.add(port);
+  return port;
+}
+
+function withLocalRuntimeUrl<
+  T extends { url: string; entry: string; port?: number; localPath?: string },
+>(entry: T, port: number): T {
+  const url = `http://localhost:${port}`;
+  return {
+    ...entry,
+    url,
+    entry: `${url}/mf-manifest.json`,
+    port,
+  };
+}
+
+export async function prepareDevelopmentRuntimeConfig(
+  runtimeConfig: RuntimeConfig,
+  options?: { hostPort?: number; ssr?: boolean },
+): Promise<RuntimeConfig> {
+  const usedPorts = new Set<number>();
+  const hostPort = await pickAvailablePort(
+    options?.hostPort ??
+      (runtimeConfig.hostUrl ? parsePort(runtimeConfig.hostUrl) : DEFAULT_HOST_PORT),
+    usedPorts,
+  );
+
+  const next: RuntimeConfig = {
+    ...runtimeConfig,
+    hostUrl: `http://localhost:${hostPort}`,
+    ui: { ...runtimeConfig.ui },
+    api: { ...runtimeConfig.api },
+    plugins: runtimeConfig.plugins ? { ...runtimeConfig.plugins } : undefined,
+  };
+
+  if (next.ui.source === "local" && next.ui.localPath) {
+    const uiPort = await pickAvailablePort(next.ui.port ?? DEFAULT_UI_PORT, usedPorts);
+    next.ui = withLocalRuntimeUrl(next.ui, uiPort);
+    if (options?.ssr) {
+      const ssrPort = await pickAvailablePort(uiPort + 1, usedPorts);
+      next.ui.ssrUrl = `http://localhost:${ssrPort}`;
+    } else {
+      next.ui.ssrUrl = undefined;
+    }
+  }
+
+  if (next.api.source === "local" && next.api.localPath) {
+    const apiPort = await pickAvailablePort(next.api.port ?? DEFAULT_API_PORT, usedPorts);
+    next.api = withLocalRuntimeUrl(next.api, apiPort);
+  }
+
+  if (next.plugins) {
+    const entries = Object.entries(next.plugins).sort(([a], [b]) => a.localeCompare(b));
+    let pluginBasePort = DEFAULT_PLUGIN_PORT_START;
+
+    for (const [pluginId, plugin] of entries) {
+      if (plugin.source !== "local" || !plugin.localPath) {
+        continue;
+      }
+
+      const pluginPort = await pickAvailablePort(plugin.port ?? pluginBasePort, usedPorts);
+      next.plugins[pluginId] = withLocalRuntimeUrl(plugin, pluginPort);
+      pluginBasePort = pluginPort + 1;
+    }
+  }
+
+  return next;
 }
