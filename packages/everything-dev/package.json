@@ -51,6 +51,14 @@
       "types": "./src/ui/index.ts",
       "import": "./src/ui/index.ts"
     },
+    "./ui/client": {
+      "types": "./src/ui/client.tsx",
+      "import": "./src/ui/client.tsx"
+    },
+    "./ui/server": {
+      "types": "./src/ui/server.tsx",
+      "import": "./src/ui/server.tsx"
+    },
     "./ui/types": {
       "types": "./src/ui/types.ts",
       "import": "./src/ui/types.ts"

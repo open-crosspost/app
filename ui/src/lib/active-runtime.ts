@@ -14,19 +14,19 @@ export type ActiveRuntimeConfig = ClientRuntimeConfig & {
   runtime?: ActiveRuntimeInfo;
 };
 
-export function getActiveRuntimeConfig(runtimeConfig?: ClientRuntimeConfig) {
+export function getActiveRuntimeConfig(runtimeConfig?: Partial<ClientRuntimeConfig>) {
   return runtimeConfig as ActiveRuntimeConfig | undefined;
 }
 
-export function getActiveRuntime(runtimeConfig?: ClientRuntimeConfig) {
+export function getActiveRuntime(runtimeConfig?: Partial<ClientRuntimeConfig>) {
   return getActiveRuntimeConfig(runtimeConfig)?.runtime;
 }
 
-export function getRuntimeBasePath(runtimeConfig?: ClientRuntimeConfig) {
+export function getRuntimeBasePath(runtimeConfig?: Partial<ClientRuntimeConfig>) {
   return getActiveRuntime(runtimeConfig)?.runtimeBasePath || "/";
 }
 
-export function buildRuntimeHref(pathname: string, runtimeConfig?: ClientRuntimeConfig) {
+export function buildRuntimeHref(pathname: string, runtimeConfig?: Partial<ClientRuntimeConfig>) {
   const basePath = getRuntimeBasePath(runtimeConfig);
   if (basePath === "/") {
     return pathname;

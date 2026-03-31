@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { syncApiContractBridge } from "./api-contract";
 import { buildRuntimeConfig, detectLocalPackages } from "./app";
 import { getProjectRoot, loadConfig, parsePort } from "./config";
 import { type BuildOptions, bosContract, type DevOptions, type StartOptions } from "./contract";
@@ -6,7 +7,7 @@ import { type AppConfig, type AppOrchestrator, startApp } from "./dev-session";
 import { fetchBosConfigFromFastKv } from "./fastkv";
 import { createPlugin, z } from "./plugin";
 import { syncAndGenerateSharedUi } from "./shared";
-import type { BosConfig, SourceMode } from "./types";
+import type { BosConfig, RuntimeConfig, SourceMode } from "./types";
 import { run } from "./utils/run";
 
 const DEFAULT_DEV_CONFIG: AppConfig = {
@@ -24,6 +25,7 @@ const buildCommands: Record<string, { cmd: string; args: string[] }> = {
 
 type BosDeps = {
   bosConfig: BosConfig | null;
+  runtimeConfig: RuntimeConfig | null;
   configDir: string;
 };
 
@@ -61,11 +63,23 @@ function buildDescription(config: AppConfig): string {
   return parts.join(" + ");
 }
 
-function determineProcesses(config: AppConfig): string[] {
+function determineProcesses(
+  config: AppConfig,
+  localPackages: string[],
+  runtimeConfig?: RuntimeConfig | null,
+): string[] {
   const processes: string[] = [];
   if (config.ssr && config.ui === "local") processes.push("ui-ssr");
   if (config.ui === "local") processes.push("ui");
   if (config.api === "local" && !config.proxy) processes.push("api");
+  for (const pkg of localPackages) {
+    if (pkg.startsWith("plugin:")) {
+      const pluginId = pkg.slice("plugin:".length);
+      if (runtimeConfig?.plugins?.[pluginId]?.source === "local") {
+        processes.push(pkg);
+      }
+    }
+  }
   processes.push("host");
   return processes;
 }
@@ -174,13 +188,14 @@ export default createPlugin({
       const configResult = await loadConfig({ path: config.variables.configPath });
       return {
         bosConfig: configResult?.config ?? null,
+        runtimeConfig: configResult?.runtime ?? null,
         configDir: getProjectRoot(),
       } satisfies BosDeps;
     }),
   shutdown: () => Effect.void,
   createRouter: (deps: BosDeps, builder: any) => ({
     dev: builder.dev.handler(async ({ input }: { input: DevOptions }) => {
-      const localPackages = detectLocalPackages();
+      const localPackages = detectLocalPackages(deps.bosConfig ?? undefined);
 
       const appConfig = buildAppConfig({
         host: localPackages.includes("host") ? (input.host as string) : "remote",
@@ -220,7 +235,7 @@ export default createPlugin({
         };
       }
 
-      const processes = determineProcesses(appConfig);
+      const processes = determineProcesses(appConfig, localPackages, deps.runtimeConfig);
       const env = await buildEnvVars(appConfig, deps.bosConfig);
       const hostPort = input.port ?? parsePort(deps.bosConfig.app.host.development);
       const runtimeConfig = buildRuntimeConfig(deps.bosConfig, {
@@ -229,10 +244,16 @@ export default createPlugin({
         hostUrl: `http://localhost:${hostPort}`,
         proxy: env.API_PROXY,
         env: "development",
+        plugins: deps.runtimeConfig?.plugins,
       });
       if (!appConfig.ssr) {
         runtimeConfig.ui.ssrUrl = undefined;
       }
+
+      await syncApiContractBridge({
+        configDir: deps.configDir,
+        apiBaseUrl: runtimeConfig.api.url,
+      });
 
       const orchestrator: AppOrchestrator = {
         packages: processes,
@@ -282,6 +303,12 @@ export default createPlugin({
         apiSource: "remote",
         hostUrl: `http://localhost:${port}`,
         env: "production",
+        plugins: deps.runtimeConfig?.plugins,
+      });
+
+      await syncApiContractBridge({
+        configDir: deps.configDir,
+        apiBaseUrl: runtimeConfig.api.url,
       });
 
       const orchestrator: AppOrchestrator = {
@@ -330,6 +357,21 @@ export default createPlugin({
       });
       if (sharedSync.catalogChanged) {
         await run("bun", ["install"], { cwd: deps.configDir });
+      }
+
+      if (deps.bosConfig) {
+        const runtimeConfig = buildRuntimeConfig(deps.bosConfig, {
+          uiSource: deps.bosConfig.app.ui?.development ? "local" : "remote",
+          apiSource: deps.bosConfig.app.api?.development ? "local" : "remote",
+          hostUrl: deps.bosConfig.app.host.development,
+          env: "development",
+          plugins: deps.runtimeConfig?.plugins,
+        });
+
+        await syncApiContractBridge({
+          configDir: deps.configDir,
+          apiBaseUrl: runtimeConfig.api.url,
+        });
       }
 
       const existing: string[] = [];

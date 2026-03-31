@@ -2,9 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { authClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
 import { organizationsQueryOptions, sessionQueryOptions } from "@/lib/session";
 
 export const Route = createFileRoute("/accept-invitation/$invitationId")({

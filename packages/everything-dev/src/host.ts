@@ -6,7 +6,12 @@ import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { type ApiPluginResult, loadApiPluginsFromRuntimeConfig } from "./api";
+import {
+  createStitchedRouter,
+  type LoadedPluginResult,
+  type LoadedPluginsResult,
+  loadApiPluginsFromRuntimeConfig,
+} from "./api";
 import { loadRouterModule, type RouterModule } from "./federation.server";
 import { registerSharedFromResolved } from "./mf";
 import { loadGeneratedSharedUi } from "./shared";
@@ -27,6 +32,7 @@ function buildClientRuntimeConfig(runtimeConfig: RuntimeConfig): ClientRuntimeCo
   return {
     env: runtimeConfig.env,
     account: runtimeConfig.account,
+    networkId: runtimeConfig.networkId,
     hostUrl: runtimeConfig.hostUrl,
     assetsUrl: runtimeConfig.ui.url,
     apiBase: "/api",
@@ -44,6 +50,18 @@ function buildClientRuntimeConfig(runtimeConfig: RuntimeConfig): ClientRuntimeCo
           url: runtimeConfig.api.url,
           entry: runtimeConfig.api.entry,
         }
+      : undefined,
+    plugins: runtimeConfig.plugins
+      ? Object.fromEntries(
+          Object.entries(runtimeConfig.plugins).map(([key, plugin]) => [
+            key,
+            {
+              name: plugin.name,
+              url: plugin.url,
+              entry: plugin.entry,
+            },
+          ]),
+        )
       : undefined,
   };
 }
@@ -123,9 +141,10 @@ async function runHostServer(opts: {
   const shared = loadGeneratedSharedUi(configDir);
   registerSharedFromResolved(shared);
 
-  let apiPlugin: ApiPluginResult | null = null;
+  let apiPlugins: LoadedPluginResult[] = [];
+  let baseApiPlugin: LoadedPluginResult | null = null;
   let apiPluginError: string | null = null;
-  let apiPluginLoading: Promise<ApiPluginResult | null> | null = null;
+  let apiPluginLoading: Promise<LoadedPluginsResult | null> | null = null;
   let ssrRouterModule: RouterModule | null = null;
   let ssrRouterError: string | null = null;
   let ssrRouterLoading: Promise<RouterModule | null> | null = null;
@@ -134,11 +153,23 @@ async function runHostServer(opts: {
 
   const clientRuntimeConfig = buildClientRuntimeConfig(runtimeConfig);
 
-  const initApiHandlers = (plugin: ApiPluginResult) => {
-    rpcHandler = new RPCHandler(plugin.router as any, {
+  const initApiHandlers = () => {
+    const baseRouter = baseApiPlugin?.router ?? {};
+    const stitchedRouter = createStitchedRouter(
+      baseRouter,
+      apiPlugins.filter((plugin) => plugin.key !== "api"),
+    );
+
+    if (!baseApiPlugin) {
+      rpcHandler = null;
+      openApiHandler = null;
+      return;
+    }
+
+    rpcHandler = new RPCHandler(stitchedRouter as any, {
       plugins: [new BatchHandlerPlugin()],
     });
-    openApiHandler = new OpenAPIHandler(plugin.router as any, {
+    openApiHandler = new OpenAPIHandler(stitchedRouter as any, {
       plugins: [
         new OpenAPIReferencePlugin({
           schemaConverters: [new ZodToJsonSchemaConverter()],
@@ -147,19 +178,21 @@ async function runHostServer(opts: {
     });
   };
 
-  const ensureApiPluginLoaded = async (): Promise<ApiPluginResult | null> => {
-    if (apiPlugin) return apiPlugin;
+  const ensureApiPluginLoaded = async (): Promise<LoadedPluginsResult | null> => {
+    if (apiPlugins.length > 0) return { base: baseApiPlugin, plugins: apiPlugins, errors: [] };
     if (!runtimeConfig.api) return null;
     if (apiPluginLoading) return apiPluginLoading;
 
     apiPluginLoading = loadApiPluginsFromRuntimeConfig(runtimeConfig, process.env as any)
-      .then((plugin) => {
-        if (plugin) {
-          apiPlugin = plugin;
-          apiPluginError = null;
-          initApiHandlers(plugin);
+      .then((loaded) => {
+        if (loaded) {
+          apiPlugins = loaded.plugins;
+          baseApiPlugin = loaded.base;
+          apiPluginError =
+            loaded.errors.length > 0 ? loaded.errors.map((item) => item.error).join("; ") : null;
+          initApiHandlers();
         }
-        return plugin;
+        return loaded;
       })
       .catch((e) => {
         apiPluginError = e instanceof Error ? e.message : String(e);
@@ -294,18 +327,30 @@ async function runHostServer(opts: {
         name: "api-plugin",
         url: runtimeConfig.api.entry,
         required: true,
-        ok: apiPlugin !== null,
-        status: apiPlugin !== null ? 200 : 503,
+        ok: baseApiPlugin !== null,
+        status: baseApiPlugin !== null ? 200 : 503,
         error:
-          apiPlugin !== null
+          baseApiPlugin !== null
             ? undefined
             : apiPluginLoading
               ? "loading"
               : (apiPluginError ?? "not loaded"),
       });
-      if (!apiPlugin && !apiPluginLoading) {
+      if (!baseApiPlugin && !apiPluginLoading) {
         void ensureApiPluginLoaded();
       }
+    }
+
+    for (const [key, plugin] of Object.entries(runtimeConfig.plugins ?? {})) {
+      const loaded = apiPlugins.find((item) => item.key === key);
+      checks.push({
+        name: key,
+        url: plugin.entry,
+        required: true,
+        ok: Boolean(loaded),
+        status: loaded ? 200 : 503,
+        error: loaded ? undefined : (apiPluginError ?? "not loaded"),
+      });
     }
 
     const allRequiredOk = checks.filter((x) => x.required).every((x) => x.ok);
@@ -333,7 +378,7 @@ async function runHostServer(opts: {
       ssrRouterLoading: ssrRouterLoading !== null,
       ssrRouterError,
       api: runtimeConfig.api?.url ?? null,
-      apiPluginLoaded: apiPlugin !== null,
+      apiPluginLoaded: baseApiPlugin !== null,
       apiPluginLoading: apiPluginLoading !== null,
       apiPluginError,
     }),

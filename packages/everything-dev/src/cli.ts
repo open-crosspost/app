@@ -1,6 +1,9 @@
 #!/usr/bin/env bun
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { syncApiContractBridge } from "./api-contract";
 import bosPlugin from "./bos-plugin";
-import { findConfigPath } from "./config";
+import { findConfigPath, loadConfig } from "./config";
 import { readDevLatestLog } from "./dev-logs";
 import { createPluginRuntime } from "./plugin";
 import { printBanner } from "./utils/banner";
@@ -14,6 +17,30 @@ function hasFlag(args: string[], name: string, short?: string): boolean {
   return args.includes(name) || (short ? args.includes(short) : false);
 }
 
+function parseBosPluginId(bosUrl: string): string {
+  const match = bosUrl.match(/^bos:\/\/[^/]+\/.+\/plugins\/([^/]+)$/);
+  if (match?.[1]) {
+    return decodeURIComponent(match[1]);
+  }
+
+  const fallback = bosUrl.split("/").filter(Boolean).at(-1);
+  if (!fallback) {
+    throw new Error(`Invalid BOS plugin URL: ${bosUrl}`);
+  }
+
+  return decodeURIComponent(fallback);
+}
+
+function updateBosConfig(
+  configPath: string,
+  updater: (config: Record<string, unknown>) => Record<string, unknown>,
+) {
+  const current = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+  const next = updater(current);
+  writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`);
+  return next;
+}
+
 function printHelp() {
   process.stdout.write(`everything-dev commands\n\n`);
   process.stdout.write(
@@ -23,7 +50,9 @@ function printHelp() {
     `  everything-dev start [--account <account>] [--domain <domain>] [--port <port>] [--no-interactive]\n`,
   );
   process.stdout.write(`  everything-dev build [all|host|ui|api] [--force] [--deploy]\n`);
+  process.stdout.write(`  everything-dev add plugin <bos://account/gateway/plugins/pluginId>\n`);
   process.stdout.write(`  everything-dev logs [--tail <count>]\n\n`);
+  process.stdout.write(`  everything-dev types sync\n\n`);
   process.stdout.write(`'bos' is an alias for 'everything-dev'.\n`);
 }
 
@@ -37,6 +66,57 @@ async function main() {
 
   const command = args[0] ?? "dev";
   const configPath = findConfigPath();
+
+  if (command === "add") {
+    const target = args[1];
+    const bosUrl = args[2];
+
+    if (target !== "plugin" || !bosUrl?.startsWith("bos://")) {
+      console.error("Usage: everything-dev add plugin <bos://account/gateway/plugins/pluginId>");
+      process.exit(1);
+    }
+
+    if (!configPath) {
+      console.error("No bos.config.json found");
+      process.exit(1);
+    }
+
+    const pluginId = parseBosPluginId(bosUrl);
+    updateBosConfig(configPath, (config) => {
+      const plugins = (config.plugins as Record<string, unknown> | undefined) ?? {};
+      plugins[pluginId] = { extends: bosUrl };
+      return { ...config, plugins };
+    });
+
+    process.stdout.write(`Added plugin ${pluginId} -> ${bosUrl}\n`);
+    return;
+  }
+
+  if (command === "types") {
+    const action = args[1] ?? "sync";
+    if (action !== "sync") {
+      console.error(`Unknown types command: ${action}`);
+      process.exit(1);
+    }
+
+    const loaded = await loadConfig({ cwd: process.cwd() });
+    if (!loaded) {
+      console.error("No bos.config.json found");
+      process.exit(1);
+    }
+
+    const result = await syncApiContractBridge({
+      configDir: dirname(loaded.source.path),
+      apiBaseUrl: loaded.runtime.api.url,
+    });
+
+    process.stdout.write(
+      result.source === "local"
+        ? "Synced UI contract bridge from local api package\n"
+        : `Synced UI contract bridge from ${result.manifest?.plugin.name} manifest\n`,
+    );
+    return;
+  }
 
   if (command === "logs") {
     const tail = Number(readFlag(args, "--tail", "-n") ?? "0") || undefined;

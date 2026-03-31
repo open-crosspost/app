@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import gradient from "gradient-string";
 
-export const gradients = {
+export const gradients: Record<string, (text: string) => string> = {
   cyber: gradient(["#00ffff", "#ff00ff"]),
 };
 

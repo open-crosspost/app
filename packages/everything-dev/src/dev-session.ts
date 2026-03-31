@@ -66,12 +66,16 @@ const isInteractiveSupported = (): boolean => {
   return process.stdin.isTTY === true && process.stdout.isTTY === true;
 };
 
-const STARTUP_ORDER = ["ui-ssr", "ui", "api", "host-build", "host"];
+const STARTUP_ORDER = ["ui-ssr", "ui", "api", "plugin", "host-build", "host"];
 
 const sortByOrder = (packages: string[]): string[] => {
   return [...packages].sort((a, b) => {
-    const aIdx = STARTUP_ORDER.indexOf(a);
-    const bIdx = STARTUP_ORDER.indexOf(b);
+    const aIdx = a.startsWith("plugin:")
+      ? STARTUP_ORDER.indexOf("plugin")
+      : STARTUP_ORDER.indexOf(a);
+    const bIdx = b.startsWith("plugin:")
+      ? STARTUP_ORDER.indexOf("plugin")
+      : STARTUP_ORDER.indexOf(b);
     if (aIdx === -1 && bIdx === -1) return 0;
     if (aIdx === -1) return 1;
     if (bIdx === -1) return -1;
@@ -91,7 +95,13 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
     const orderedPackages = sortByOrder(orchestrator.packages);
     const initialProcesses: ProcessState[] = orderedPackages.map((pkg) => {
       const portOverride = pkg === "host" ? orchestrator.port : undefined;
-      const config = getProcessConfig(pkg, undefined, portOverride, orchestrator.bosConfig);
+      const config = getProcessConfig(
+        pkg,
+        undefined,
+        portOverride,
+        orchestrator.bosConfig,
+        orchestrator.runtimeConfig,
+      );
       const source =
         pkg === "host"
           ? orchestrator.appConfig.host

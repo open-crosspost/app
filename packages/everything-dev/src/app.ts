@@ -2,9 +2,10 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { getProjectRoot, parsePort } from "./config";
+import { getNetworkIdForAccount } from "./network";
 import { makeDevProcess, type ProcessCallbacks, type ProcessHandle } from "./orchestrator";
 import type { ProcessRegistry } from "./process-registry";
-import type { BosConfig, RuntimeConfig } from "./types";
+import type { BosConfig, RuntimeConfig, RuntimePluginConfig } from "./types";
 
 export interface AppOrchestrator {
   packages: string[];
@@ -16,12 +17,16 @@ export interface AppOrchestrator {
   interactive?: boolean;
 }
 
-const STARTUP_ORDER = ["ui-ssr", "ui", "api", "host-build", "host"];
+const STARTUP_ORDER = ["ui-ssr", "ui", "api", "plugin", "host-build", "host"];
 
 const sortByOrder = (packages: string[]): string[] => {
   return [...packages].sort((a, b) => {
-    const aIdx = STARTUP_ORDER.indexOf(a);
-    const bIdx = STARTUP_ORDER.indexOf(b);
+    const aIdx = a.startsWith("plugin:")
+      ? STARTUP_ORDER.indexOf("plugin")
+      : STARTUP_ORDER.indexOf(a);
+    const bIdx = b.startsWith("plugin:")
+      ? STARTUP_ORDER.indexOf("plugin")
+      : STARTUP_ORDER.indexOf(b);
     if (aIdx === -1 && bIdx === -1) return 0;
     if (aIdx === -1) return 1;
     if (bIdx === -1) return -1;
@@ -89,7 +94,7 @@ export const startDevServers = (
     );
   });
 
-export function detectLocalPackages(): string[] {
+export function detectLocalPackages(bosConfig?: BosConfig): string[] {
   const packages: string[] = [];
   const configDir = getProjectRoot();
 
@@ -105,6 +110,12 @@ export function detectLocalPackages(): string[] {
     packages.push("host");
   }
 
+  for (const [pluginId, pluginConfig] of Object.entries(bosConfig?.plugins ?? {})) {
+    if (pluginConfig.cwd && existsSync(join(configDir, pluginConfig.cwd, "package.json"))) {
+      packages.push(`plugin:${pluginId}`);
+    }
+  }
+
   return packages;
 }
 
@@ -116,6 +127,7 @@ export function buildRuntimeConfig(
     hostUrl: string;
     proxy?: string;
     env?: "development" | "production";
+    plugins?: Record<string, RuntimePluginConfig>;
   },
 ): RuntimeConfig {
   const uiConfig = bosConfig.app.ui;
@@ -126,6 +138,7 @@ export function buildRuntimeConfig(
   return {
     env: options.env ?? "development",
     account: bosConfig.account,
+    networkId: getNetworkIdForAccount(bosConfig.account),
     hostUrl: options.hostUrl,
     shared: bosConfig.shared,
     ui: uiConfig
@@ -162,5 +175,6 @@ export function buildRuntimeConfig(
           entry: "/mf-manifest.json",
           source: apiSource,
         },
+    plugins: options.plugins,
   };
 }

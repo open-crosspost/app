@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getActiveRuntime } from "@/app";
 import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components";
-import { getActiveRuntime } from "@/lib/active-runtime";
 import { Route as RootRoute } from "../__root";
 
 export const Route = createFileRoute("/_layout/config" as never)({

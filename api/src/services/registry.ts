@@ -472,7 +472,7 @@ function normalizeConfigValue(value: unknown): BosConfigInput | null {
 }
 
 function parseRegistryConfigKey(key: string): { accountId: string; gatewayId: string } | null {
-  const match = key.match(/^apps\/([^/]+)\/(.+)\/bos\.config\.json$/);
+  const match = key.match(/^apps\/([^/]+)\/([^/]+)\/bos\.config\.json$/);
   if (!match?.[1] || !match[2]) {
     return null;
   }

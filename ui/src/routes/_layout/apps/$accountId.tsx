@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/apps/$accountId" as never)({
   head: ({ params }) => ({

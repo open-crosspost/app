@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
+import { apiClient, getActiveRuntime } from "@/app";
 import { Button, Card, CardContent } from "@/components";
-import { getActiveRuntime } from "@/lib/active-runtime";
-import { apiClient } from "@/remote/orpc";
 import { Route as RootRoute } from "../../../__root";
 
 export const Route = createFileRoute("/_layout/apps/$accountId/run" as never)({

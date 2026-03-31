@@ -9,18 +9,14 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
-import { getRuntimeBasePath } from "@/lib/active-runtime";
+import { getBaseStyles, getRuntimeBasePath } from "@/app";
 import { type SessionData, sessionQueryOptions } from "@/lib/session";
-import { getBaseStyles } from "@/remote/head";
 import type { RouterContext } from "@/types";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context }) => {
-    const session = (context as unknown as Record<string, unknown>).session as
-      | SessionData
-      | undefined
-      | null;
+    const session = context.session as SessionData | undefined | null;
 
     return {
       assetsUrl: context.assetsUrl || "",
@@ -30,10 +26,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   },
   loader: async ({ context }) => {
     const { queryClient } = context;
-    const session = (context as unknown as Record<string, unknown>).session as
-      | SessionData
-      | undefined
-      | null;
+    const session = context.session as SessionData | undefined | null;
 
     // Pre-populate session cache from SSR data
     if (session && queryClient) {

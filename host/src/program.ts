@@ -34,6 +34,7 @@ interface ActiveRuntimeState {
 }
 
 type RuntimeClientConfig = ClientRuntimeConfig & {
+  networkId: "mainnet" | "testnet";
   runtime?: ActiveRuntimeState;
 };
 
@@ -129,6 +130,7 @@ function buildRuntimeClientConfig(
   return {
     env: config.env,
     account: activeRuntime.accountId,
+    networkId: config.account.endsWith(".testnet") ? "testnet" : "mainnet",
     hostUrl: requestUrl.origin,
     assetsUrl: config.ui.url,
     apiBase: "/api",
@@ -139,7 +141,7 @@ function buildRuntimeClientConfig(
       entry: config.ui.entry,
     },
     runtime: activeRuntime,
-  };
+  } as RuntimeClientConfig;
 }
 
 function extractErrorDetails(error: unknown): {
@@ -565,8 +567,9 @@ export const createStartServer = (onReady?: () => void) =>
           ssrRouterModule?.renderToStream(c.req.raw, {
             assetsUrl,
             session: requestContext.session,
+            basepath: runtimeConfig.runtime?.runtimeBasePath,
             runtimeConfig,
-          });
+          } as any);
 
         const result = ssrApiClient
           ? await runWithSsrApiClient(ssrApiClient, render)

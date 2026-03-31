@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "sonner";
+import { apiClient, authClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
-import { authClient } from "@/lib/auth-client";
 import {
   getActiveOrganization,
   isPersonalOrganization,
@@ -12,7 +12,6 @@ import {
   sessionQueryOptions,
   setActiveOrganization,
 } from "@/lib/session";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/_authenticated/home")({
   head: () => ({

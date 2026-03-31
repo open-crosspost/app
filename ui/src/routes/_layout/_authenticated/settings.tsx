@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { authClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
-import { authClient } from "@/lib/auth-client";
 import {
   addPasskey,
   changePassword,
@@ -59,8 +59,8 @@ function Settings() {
                 Identity & Security
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Update your profile, attach durable authentication methods, and
-                control how your workspace session behaves.
+                Update your profile, attach durable authentication methods, and control how your
+                workspace session behaves.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -77,25 +77,15 @@ function Settings() {
         <Card>
           <CardContent className="p-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <MiniStat label="email" value={user.email ? "linked" : "missing"} />
-            <MiniStat
-              label="near"
-              value={nearAccountId ? "linked" : "missing"}
-            />
+            <MiniStat label="near" value={nearAccountId ? "linked" : "missing"} />
             <MiniStat label="passkeys" value={String(passkeys.length)} />
-            <MiniStat
-              label="profile"
-              value={user.isAnonymous ? "temporary" : "persistent"}
-            />
+            <MiniStat label="profile" value={user.isAnonymous ? "temporary" : "persistent"} />
           </CardContent>
         </Card>
       </section>
 
       <ProfileSection user={user} />
-      <AuthMethodsSection
-        user={user}
-        passkeys={passkeys}
-        nearAccountId={nearAccountId}
-      />
+      <AuthMethodsSection user={user} passkeys={passkeys} nearAccountId={nearAccountId} />
       <SecuritySection user={user} />
     </div>
   );
@@ -172,8 +162,8 @@ function ProfileSection({
       {user.isAnonymous && (
         <Card>
           <CardContent className="p-4 text-sm text-muted-foreground leading-relaxed">
-            This session is temporary. Link an email or NEAR wallet before
-            signing out if you want the account to remain recoverable.
+            This session is temporary. Link an email or NEAR wallet before signing out if you want
+            the account to remain recoverable.
           </CardContent>
         </Card>
       )}
@@ -237,8 +227,7 @@ function AuthMethodsSection({
       <div className="grid gap-4 lg:grid-cols-3">
         <MethodCard title="email" status={user.email ? "linked" : "missing"}>
           <p className="text-sm text-muted-foreground">
-            {user.email ??
-              "Email login has not been linked for this account yet."}
+            {user.email ?? "Email login has not been linked for this account yet."}
           </p>
         </MethodCard>
 
@@ -270,9 +259,7 @@ function AuthMethodsSection({
                   key={passkey.id}
                   className="rounded-sm border border-border bg-muted/10 p-3 flex items-center justify-between gap-3"
                 >
-                  <span className="text-sm truncate">
-                    {passkey.name || "Passkey"}
-                  </span>
+                  <span className="text-sm truncate">{passkey.name || "Passkey"}</span>
                   <Button
                     onClick={() => removePasskeyMutation.mutate(passkey.id)}
                     disabled={removePasskeyMutation.isPending}
@@ -284,9 +271,7 @@ function AuthMethodsSection({
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No passkeys registered yet.
-              </p>
+              <p className="text-sm text-muted-foreground">No passkeys registered yet.</p>
             )}
             <Button
               onClick={() => addPasskeyMutation.mutate()}
@@ -303,11 +288,7 @@ function AuthMethodsSection({
   );
 }
 
-function SecuritySection({
-  user,
-}: {
-  user: { email?: string; isAnonymous?: boolean };
-}) {
+function SecuritySection({ user }: { user: { email?: string; isAnonymous?: boolean } }) {
   const queryClient = useQueryClient();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -403,17 +384,14 @@ function SecuritySection({
                 variant="outline"
                 size="sm"
               >
-                {changePasswordMutation.isPending
-                  ? "changing..."
-                  : "change password"}
+                {changePasswordMutation.isPending ? "changing..." : "change password"}
               </Button>
             </CardContent>
           </Card>
         ) : (
           <Card>
             <CardContent className="p-6 text-sm text-muted-foreground">
-              Password management appears once an email-based login is attached
-              to this account.
+              Password management appears once an email-based login is attached to this account.
             </CardContent>
           </Card>
         )}
@@ -422,20 +400,14 @@ function SecuritySection({
           <SecurityActionCard
             title="revoke other sessions"
             body="End every other active session while keeping this one open."
-            actionLabel={
-              revokeSessionsMutation.isPending
-                ? "revoking..."
-                : "revoke sessions"
-            }
+            actionLabel={revokeSessionsMutation.isPending ? "revoking..." : "revoke sessions"}
             onClick={() => revokeSessionsMutation.mutate()}
             disabled={revokeSessionsMutation.isPending}
           />
           <SecurityActionCard
             title="sign out"
             body="Disconnect this session and return to the public landing page."
-            actionLabel={
-              signOutMutation.isPending ? "signing out..." : "sign out"
-            }
+            actionLabel={signOutMutation.isPending ? "signing out..." : "sign out"}
             onClick={() => signOutMutation.mutate()}
             disabled={signOutMutation.isPending}
           />
@@ -448,26 +420,16 @@ function SecuritySection({
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="text-xl font-semibold tracking-tight">{value}</div>
     </div>
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       {children}
     </div>
   );
@@ -513,16 +475,9 @@ function SecurityActionCard({
       <CardContent className="p-5 space-y-3">
         <div className="space-y-1">
           <div className="font-medium">{title}</div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {body}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
         </div>
-        <Button
-          onClick={onClick}
-          disabled={disabled}
-          variant="outline"
-          size="sm"
-        >
+        <Button onClick={onClick} disabled={disabled} variant="outline" size="sm">
           {actionLabel}
         </Button>
       </CardContent>

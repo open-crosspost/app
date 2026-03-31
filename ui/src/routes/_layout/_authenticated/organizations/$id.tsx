@@ -8,6 +8,7 @@ import {
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 import {
   inviteMember,
@@ -16,7 +17,6 @@ import {
   sessionQueryOptions,
   setActiveOrganization,
 } from "@/lib/session";
-import { apiClient } from "@/remote/orpc";
 
 type OrgApiKeysResult = Awaited<ReturnType<typeof apiClient.listApiKeys>>;
 type CreatedApiKey = Awaited<ReturnType<typeof apiClient.createApiKey>>;

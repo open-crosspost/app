@@ -1,9 +1,9 @@
-import { Effect } from "effect";
-import { ensureNodeRuntimePlugin, loadRemoteModule, registerRemote } from "./mf";
-import { createPluginRuntime, type PluginRuntime } from "./plugin";
-import type { RuntimeConfig } from "./types";
+import { ensureNodeRuntimePlugin, registerRemote } from "./mf";
+import { createPluginRuntime } from "./plugin";
+import type { RuntimeConfig, RuntimePluginConfig } from "./types";
 
-export interface ApiPluginResult {
+export interface LoadedPluginResult {
+  key: string;
   name: string;
   router: any;
   client: any;
@@ -13,12 +13,19 @@ export interface ApiPluginResult {
   };
 }
 
+export interface LoadedPluginsResult {
+  base: LoadedPluginResult | null;
+  plugins: LoadedPluginResult[];
+  errors: Array<{ key: string; error: string }>;
+}
+
 export async function loadApiPlugin(opts: {
+  key: string;
   name: string;
   entry: string;
   variables?: Record<string, string>;
   secrets?: Record<string, string>;
-}): Promise<ApiPluginResult> {
+}): Promise<LoadedPluginResult> {
   const remoteEntryUrl = (() => {
     if (opts.entry.endsWith("/remoteEntry.js")) return opts.entry;
     if (opts.entry.endsWith("/mf-manifest.json")) {
@@ -46,6 +53,7 @@ export async function loadApiPlugin(opts: {
   });
 
   return {
+    key: opts.key,
     name: opts.name,
     router: plugin.router,
     client: plugin.createClient(),
@@ -56,48 +64,74 @@ export async function loadApiPlugin(opts: {
   };
 }
 
+function collectSecrets(config: RuntimePluginConfig, envSecrets?: Record<string, string>) {
+  const secrets: Record<string, string> = {};
+  for (const key of config.secrets ?? []) {
+    const value = envSecrets?.[key] ?? process.env[key];
+    if (value) {
+      secrets[key] = value;
+    }
+  }
+  return secrets;
+}
+
 export async function loadApiPluginsFromRuntimeConfig(
   runtimeConfig: RuntimeConfig,
   envSecrets?: Record<string, string>,
-): Promise<ApiPluginResult | null> {
-  const apiConfig = runtimeConfig.api;
-  if (!apiConfig) {
-    console.log("[API] No API plugin configured");
-    return null;
+): Promise<LoadedPluginsResult> {
+  const entries: Array<[string, RuntimePluginConfig]> = [];
+
+  if (runtimeConfig.api?.url) {
+    entries.push(["api", runtimeConfig.api]);
   }
 
-  if (!apiConfig.url) {
-    console.log("[API] No API URL configured");
-    return null;
-  }
-
-  console.log(`[API] Loading plugin: ${apiConfig.name} from ${apiConfig.entry}`);
-
-  const secrets: Record<string, string> = {};
-  if (apiConfig.secrets) {
-    for (const key of apiConfig.secrets) {
-      const value = envSecrets?.[key] ?? process.env[key];
-      if (value) {
-        secrets[key] = value;
-      }
+  for (const [key, plugin] of Object.entries(runtimeConfig.plugins ?? {})) {
+    if (plugin.url) {
+      entries.push([key, plugin]);
     }
   }
 
-  return loadApiPlugin({
-    name: apiConfig.name,
-    entry: apiConfig.entry,
-    variables: apiConfig.variables,
-    secrets,
+  if (entries.length === 0) {
+    console.log("[API] No plugins configured");
+    return { base: null, plugins: [], errors: [] };
+  }
+
+  const loaded = await Promise.allSettled(
+    entries.map(async ([key, pluginConfig]) => {
+      console.log(`[API] Loading plugin: ${pluginConfig.name} from ${pluginConfig.entry}`);
+      return loadApiPlugin({
+        key,
+        name: pluginConfig.name,
+        entry: pluginConfig.entry,
+        variables: pluginConfig.variables,
+        secrets: collectSecrets(pluginConfig, envSecrets),
+      });
+    }),
+  );
+
+  const plugins: LoadedPluginResult[] = [];
+  const errors: Array<{ key: string; error: string }> = [];
+
+  loaded.forEach((result, index) => {
+    const [key] = entries[index] ?? ["unknown"];
+    if (result.status === "fulfilled") {
+      plugins.push(result.value);
+    } else {
+      errors.push({
+        key,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+    }
   });
+
+  const base = plugins.find((plugin) => plugin.key === "api") ?? null;
+  return { base, plugins, errors };
 }
 
-export function createStitchedRouter(baseRouter: any, apiPlugin: ApiPluginResult | null): any {
-  if (!apiPlugin) {
+export function createStitchedRouter(baseRouter: any, plugins: LoadedPluginResult[] | null): any {
+  if (!plugins || plugins.length === 0) {
     return baseRouter;
   }
 
-  return {
-    ...baseRouter,
-    ...apiPlugin.router,
-  };
+  return plugins.reduce((router, plugin) => ({ ...router, ...plugin.router }), baseRouter);
 }

@@ -8,9 +8,9 @@ import {
 } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { authClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
 import type { SessionData } from "@/lib/session";
 import { organizationsQueryOptions, sessionQueryOptions } from "@/lib/session";
 
@@ -26,13 +26,13 @@ export const Route = createFileRoute("/_layout/login")({
   }),
   beforeLoad: ({ context, search }) => {
     const { queryClient } = context;
-    const initialSession = (context as unknown as Record<string, unknown>).session as
-      | SessionData
-      | undefined
-      | null;
+    const initialSession = context.session as SessionData | undefined | null;
     const session =
       initialSession ??
-      queryClient.getQueryData<SessionData | null>(sessionQueryOptions(initialSession).queryKey);
+      (queryClient.getQueryData(sessionQueryOptions(initialSession).queryKey) as
+        | SessionData
+        | null
+        | undefined);
 
     if (session?.user) {
       const redirectTo =
@@ -41,10 +41,7 @@ export const Route = createFileRoute("/_layout/login")({
     }
   },
   loader: ({ context }) => {
-    const initialSession = (context as unknown as Record<string, unknown>).session as
-      | SessionData
-      | undefined
-      | null;
+    const initialSession = context.session as SessionData | undefined | null;
 
     void context.queryClient.prefetchQuery(sessionQueryOptions(initialSession));
   },

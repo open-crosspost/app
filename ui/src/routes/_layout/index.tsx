@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
+import { buildRuntimeHref, getActiveRuntime } from "@/app";
 import { Button } from "@/components";
-import { buildRuntimeHref, getActiveRuntime } from "@/lib/active-runtime";
 import { Route as RootRoute } from "../__root";
 
 export const Route = createFileRoute("/_layout/")({

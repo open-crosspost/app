@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
+import { apiClient } from "@/app";
 import { Badge, Card, CardContent } from "@/components";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/about")({
   head: () => ({

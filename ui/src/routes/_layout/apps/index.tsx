@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/apps/" as never)({
   validateSearch: (search: Record<string, unknown>) => ({

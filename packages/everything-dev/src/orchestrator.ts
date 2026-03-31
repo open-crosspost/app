@@ -1,4 +1,5 @@
 import { createConnection } from "node:net";
+import { join } from "node:path";
 import { Deferred, Effect, Fiber, Ref } from "effect";
 import { getProjectRoot, parsePort } from "./config";
 import { patchManifestFetchForSsrPublicPath } from "./mf";
@@ -89,7 +90,30 @@ export function getProcessConfig(
   env?: Record<string, string>,
   portOverride?: number,
   bosConfig?: BosConfig,
+  runtimeConfig?: RuntimeConfig,
 ): DevProcess | null {
+  if (pkg.startsWith("plugin:")) {
+    const pluginId = pkg.slice("plugin:".length);
+    const pluginConfig = runtimeConfig?.plugins?.[pluginId] ?? null;
+    const cwd = bosConfig?.plugins?.[pluginId]?.cwd;
+
+    if (!cwd || pluginConfig?.source !== "local") return null;
+
+    const port =
+      portOverride ?? pluginConfig?.port ?? (pluginConfig?.url ? parsePort(pluginConfig.url) : 0);
+
+    return {
+      name: pkg,
+      command: "bun",
+      args: ["run", "dev"],
+      cwd: join(getProjectRoot(), cwd),
+      port,
+      readyPatterns: [/ready in/i, /compiled.*successfully/i, /listening/i, /started/i],
+      errorPatterns: [/error/i, /failed/i],
+      env,
+    };
+  }
+
   const base = processConfigBases[pkg];
   if (!base) return null;
 
@@ -408,17 +432,10 @@ export const spawnDevProcess = (
     // Prefer probe-based readiness to avoid brittle log regexes.
     // This is best-effort and complements log detection.
     if (config.port > 0) {
-      const url = (() => {
-        switch (config.name) {
-          case "ui":
-          case "api":
-            return `http://127.0.0.1:${config.port}/remoteEntry.js`;
-          case "ui-ssr":
-            return `http://127.0.0.1:${config.port}/`;
-          default:
-            return null;
-        }
-      })();
+      const url =
+        config.name === "ui-ssr"
+          ? `http://127.0.0.1:${config.port}/`
+          : `http://127.0.0.1:${config.port}/remoteEntry.js`;
 
       yield* Effect.fork(
         Effect.gen(function* () {
@@ -598,7 +615,7 @@ export const makeDevProcess = (
   registry?: ProcessRegistry,
 ) =>
   Effect.gen(function* () {
-    const config = getProcessConfig(pkg, env, portOverride, bosConfig);
+    const config = getProcessConfig(pkg, env, portOverride, bosConfig, runtimeConfig);
     if (!config) {
       return yield* Effect.fail(new Error(`Unknown package: ${pkg}`));
     }

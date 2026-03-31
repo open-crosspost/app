@@ -47,25 +47,48 @@ export function getRegistryNamespaceForAccount(accountId: string): string {
   return getRegistryNamespaceForNetwork(getNetworkIdForAccount(accountId));
 }
 
-export function getRegistryConfigKey(accountId: string, gatewayId: string): string {
-  return `apps/${accountId}/${gatewayId}/bos.config.json`;
+export function getRegistryConfigKey(
+  accountId: string,
+  gatewayId: string,
+  pathSegments: string[] = [],
+): string {
+  const suffix =
+    pathSegments.length > 0
+      ? `/${pathSegments.map((segment) => encodeURIComponent(segment)).join("/")}`
+      : "";
+  return `apps/${accountId}/${gatewayId}${suffix}/bos.config.json`;
 }
 
 export function getRegistryMetadataKey(accountId: string, gatewayId: string): string {
   return `apps/${accountId}/${gatewayId}/manifest`;
 }
 
-export function parseBosUrl(bosUrl: string): { accountId: string; gatewayId: string } {
+export function parseBosUrl(bosUrl: string): {
+  accountId: string;
+  gatewayId: string;
+  pathSegments: string[];
+} {
   const match = bosUrl.match(/^bos:\/\/([^/]+)\/(.+)$/);
   if (!match) {
     throw new Error(`Invalid BOS URL: ${bosUrl}`);
   }
 
-  const [, accountId, gatewayId] = match;
-  if (!accountId || !gatewayId) {
+  const [, accountId, path] = match;
+  if (!accountId || !path) {
     throw new Error(`Invalid BOS URL: ${bosUrl}`);
   }
-  return { accountId, gatewayId };
+  const pathSegments = path
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => decodeURIComponent(segment));
+  if (pathSegments.length === 0) {
+    throw new Error(`Invalid BOS URL: ${bosUrl}`);
+  }
+  const [gatewayId, ...pathSegmentsTail] = pathSegments;
+  if (!gatewayId) {
+    throw new Error(`Invalid BOS URL: ${bosUrl}`);
+  }
+  return { accountId, gatewayId, pathSegments: pathSegmentsTail };
 }
 
 export function buildRegistryConfigUrl(accountId: string, gatewayId: string): string {
@@ -76,12 +99,12 @@ export function buildRegistryConfigUrl(accountId: string, gatewayId: string): st
 }
 
 export async function fetchBosConfigFromFastKv<T>(bosUrl: string): Promise<T> {
-  const { accountId, gatewayId } = parseBosUrl(bosUrl);
+  const { accountId, gatewayId, pathSegments } = parseBosUrl(bosUrl);
   const value = await readLatestValue({
     baseUrl: getFastKvBaseUrlForAccount(accountId),
     currentAccountId: getRegistryNamespaceForAccount(accountId),
     predecessorId: accountId,
-    key: getRegistryConfigKey(accountId, gatewayId),
+    key: getRegistryConfigKey(accountId, gatewayId, pathSegments),
   });
 
   if (!value) {

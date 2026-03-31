@@ -1,4 +1,4 @@
-import { getAssetsUrl, getRuntimeConfig } from "./remote/runtime";
+import { getAssetsUrl, getRuntimeConfig } from "./app";
 
 declare global {
   interface Window {

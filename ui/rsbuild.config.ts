@@ -48,7 +48,6 @@ function createClientConfig() {
       exposes: {
         "./Router": "./src/router.tsx",
         "./Hydrate": "./src/hydrate.tsx",
-        "./remote": "./src/remote/index.ts",
         "./components": "./src/components/index.ts",
         "./providers": "./src/providers/index.tsx",
         "./hooks": "./src/hooks/index.ts",

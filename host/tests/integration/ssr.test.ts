@@ -44,6 +44,7 @@ describe("SSR Stream Lifecycle", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -68,6 +69,7 @@ describe("SSR Stream Lifecycle", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -94,6 +96,7 @@ describe("SSR Stream Lifecycle", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -124,6 +127,7 @@ describe("SSR Stream Lifecycle", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",

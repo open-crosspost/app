@@ -1,4 +1,5 @@
 export * from "./api";
+export * from "./api-contract";
 export { buildRuntimeConfig, detectLocalPackages } from "./app";
 export * from "./config";
 export * from "./contract";

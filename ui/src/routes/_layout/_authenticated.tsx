@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import {
-  sessionQueryOptions,
-  organizationsQueryOptions,
   getSessionFromData,
+  organizationsQueryOptions,
   type SessionData,
+  sessionQueryOptions,
 } from "@/lib/session";
 
 // Auth context provided to child routes
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_layout/_authenticated")({
 
     // Get session from cache or fetch
     const session = await queryClient.ensureQueryData(
-      sessionQueryOptions((context as unknown as Record<string, unknown>).session as SessionData | undefined | null)
+      sessionQueryOptions(context.session as SessionData | undefined | null),
     );
 
     const auth = getSessionFromData(session);
@@ -46,9 +46,7 @@ export const Route = createFileRoute("/_layout/_authenticated")({
     }
 
     // Preload organizations for authenticated users
-    await queryClient.ensureQueryData(
-      organizationsQueryOptions()
-    );
+    await queryClient.ensureQueryData(organizationsQueryOptions());
 
     return {
       auth,

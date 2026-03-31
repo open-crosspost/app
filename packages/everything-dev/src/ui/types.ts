@@ -5,12 +5,14 @@ import type { ClientRuntimeConfig } from "../types";
 export interface RouterContext {
   queryClient: QueryClient;
   assetsUrl: string;
-  runtimeConfig?: ClientRuntimeConfig;
+  runtimeConfig?: Partial<ClientRuntimeConfig>;
+  session?: unknown;
 }
 
 export interface CreateRouterOptions {
   history?: RouterHistory;
   context?: Partial<RouterContext>;
+  basepath?: string;
 }
 
 export type HeadMeta = NonNullable<AnyRouteMatch["meta"]>[number];
@@ -25,7 +27,9 @@ export interface HeadData {
 
 export interface RenderOptions {
   assetsUrl: string;
-  runtimeConfig: ClientRuntimeConfig;
+  runtimeConfig: Partial<ClientRuntimeConfig>;
+  basepath?: string;
+  session?: unknown;
 }
 
 export interface RenderResult {

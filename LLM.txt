@@ -328,7 +328,7 @@ export const auth = betterAuth({
 });
 ```
 
-**Client Setup (ui/src/remote/auth-client.ts):**
+**Client Setup (ui/src/lib/auth-client.ts):**
 ```typescript
 import { adminClient, anonymousClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
-import { apiClient } from "@/remote/orpc";
 
 export type KvValueResult = Awaited<ReturnType<typeof apiClient.getValue>>;
 

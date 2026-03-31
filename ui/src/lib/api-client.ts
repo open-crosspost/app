@@ -2,19 +2,10 @@ import { createORPCClient, onError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { ContractRouterClient } from "@orpc/contract";
 import { toast } from "sonner";
-import type { contract } from "../../../api/src/contract";
+import type { ApiContract } from "@/api-contract";
 
-export type ApiContract = typeof contract;
+export type { ApiContract };
 export type ApiClient = ContractRouterClient<ApiContract>;
-
-/**
- * IMPORTANT:
- * - In the browser, calls go over HTTP via RPCLink.
- * - During SSR, the host injects a server-side client on `globalThis.$apiClient`.
- *   We must never instantiate/use RPCLink on the server, and we must not
- *   capture `$apiClient` at module-eval time because the SSR remote is loaded
- *   once at host startup.
- */
 
 declare global {
   var $apiClient: ApiClient | undefined;
@@ -69,14 +60,11 @@ function getActiveApiClient(): ApiClient {
 }
 
 export const apiClient: ApiClient = new Proxy({} as ApiClient, {
-  get(_target, prop, _receiver) {
-    // Prevent await/apiClient from treating this as a thenable
+  get(_target, prop) {
     if (prop === "then") return undefined;
     const client = getActiveApiClient() as unknown as Record<string, unknown>;
     const value = client[prop as unknown as string];
     if (typeof value === "function") {
-      // NOTE: Do NOT call .bind() here.
-      // oRPC's client is a Proxy; accessing `.bind` can be interpreted as an RPC path segment.
       return (...args: unknown[]) => (value as (...a: unknown[]) => unknown)(...args);
     }
     return value;

@@ -2,9 +2,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 import { sessionQueryOptions } from "@/lib/session";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/projects/new" as never)({
   head: () => ({

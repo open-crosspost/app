@@ -5,7 +5,7 @@ import { loadRouterModule } from "@/services/federation.server";
 import type { HeadData, RouterModule } from "@/types";
 
 declare global {
-  var $apiClient: import("../../../ui/src/remote/orpc").ApiClient | undefined;
+  var $apiClient: import("../../../ui/src/lib/api-client").ApiClient | undefined;
 }
 
 const mockApiClient = {
@@ -117,6 +117,7 @@ describe("SEO Head Extraction", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -248,6 +249,7 @@ describe("SEO Head Extraction", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -265,6 +267,7 @@ describe("SEO Head Extraction", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -285,6 +288,7 @@ describe("SEO Head Extraction", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",
@@ -303,6 +307,7 @@ describe("SEO Head Extraction", () => {
         runtimeConfig: {
           env: config.env,
           account: config.account,
+          networkId: config.networkId,
           hostUrl: config.hostUrl,
           apiBase: "/api",
           rpcBase: "/api/rpc",

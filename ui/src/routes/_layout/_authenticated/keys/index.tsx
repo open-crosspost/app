@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/_authenticated/keys/")({
   head: () => ({

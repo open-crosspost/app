@@ -41,6 +41,30 @@ export const ApiPluginConfigSchema = z.object({
 });
 export type ApiPluginConfig = z.infer<typeof ApiPluginConfigSchema>;
 
+export const BosPluginRefSchema = z.object({
+  cwd: z.string().optional(),
+  extends: z.string().optional(),
+  development: z.string().optional(),
+  production: z.string().optional(),
+  proxy: z.string().optional(),
+  variables: z.record(z.string(), z.string()).optional(),
+  secrets: z.array(z.string()).optional(),
+});
+export type BosPluginRef = z.infer<typeof BosPluginRefSchema>;
+
+export const RuntimePluginConfigSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  entry: z.string(),
+  source: SourceModeSchema,
+  cwd: z.string().optional(),
+  port: z.number().optional(),
+  proxy: z.string().optional(),
+  variables: z.record(z.string(), z.string()).optional(),
+  secrets: z.array(z.string()).optional(),
+});
+export type RuntimePluginConfig = z.infer<typeof RuntimePluginConfigSchema>;
+
 export const UiConfigSchema = z.object({
   name: z.string(),
   development: z.string().optional(),
@@ -61,6 +85,7 @@ export const BosConfigSchema = z.object({
   extends: z.string().optional(),
   domain: z.string().optional(),
   shared: z.record(z.string(), z.record(z.string(), SharedDepConfigSchema)).optional(),
+  plugins: z.record(z.string(), BosPluginRefSchema).optional(),
   app: z.object({
     host: HostConfigSchema,
     ui: UiConfigSchema,
@@ -72,6 +97,7 @@ export type BosConfig = z.infer<typeof BosConfigSchema>;
 export const RuntimeConfigSchema = z.object({
   env: z.enum(["development", "production"]),
   account: z.string(),
+  networkId: z.enum(["mainnet", "testnet"]),
   title: z.string().optional(),
   hostUrl: z.string(),
   shared: z
@@ -87,12 +113,14 @@ export const RuntimeConfigSchema = z.object({
     variables: z.record(z.string(), z.string()).optional(),
     secrets: z.array(z.string()).optional(),
   }),
+  plugins: z.record(z.string(), RuntimePluginConfigSchema).optional(),
 });
 export type RuntimeConfig = z.infer<typeof RuntimeConfigSchema>;
 
 export const ClientRuntimeConfigSchema = z.object({
   env: z.enum(["development", "production"]),
   account: z.string(),
+  networkId: z.enum(["mainnet", "testnet"]),
   hostUrl: z.string().optional(),
   assetsUrl: z.string(),
   apiBase: z.string(),
@@ -110,6 +138,16 @@ export const ClientRuntimeConfigSchema = z.object({
       url: z.string(),
       entry: z.string(),
     })
+    .optional(),
+  plugins: z
+    .record(
+      z.string(),
+      z.object({
+        name: z.string(),
+        url: z.string(),
+        entry: z.string(),
+      }),
+    )
     .optional(),
 });
 export type ClientRuntimeConfig = z.infer<typeof ClientRuntimeConfigSchema>;

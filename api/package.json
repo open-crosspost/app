@@ -6,6 +6,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./contract": {
+      "types": "./src/contract.ts",
+      "default": "./src/contract.ts"
     }
   },
   "peerDependencies": {
@@ -33,9 +37,10 @@
     "zephyr-rspack-plugin": "^0.1.2"
   },
   "scripts": {
-    "build": "rspack build",
-    "deploy": "DEPLOY=true rspack build",
-    "dev": "rspack serve",
+    "build": "bun run build:types && rspack build",
+    "build:types": "tsc -p tsconfig.contract.json",
+    "deploy": "bun run build:types && DEPLOY=true rspack build",
+    "dev": "bun run build:types && rspack serve",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",

@@ -3,11 +3,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { apiClient, authClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
 import { sessionQueryOptions } from "@/lib/session";
-import { apiClient } from "@/remote/orpc";
 
 export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId" as never)({
   head: ({ params }) => ({
