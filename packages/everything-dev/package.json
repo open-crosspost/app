@@ -100,7 +100,7 @@
     "@orpc/openapi": "^1.13.4",
     "@orpc/zod": "^1.13.4",
     "chalk": "^5.6.2",
-    "effect": "^3.16.0",
+    "effect": "^3.19.15",
     "every-plugin": "workspace:*",
     "gradient-string": "^3.0.0",
     "hono": "^4.7.11",
@@ -112,7 +112,7 @@
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
     "@tanstack/react-router": ">=1.0.0",
-    "effect": "^3.16.0",
+    "effect": "^3.19.15",
     "zod": "^3.25.0"
   },
   "peerDependenciesMeta": {

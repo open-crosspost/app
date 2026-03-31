@@ -7,7 +7,7 @@ import { contract } from "./contract";
 import { TemplateService } from "./service";
 
 type BackgroundEvents = {
-  'background-updates': {
+  "background-updates": {
     id: string;
     index: number;
     timestamp: number;
@@ -31,7 +31,7 @@ export default createPlugin({
   }),
 
   secrets: z.object({
-    apiKey: z.string().min(1, "API key is required"),
+    apiKey: z.string().min(1, "API key is required").default("template-dev-key"),
   }),
 
   context: z.object({
@@ -47,7 +47,7 @@ export default createPlugin({
       const service = new TemplateService(
         config.variables.baseUrl,
         config.secrets.apiKey,
-        config.variables.timeout
+        config.variables.timeout,
       );
 
       // Test the connection during initialization
@@ -73,19 +73,17 @@ export default createPlugin({
               };
 
               // Publish to all subscribers
-              yield* Effect.tryPromise(() =>
-                publisher.publish('background-updates', event)
-              ).pipe(
+              yield* Effect.tryPromise(() => publisher.publish("background-updates", event)).pipe(
                 Effect.catchAll((error) => {
                   console.log(`[TemplatePlugin] Publish failed for event ${i}:`, error);
                   return Effect.void;
-                })
+                }),
               );
 
               // Wait before next poll
               yield* Effect.sleep(`${config.variables.backgroundIntervalMs} millis`);
             }
-          })
+          }),
         );
       }
 
@@ -102,30 +100,26 @@ export default createPlugin({
     // Middleware for authentication
     const requireAuth = builder.middleware(async ({ context, next }) => {
       if (!context.userId) {
-        throw new ORPCError('UNAUTHORIZED', { message: 'User ID required' });
+        throw new ORPCError("UNAUTHORIZED", { message: "User ID required" });
       }
       return next({ context: { ...context, userId: context.userId } });
     });
 
     return {
-      getById: builder.getById
-        .use(requireAuth)
-        .handler(async ({ input, context }) => {
-          try {
-            const item = await Effect.runPromise(service.getById(input.id));
-            return { item, userId: context.userId };
-          } catch (error) {
-            if (error instanceof Error && error.message.includes('Item not found')) {
-              throw new ORPCError('NOT_FOUND', { message: 'Failed to fetch item: Item not found' });
-            }
-            throw error;
+      getById: builder.getById.use(requireAuth).handler(async ({ input, context }) => {
+        try {
+          const item = await Effect.runPromise(service.getById(input.id));
+          return { item, userId: context.userId };
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("Item not found")) {
+            throw new ORPCError("NOT_FOUND", { message: "Failed to fetch item: Item not found" });
           }
-        }),
+          throw error;
+        }
+      }),
 
       search: builder.search.handler(async function* ({ input }) {
-        const generator = await Effect.runPromise(
-          service.search(input.query, input.limit)
-        );
+        const generator = await Effect.runPromise(service.search(input.query, input.limit));
 
         for await (const result of generator) {
           yield result;
@@ -137,10 +131,14 @@ export default createPlugin({
       }),
 
       // Background streaming with resume support
-      listenBackground: builder.listenBackground.handler(async function* ({ input, signal, lastEventId }) {
+      listenBackground: builder.listenBackground.handler(async function* ({
+        input,
+        signal,
+        lastEventId,
+      }) {
         let count = 0;
         const maxResults = input.maxResults;
-        const iterator = publisher.subscribe('background-updates', { signal, lastEventId });
+        const iterator = publisher.subscribe("background-updates", { signal, lastEventId });
 
         for await (const event of iterator) {
           if (maxResults && count >= maxResults) break;
@@ -164,9 +162,9 @@ export default createPlugin({
           timestamp: Date.now(),
         };
 
-        await publisher.publish('background-updates', event);
+        await publisher.publish("background-updates", event);
         return { ok: true };
       }),
     };
-  }
+  },
 });

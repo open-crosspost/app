@@ -43,12 +43,7 @@ export const authClient: ReturnType<typeof createAuthClient> = new Proxy(
   {
     get(_target, prop) {
       if (prop === "then") return undefined;
-      const client = getAuthClient() as unknown as Record<string, unknown>;
-      const value = client[prop as string];
-      if (typeof value === "function") {
-        return (...args: unknown[]) => (value as (...a: unknown[]) => unknown)(...args);
-      }
-      return value;
+      return Reflect.get(getAuthClient() as object, prop);
     },
   },
 );

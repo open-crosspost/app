@@ -19,6 +19,7 @@ import { createRequestContext } from "./services/context";
 import { type Database, DatabaseService } from "./services/database";
 import { loadRouterModule, type RouterModule } from "./services/federation.server";
 import { createAggregateApiClient, type PluginResult, PluginsService } from "./services/plugins";
+import { createRouterMounts } from "./services/router";
 import { installSsrApiClientGlobal, runWithSsrApiClient } from "./services/ssr-api-client";
 import { logger } from "./utils/logger";
 
@@ -384,14 +385,8 @@ function setupApiRoutes(
     app.all(`${rpcPath}/*`, (c: Context) => handleOrpc(c, rpcHandler, rpcPath));
   };
 
-  if (plugins.api?.router) {
-    mountRouter(plugins.api.router, "", plugins.api.name);
-  }
-
-  for (const [key, plugin] of Object.entries(plugins.plugins)) {
-    if (key === "api") continue;
-    if (!plugin.router) continue;
-    mountRouter(plugin.router, `/plugins/${encodeURIComponent(key)}`, plugin.name);
+  for (const mount of createRouterMounts(plugins)) {
+    mountRouter(mount.router, mount.suffix, mount.title);
   }
 
   app.on(["POST", "GET"], "/api/auth/*", (c: Context) => auth.handler(c.req.raw));
