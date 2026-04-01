@@ -1,6 +1,6 @@
 import { type Context, Hono } from "hono";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
-import { proxyRequest } from "../../src/program";
+import { proxyRequest, setupApiRoutes } from "../../src/program";
 
 const createMockResponse = (body: string, status = 200, headers: Record<string, string> = {}) => {
   return new Response(body, {
@@ -253,6 +253,59 @@ describe("API Proxy", () => {
       const proxiedRequest = fetchMock.mock.calls[0][0] as Request;
       expect(proxiedRequest.url).toBe("https://production-api.example.com/api/rpc/getValue");
       expect(proxiedRequest.method).toBe("POST");
+    });
+  });
+
+  describe("setupApiRoutes auth route precedence", () => {
+    it("handles /api/auth before the generic API router", async () => {
+      const app = new Hono();
+      const authHandler = vi.fn(async () => new Response("auth ok", { status: 200 }));
+
+      const config = {
+        hostUrl: "http://localhost:3000",
+        api: {
+          name: "api",
+          url: "http://localhost:3014",
+          source: "local" as const,
+        },
+        ui: {
+          name: "ui",
+          url: "http://localhost:3002",
+          source: "local" as const,
+        },
+      } as any;
+
+      setupApiRoutes(
+        app,
+        config,
+        { handler: authHandler } as any,
+        {} as any,
+        {
+          runtime: null,
+          api: null,
+          plugins: {},
+          status: {
+            available: false,
+            pluginName: null,
+            error: null,
+            errorDetails: null,
+            loadedPlugins: [],
+          },
+        },
+        {
+          status: "ready",
+          startTime: Date.now(),
+          milestones: [],
+          error: null,
+          ssrEnabled: false,
+        },
+      );
+
+      const response = await app.fetch(new Request("http://localhost:3000/api/auth/session"));
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("auth ok");
+      expect(authHandler).toHaveBeenCalledTimes(1);
     });
   });
 

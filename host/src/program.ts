@@ -260,7 +260,7 @@ export async function proxyRequest(
   });
 }
 
-function setupApiRoutes(
+export function setupApiRoutes(
   app: Hono,
   config: RuntimeConfig,
   auth: Auth,
@@ -385,11 +385,11 @@ function setupApiRoutes(
     app.all(`${rpcPath}/*`, (c: Context) => handleOrpc(c, rpcHandler, rpcPath));
   };
 
+  app.on(["POST", "GET"], "/api/auth/*", (c: Context) => auth.handler(c.req.raw));
+
   for (const mount of createRouterMounts(plugins)) {
     mountRouter(mount.router, mount.suffix, mount.title);
   }
-
-  app.on(["POST", "GET"], "/api/auth/*", (c: Context) => auth.handler(c.req.raw));
 }
 
 export const createStartServer = (onReady?: () => void) =>
