@@ -41,7 +41,7 @@
         "@rspack/core": "^1.6.8",
         "@types/node": "catalog:",
         "dotenv": "^17.2.3",
-        "every-plugin": "0.9.0",
+        "every-plugin": "workspace:*",
         "everything-dev": "workspace:*",
         "vite-tsconfig-paths": "^5.1.4",
         "vitest": "catalog:",
@@ -198,7 +198,7 @@
         "@rspack/core": "^1.6.8",
         "@types/node": "catalog:",
         "dotenv": "^17.2.3",
-        "every-plugin": "0.9.0",
+        "every-plugin": "workspace:*",
         "everything-dev": "workspace:*",
         "vite-tsconfig-paths": "^5.1.4",
         "vitest": "catalog:",
@@ -280,6 +280,9 @@
         "react-dom": "catalog:",
       },
     },
+  },
+  "overrides": {
+    "axios": "1.13.6",
   },
   "catalog": {
     "@hot-labs/near-connect": "^0.11.0",

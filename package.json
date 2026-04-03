@@ -83,5 +83,8 @@
   "dependencies": {
     "@better-auth/api-key": "^1.5.4",
     "@better-auth/passkey": "^1.5.4"
+  },
+  "overrides": {
+    "axios": "1.13.6"
   }
 }
