@@ -74,24 +74,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, typecheck]
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: api
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    env:
-      API_DATABASE_URL: postgres://postgres:postgres@localhost:5432/api
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -108,14 +90,10 @@ jobs:
       - name: Run database migrations
         run: bun run db:migrate
         working-directory: ./api
-        env:
-          API_DATABASE_URL: postgres://postgres:postgres@localhost:5432/api
 
       - name: Run integration tests
         run: bun test
         working-directory: ./api
-        env:
-          API_DATABASE_URL: postgres://postgres:postgres@localhost:5432/api
 
       - name: Upload test results
         if: always()
