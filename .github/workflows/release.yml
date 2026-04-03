@@ -88,3 +88,16 @@ jobs:
         with:
           commit_message: "chore: update deployment URLs [skip ci]"
           file_pattern: bos.config.json
+
+      - name: Trigger Docker deployment
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Trigger Docker workflow after successful release
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docker.yml',
+              ref: 'main'
+            });
