@@ -26,7 +26,7 @@ function AccountAppsPage() {
   });
 
   const apps = accountQuery.data?.data ?? [];
-  const readyCount = apps.filter((app) => app.status === "ready").length;
+  const readyCount = apps.filter((app: (typeof apps)[number]) => app.status === "ready").length;
 
   return (
     <div className="space-y-8">
@@ -93,7 +93,7 @@ function AccountAppsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {apps.map((app) => (
+          {apps.map((app: RegistryAppsResult["data"][number]) => (
             <Card key={app.gatewayId}>
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-4">

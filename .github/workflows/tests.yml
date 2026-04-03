@@ -45,6 +45,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Build workspace packages
+        run: |
+          bun run --cwd packages/every-plugin build || true
+          bun run --cwd packages/everything-dev build || true
+
       - name: Run typecheck
         run: bun typecheck
 

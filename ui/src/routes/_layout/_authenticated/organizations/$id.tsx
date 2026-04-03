@@ -143,7 +143,7 @@ function OrganizationDetail() {
       setCreatedApiKey(data);
       queryClient.setQueryData<OrgApiKeysResult>(
         orgApiKeysQueryOptions(orgId).queryKey,
-        (current) => {
+        (current: OrgApiKeysResult | undefined) => {
           const nextKey = {
             id: data.id,
             name: data.name,
@@ -158,7 +158,7 @@ function OrganizationDetail() {
             return { keys: [nextKey] };
           }
 
-          if (current.keys.some((key) => key.id === data.id)) {
+          if (current.keys.some((key: OrgApiKeysResult["keys"][number]) => key.id === data.id)) {
             return current;
           }
 
@@ -188,14 +188,14 @@ function OrganizationDetail() {
 
       queryClient.setQueryData<OrgApiKeysResult>(
         orgApiKeysQueryOptions(orgId).queryKey,
-        (current) => {
+        (current: OrgApiKeysResult | undefined) => {
           if (!current) {
             return current;
           }
 
           return {
             ...current,
-            keys: current.keys.filter((key) => key.id !== keyId),
+            keys: current.keys.filter((key: OrgApiKeysResult["keys"][number]) => key.id !== keyId),
           };
         },
       );
@@ -428,7 +428,7 @@ function OrganizationDetail() {
           <LoadingCard label="Loading members..." />
         ) : members.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {members.map((member) => (
+            {members.map((member: OrgMembersResult["members"][number]) => (
               <Card key={member.id}>
                 <CardContent className="p-5 space-y-2">
                   <div className="flex items-center justify-between gap-3">
@@ -455,7 +455,7 @@ function OrganizationDetail() {
           <LoadingCard label="Loading invitations..." />
         ) : invitations.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {invitations.map((invitation) => (
+            {invitations.map((invitation: OrgInvitationsResult["invitations"][number]) => (
               <Card key={invitation.id}>
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -492,7 +492,7 @@ function OrganizationDetail() {
           <LoadingCard label="Loading api keys..." />
         ) : apiKeys.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {apiKeys.map((key) => (
+            {apiKeys.map((key: OrgApiKeysResult["keys"][number]) => (
               <Card key={key.id}>
                 <CardContent className="p-5 space-y-3">
                   <div className="space-y-1">

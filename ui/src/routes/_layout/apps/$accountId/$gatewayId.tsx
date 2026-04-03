@@ -419,7 +419,7 @@ function AppDetailPage() {
             <div className="text-sm text-muted-foreground">Loading projects...</div>
           ) : projectsQuery.data?.data && projectsQuery.data.data.length > 0 ? (
             <div className="space-y-3">
-              {projectsQuery.data.data.map((project) => (
+              {projectsQuery.data.data.map((project: (typeof projectsQuery.data.data)[number]) => (
                 <div
                   key={project.id}
                   className="rounded-sm border border-border bg-muted/10 p-4 flex items-start justify-between gap-4"

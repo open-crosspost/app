@@ -207,7 +207,7 @@ function ProjectDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {project.apps.map((app) => (
+                {project.apps.map((app: (typeof project.apps)[number]) => (
                   <div
                     key={app.id}
                     className="rounded-sm border border-border bg-muted/10 p-4 flex items-start justify-between gap-4"

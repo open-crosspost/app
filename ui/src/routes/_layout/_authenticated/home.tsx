@@ -290,7 +290,7 @@ function Home() {
 
         {projectsData && projectsData.data.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {projectsData.data.map((project) => (
+            {projectsData.data.map((project: ProjectsResult["data"][number]) => (
               <Card key={project.id}>
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-4">

@@ -176,7 +176,7 @@ function KeysList() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {keys.map((item, index) => (
+          {keys.map((item: (typeof keys)[number], index: number) => (
             <Card key={item.key}>
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
