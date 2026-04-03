@@ -1,8 +1,15 @@
 import { Effect } from "effect";
 import { syncApiContractBridge } from "./api-contract";
 import { buildRuntimeConfig, detectLocalPackages, prepareDevelopmentRuntimeConfig } from "./app";
-import { getProjectRoot, loadConfig, parsePort } from "./config";
 import {
+  getHostDevelopmentPort,
+  getProjectRoot,
+  loadConfig,
+  parsePort,
+  resolveDevelopmentHostUrl,
+} from "./config";
+import {
+  type BosConfigResult,
   type BuildOptions,
   bosContract,
   type DevOptions,
@@ -10,7 +17,11 @@ import {
   type StartOptions,
 } from "./contract";
 import { type AppConfig, type AppOrchestrator, startApp } from "./dev-session";
-import { fetchBosConfigFromFastKv, getRegistryNamespaceForAccount } from "./fastkv";
+import {
+  buildRegistryConfigUrlForNetwork,
+  fetchBosConfigFromFastKv,
+  getRegistryNamespaceForNetwork,
+} from "./fastkv";
 import { ensureNearCli, executeTransaction } from "./near-cli";
 import { getNetworkIdForAccount } from "./network";
 import { createPlugin, z } from "./plugin";
@@ -69,6 +80,17 @@ function buildDescription(config: AppConfig): string {
   if (config.proxy) parts.push("Proxy API → Production");
   else if (config.api === "remote") parts.push("Remote API");
   return parts.join(" + ");
+}
+
+function buildConfigResult(bosConfig: BosConfig | null): BosConfigResult {
+  const packages = bosConfig ? Object.keys(bosConfig.app) : [];
+  const remotes = packages.filter((name) => name !== "host");
+
+  return {
+    config: bosConfig,
+    packages,
+    remotes,
+  };
 }
 
 function determineProcesses(
@@ -199,7 +221,6 @@ function selectWorkspaceTargets(packages: string, bosConfig: BosConfig): string[
 
 async function buildWorkspaceTargets(opts: {
   configDir: string;
-  bosConfig: BosConfig;
   targets: string[];
   deploy: boolean;
 }): Promise<{ built: string[]; skipped: string[] }> {
@@ -234,6 +255,8 @@ async function buildWorkspaceTargets(opts: {
   };
   if (opts.deploy) {
     env.DEPLOY = "true";
+  } else {
+    delete env.DEPLOY;
   }
 
   const order = opts.deploy ? ["ui", "api", "host"] : existing;
@@ -271,6 +294,8 @@ export default createPlugin({
     }),
   shutdown: () => Effect.void,
   createRouter: (deps: BosDeps, builder: any) => ({
+    config: builder.config.handler(async () => buildConfigResult(deps.bosConfig)),
+
     dev: builder.dev.handler(async ({ input }: { input: DevOptions }) => {
       const localPackages = detectLocalPackages(
         deps.bosConfig ?? undefined,
@@ -325,7 +350,7 @@ export default createPlugin({
       );
       const processes = determineProcesses(appConfig, refreshedLocalPackages, deps.runtimeConfig);
       const env = await buildEnvVars(appConfig, deps.bosConfig);
-      const hostPort = input.port ?? parsePort(deps.bosConfig.app.host.development);
+      const hostPort = input.port ?? getHostDevelopmentPort(deps.bosConfig.app.host.development);
       const developmentRuntime = buildRuntimeConfig(deps.bosConfig, {
         uiSource: appConfig.ui,
         apiSource: appConfig.api,
@@ -385,7 +410,7 @@ export default createPlugin({
         };
       }
 
-      const port = input.port ?? parsePort(config.app.host.development);
+      const port = input.port ?? getHostDevelopmentPort(config.app.host.development);
       const appConfig: AppConfig = { host: "remote", ui: "remote", api: "remote" };
       const env = await buildEnvVars(appConfig, config);
       const runtimeConfig = buildRuntimeConfig(config, {
@@ -425,15 +450,15 @@ export default createPlugin({
     }),
 
     build: builder.build.handler(async ({ input }: { input: BuildOptions }) => {
-      const allPackages = deps.bosConfig ? Object.keys(deps.bosConfig.app) : [];
-      const targets =
-        input.packages === "all"
-          ? allPackages
-          : input.packages
-              .split(",")
-              .map((pkg: string) => pkg.trim())
-              .filter((pkg: string) => allPackages.includes(pkg));
+      if (!deps.bosConfig) {
+        return {
+          status: "error" as const,
+          built: [],
+          skipped: [],
+        };
+      }
 
+      const targets = selectWorkspaceTargets(input.packages, deps.bosConfig);
       if (targets.length === 0) {
         return {
           status: "error" as const,
@@ -442,67 +467,32 @@ export default createPlugin({
         };
       }
 
-      const sharedSync = await syncAndGenerateSharedUi({
-        configDir: deps.configDir,
-        hostMode: "local",
+      const runtimeConfig = buildRuntimeConfig(deps.bosConfig, {
+        uiSource: deps.bosConfig.app.ui?.development ? "local" : "remote",
+        apiSource: deps.bosConfig.app.api?.development ? "local" : "remote",
+        hostUrl: resolveDevelopmentHostUrl(deps.bosConfig.app.host.development),
+        env: "development",
+        plugins: deps.runtimeConfig?.plugins,
       });
-      if (sharedSync.catalogChanged) {
-        await run("bun", ["install"], { cwd: deps.configDir });
-      }
 
-      if (deps.bosConfig) {
-        const runtimeConfig = buildRuntimeConfig(deps.bosConfig, {
-          uiSource: deps.bosConfig.app.ui?.development ? "local" : "remote",
-          apiSource: deps.bosConfig.app.api?.development ? "local" : "remote",
-          hostUrl: deps.bosConfig.app.host.development,
-          env: "development",
-          plugins: deps.runtimeConfig?.plugins,
-        });
+      await syncApiContractBridge({
+        configDir: deps.configDir,
+        runtimeConfig,
+        apiBaseUrl: runtimeConfig.api.url,
+      });
 
-        await syncApiContractBridge({
-          configDir: deps.configDir,
-          runtimeConfig,
-          apiBaseUrl: runtimeConfig.api.url,
-        });
-      }
+      const { built, skipped } = await buildWorkspaceTargets({
+        configDir: deps.configDir,
+        targets,
+        deploy: input.deploy,
+      });
 
-      const existing: string[] = [];
-      const skipped: string[] = [];
-      for (const target of targets) {
-        const exists = await Bun.file(`${deps.configDir}/${target}/package.json`).exists();
-        if (exists) existing.push(target);
-        else skipped.push(target);
-      }
-
-      if (existing.length === 0) {
+      if (built.length === 0) {
         return {
           status: "error" as const,
           built: [],
           skipped,
         };
-      }
-
-      if (existing.includes("api")) {
-        await run("bun", ["run", "--cwd", "packages/every-plugin", "build"], {
-          cwd: deps.configDir,
-        });
-      }
-
-      const env: Record<string, string> = {
-        ...(process.env as Record<string, string>),
-        NODE_ENV: input.deploy ? "production" : "development",
-      };
-      if (input.deploy) env.DEPLOY = "true";
-
-      const built: string[] = [];
-      for (const target of existing) {
-        const buildConfig = buildCommands[target];
-        if (!buildConfig) continue;
-        await run(buildConfig.cmd, buildConfig.args, {
-          cwd: `${deps.configDir}/${target}`,
-          env,
-        });
-        built.push(target);
       }
 
       return {
@@ -512,5 +502,124 @@ export default createPlugin({
         deployed: input.deploy,
       };
     }),
+
+    publish: builder.publish.handler(async ({ input }: { input: PublishOptions }) => {
+      if (!deps.bosConfig) {
+        return {
+          status: "error" as const,
+          registryUrl: "",
+          error: "No bos.config.json found",
+        };
+      }
+
+      const account = deps.bosConfig.account;
+      const gateway = deps.bosConfig.domain;
+      if (!gateway) {
+        return {
+          status: "error" as const,
+          registryUrl: "",
+          error: "bos.config.json must define domain to publish",
+        };
+      }
+
+      const network = input.network ?? getNetworkIdForAccount(account);
+      const bosUrl = `bos://${account}/${gateway}`;
+      const registryUrl = buildRegistryConfigUrlForNetwork(network, account, gateway);
+      const targets = selectWorkspaceTargets(input.packages, deps.bosConfig);
+
+      let publishConfig = deps.bosConfig;
+      let built: string[] | undefined;
+      let skipped: string[] | undefined;
+
+      if (input.dryRun) {
+        return {
+          status: "dry-run" as const,
+          registryUrl,
+          built,
+          skipped,
+        };
+      }
+
+      if (input.deploy) {
+        const result = await buildWorkspaceTargets({
+          configDir: deps.configDir,
+          targets,
+          deploy: true,
+        });
+        built = result.built;
+        skipped = result.skipped;
+
+        const refreshed = await loadConfig({ cwd: deps.configDir });
+        if (refreshed?.config) {
+          deps.bosConfig = refreshed.config;
+          deps.runtimeConfig = refreshed.runtime;
+          publishConfig = refreshed.config;
+        }
+      }
+
+      const payload = JSON.stringify({
+        [`apps/${account}/${gateway}/bos.config.json`]: JSON.stringify(publishConfig),
+      });
+      const argsBase64 = Buffer.from(payload).toString("base64");
+      const privateKey =
+        input.privateKey || process.env.NEAR_PRIVATE_KEY || process.env.BOS_NEAR_PRIVATE_KEY;
+
+      try {
+        await Effect.runPromise(ensureNearCli);
+        let txHash: string | undefined;
+
+        try {
+          const tx = await Effect.runPromise(
+            executeTransaction({
+              account,
+              contract: getRegistryNamespaceForNetwork(network),
+              method: "__fastdata_kv",
+              argsBase64,
+              network,
+              privateKey,
+              gas: "300Tgas",
+              deposit: "0NEAR",
+            }),
+          );
+          txHash = tx.txHash;
+        } catch (error) {
+          txHash = extractTransactionHash(error);
+
+          if (!txHash) {
+            throw error;
+          }
+
+          const verifiedConfig = await fetchBosConfigFromFastKv<BosConfig>(bosUrl);
+          if (JSON.stringify(verifiedConfig) !== JSON.stringify(publishConfig)) {
+            throw error;
+          }
+        }
+
+        return {
+          status: "published" as const,
+          registryUrl,
+          txHash,
+          built,
+          skipped,
+        };
+      } catch (error) {
+        return {
+          status: "error" as const,
+          registryUrl,
+          error: error instanceof Error ? error.message : "Unknown error",
+          built,
+          skipped,
+        };
+      }
+    }),
   }),
 });
+
+function extractTransactionHash(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const match =
+    message.match(/Transaction ID:\s*([A-Za-z0-9]+)/i) ||
+    message.match(/([A-HJ-NP-Za-km-z1-9]{43,44})/);
+
+  return match?.[1];
+}

@@ -10,20 +10,21 @@
   "app": {
     "host": {
       "name": "host",
-      "development": "http://localhost:3000",
-      "production": "https://elliot-braem-2352-host-monorepo-elliot-braem-2dc683f6d-ze.zephyrcloud.app"
+      "development": "local:host",
+      "production": "https://elliot-braem-2522-host-everything-dev-nearbuilder-1964c6251-ze.zephyrcloud.app"
     },
     "ui": {
       "name": "ui",
       "development": "local:ui",
-      "production": "https://elliot-braem-2463-ui-everything-dev-nearbuilders-a8f046d76-ze.zephyrcloud.app",
-      "ssr": "https://elliot-braem-2464-ui-everything-dev-nearbuilders-cc2d0e459-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2519-ui-everything-dev-nearbuilders-f79ad27b9-ze.zephyrcloud.app",
+      "ssr": "https://elliot-braem-2520-ui-everything-dev-nearbuilders-c208b4693-ze.zephyrcloud.app"
     },
     "api": {
       "name": "api",
       "development": "local:api",
       "variables": {},
-      "secrets": []
+      "secrets": [],
+      "production": "https://elliot-braem-2521-api-everything-dev-nearbuilders-34883a04e-ze.zephyrcloud.app"
     }
   },
   "testnet": "dev.allthethings.testnet"

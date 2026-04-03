@@ -43,14 +43,6 @@ export function buildPublishedGatewayHref(accountId: string, gatewayId: string) 
   return `${buildPublishedAccountHref(accountId)}/${encodeURIComponent(gatewayId)}`;
 }
 
-export function buildPublishedGatewayRunHref(accountId: string, gatewayId: string) {
-  return `${buildPublishedGatewayHref(accountId, gatewayId)}/run`;
-}
-
-export function buildHostRuntimeHref(accountId: string, gatewayId: string) {
-  return `/_runtime/${encodeURIComponent(accountId)}/${encodeURIComponent(gatewayId)}`;
-}
-
 export function getAssetsUrl(config?: Partial<ClientRuntimeConfig>): string {
   const cfg = config ?? getRuntimeConfig();
   return cfg?.assetsUrl ?? "";

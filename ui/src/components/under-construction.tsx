@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { getRepository } from "@/app";
+import underConstructionImage from "@/assets/under-construction.gif";
 import {
   ClassicTooltipContent,
   Tooltip,
@@ -50,9 +51,13 @@ export function UnderConstruction({
               style={{ cursor: "pointer" }}
               onClick={handleClick}
               aria-label={
-                label
-                  ? `${label} under construction - view source`
-                  : "under construction - view source"
+                skipNavigation
+                  ? label
+                    ? `${label} under construction`
+                    : "under construction"
+                  : label
+                    ? `${label} under construction - view source`
+                    : "under construction - view source"
               }
             >
               <motion.div
@@ -85,7 +90,7 @@ export function UnderConstruction({
                 style={{ transformStyle: "preserve-3d" }}
               >
                 <img
-                  src="https://ipfs.near.social/ipfs/bafkreidhy7zo33wqjxhqsv2dd6dp2wzloitaa4lmj3rzq5zvcdtp2smeaa"
+                  src={underConstructionImage}
                   alt={label ? `${label} under construction` : "under construction"}
                   className="w-full h-auto rounded-xl border border-border object-cover shadow-lg"
                 />
@@ -93,12 +98,14 @@ export function UnderConstruction({
             </button>
           </div>
         </TooltipTrigger>
-        <ClassicTooltipContent side="top">
-          <span className="flex items-center gap-1.5">
-            see code and contribute
-            <ExternalLink className="w-3 h-3" />
-          </span>
-        </ClassicTooltipContent>
+        {!skipNavigation && (
+          <ClassicTooltipContent side="top">
+            <span className="flex items-center gap-1.5">
+              see code and contribute
+              <ExternalLink className="w-3 h-3" />
+            </span>
+          </ClassicTooltipContent>
+        )}
       </Tooltip>
     </TooltipProvider>
   );

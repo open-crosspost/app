@@ -2,7 +2,7 @@
 
 The `bos.config.json` file is the single source of truth for all runtime configuration.
 
-## Schema (from `demo/cli/src/types.ts`)
+## Schema (from `packages/everything-dev/src/types.ts`)
 
 ```typescript
 interface BosConfig {

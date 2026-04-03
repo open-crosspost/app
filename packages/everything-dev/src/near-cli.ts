@@ -79,6 +79,11 @@ export const ensureNearCli = Effect.gen(function* () {
   const isInstalled = yield* checkNearCliInstalled;
   if (isInstalled) return;
 
+  if (process.env.BOS_INSTALL_NEAR_CLI === "true") {
+    yield* installNearCli;
+    return;
+  }
+
   console.log();
   console.log("  NEAR CLI not found");
 
@@ -86,8 +91,6 @@ export const ensureNearCli = Effect.gen(function* () {
   console.log(`  To install manually: curl --proto '=https' --tlsv1.2 -LsSf ${INSTALLER_URL} | sh`);
   console.log();
   yield* Effect.fail(new NearCliNotFoundError());
-
-  yield* installNearCli;
 });
 
 export const executeTransaction = (
@@ -140,11 +143,19 @@ export const executeTransaction = (
           proc.stderr?.on("data", (data) => {
             const text = data.toString();
             stderr += text;
-            process.stderr.write(text);
           });
 
           proc.on("close", (code) => {
-            if (code === 0) resolve(stdout);
+            const combined = `${stdout}\n${stderr}`;
+            const txHashMatch =
+              combined.match(/Transaction ID:\s*([A-Za-z0-9]+)/i) ||
+              combined.match(/([A-HJ-NP-Za-km-z1-9]{43,44})/);
+            const softSuccess =
+              Boolean(txHashMatch?.[1]) &&
+              /CodeDoesNotExist/i.test(combined) &&
+              /Transaction failed/i.test(combined);
+
+            if (code === 0 || softSuccess) resolve(combined);
             else reject(new NearTransactionError(stderr || `Transaction failed with code ${code}`));
           });
 

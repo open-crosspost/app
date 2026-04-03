@@ -21,8 +21,8 @@ interface FastKvListResponse {
 const FASTKV_TIMEOUT_MS = 10_000;
 
 export const FASTKV_REGISTRY_NAMESPACE: Record<NetworkId, string> = {
-  mainnet: process.env.REGISTRY_FASTKV_MAINNET_NAMESPACE || "registry.everything.near",
-  testnet: process.env.REGISTRY_FASTKV_TESTNET_NAMESPACE || "registry.everything.testnet",
+  mainnet: process.env.REGISTRY_FASTKV_MAINNET_NAMESPACE || "dev.everything.near",
+  testnet: process.env.REGISTRY_FASTKV_TESTNET_NAMESPACE || "dev.everything.near",
 };
 
 export function getNetworkIdForAccount(accountId: string): NetworkId {

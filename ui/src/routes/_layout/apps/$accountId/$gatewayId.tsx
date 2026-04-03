@@ -3,12 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  apiClient,
-  authClient,
-  buildPublishedAccountHref,
-  buildPublishedGatewayRunHref,
-} from "@/app";
+import { apiClient, authClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 import { Input } from "@/components/ui/input";
 import { sessionQueryOptions } from "@/lib/session";
@@ -230,7 +225,7 @@ function AppDetailPage() {
         <CardContent className="p-8 text-center space-y-3">
           <p className="text-sm">This published runtime could not be resolved.</p>
           <Button asChild variant="outline" size="sm">
-            <a href="/apps">back to apps</a>
+            <Link to="/apps">back to apps</Link>
           </Button>
         </CardContent>
       </Card>
@@ -241,16 +236,17 @@ function AppDetailPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <a href="/apps" className="hover:text-foreground transition-colors">
+          <Link to="/apps" className="hover:text-foreground transition-colors">
             apps
-          </a>
+          </Link>
           <span>/</span>
-          <a
-            href={buildPublishedAccountHref(accountId)}
+          <Link
+            to="/_layout/apps/$accountId"
+            params={{ accountId }}
             className="hover:text-foreground transition-colors"
           >
             {accountId}
-          </a>
+          </Link>
           <span>/</span>
           <span>{gatewayId}</span>
         </div>
@@ -280,11 +276,6 @@ function AppDetailPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {app.hostUrl && (
-                  <Button asChild size="sm">
-                    <a href={buildPublishedGatewayRunHref(accountId, gatewayId)}>run in host</a>
-                  </Button>
-                )}
                 {app.openUrl && (
                   <Button asChild variant="outline" size="sm">
                     <a href={app.openUrl} target="_blank" rel="noreferrer">
@@ -294,7 +285,7 @@ function AppDetailPage() {
                 )}
                 <Button asChild variant="outline" size="sm">
                   <a href={app.canonicalConfigUrl} target="_blank" rel="noreferrer">
-                    view config
+                    view FastKV config
                   </a>
                 </Button>
                 <Button
@@ -380,8 +371,8 @@ function AppDetailPage() {
           <div className="space-y-1">
             <h2 className="text-lg font-semibold tracking-tight">Resolved Config</h2>
             <p className="text-sm text-muted-foreground">
-              The live resolved <code>bos.config.json</code> for this app, fetched from the NEAR
-              Social smart contract and merged with any inherited values.
+              The live resolved <code>bos.config.json</code> for this app, fetched from FastKV and
+              merged with any inherited values.
             </p>
           </div>
           <pre className="overflow-x-auto text-xs leading-relaxed text-muted-foreground font-mono whitespace-pre rounded-sm border border-border bg-muted/10 p-4">

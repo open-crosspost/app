@@ -1,6 +1,6 @@
 import { createConnection } from "node:net";
 import { Deferred, Effect, Fiber, Ref } from "effect";
-import { getProjectRoot, parsePort } from "./config";
+import { getHostDevelopmentPort, getProjectRoot, parsePort } from "./config";
 import { patchManifestFetchForSsrPublicPath } from "./mf";
 import type { ProcessRegistry } from "./process-registry";
 import type { BosConfig, RuntimeConfig } from "./types";
@@ -123,7 +123,7 @@ export function getProcessConfig(
       (runtimeConfig?.hostUrl
         ? parsePort(runtimeConfig.hostUrl)
         : bosConfig
-          ? parsePort(bosConfig.app.host.development)
+          ? getHostDevelopmentPort(bosConfig.app.host.development)
           : 3000);
   } else if (pkg === "ui") {
     port =
@@ -444,10 +444,9 @@ export const spawnDevProcess = (
     // Prefer probe-based readiness to avoid brittle log regexes.
     // This is best-effort and complements log detection.
     if (config.port > 0) {
-      const url =
-        config.name === "ui-ssr"
-          ? `http://127.0.0.1:${config.port}/`
-          : `http://127.0.0.1:${config.port}/remoteEntry.js`;
+      const readinessPath =
+        config.name === "host" ? "/health" : config.name === "ui-ssr" ? "/" : "/remoteEntry.js";
+      const url = `http://127.0.0.1:${config.port}${readinessPath}`;
 
       yield* Effect.fork(
         Effect.gen(function* () {

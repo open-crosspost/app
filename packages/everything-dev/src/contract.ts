@@ -1,5 +1,5 @@
 import { oc, z } from "./plugin";
-import { SourceModeSchema } from "./types";
+import { BosConfigSchema, SourceModeSchema } from "./types";
 
 export const DevOptionsSchema = z.object({
   host: SourceModeSchema.default("local"),
@@ -42,6 +42,12 @@ export const BuildResultSchema = z.object({
   deployed: z.boolean().optional(),
 });
 
+export const ConfigResultSchema = z.object({
+  config: BosConfigSchema.nullable(),
+  packages: z.array(z.string()),
+  remotes: z.array(z.string()),
+});
+
 export const PublishOptionsSchema = z.object({
   deploy: z.boolean().default(false),
   dryRun: z.boolean().default(false),
@@ -69,6 +75,7 @@ export const bosContract = oc.router({
     .route({ method: "POST", path: "/build" })
     .input(BuildOptionsSchema)
     .output(BuildResultSchema),
+  config: oc.route({ method: "GET", path: "/config" }).output(ConfigResultSchema),
   publish: oc
     .route({ method: "POST", path: "/publish" })
     .input(PublishOptionsSchema)
@@ -78,4 +85,5 @@ export const bosContract = oc.router({
 export type DevOptions = z.infer<typeof DevOptionsSchema>;
 export type StartOptions = z.infer<typeof StartOptionsSchema>;
 export type BuildOptions = z.infer<typeof BuildOptionsSchema>;
+export type BosConfigResult = z.infer<typeof ConfigResultSchema>;
 export type PublishOptions = z.infer<typeof PublishOptionsSchema>;

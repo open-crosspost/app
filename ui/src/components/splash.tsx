@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { APP_NAME, TITLE_TEXT_SHADOW } from "@/lib/branding";
 import { UnderConstruction } from "./under-construction";
 
 interface SplashProps {
@@ -43,11 +44,9 @@ export function Splash({ visible, onDismiss }: SplashProps) {
           >
             <h1
               className="text-[3.2em] leading-[1.1] font-semibold tracking-tight"
-              style={{
-                textShadow: "rgba(0,0,0,0.08) 1px 1px 1px, rgba(0,0,0,0.06) 3px 3px 3px",
-              }}
+              style={{ textShadow: TITLE_TEXT_SHADOW }}
             >
-              everything.dev
+              {APP_NAME}
             </h1>
             <UnderConstruction
               label="splash"

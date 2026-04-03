@@ -7,6 +7,7 @@ import { findConfigPath, loadConfig } from "./config";
 import { readDevLatestLog } from "./dev-logs";
 import { createPluginRuntime } from "./plugin";
 import { printBanner } from "./utils/banner";
+import { colors, frames, gradients, icons } from "./utils/theme";
 
 function readFlag(args: string[], name: string, short?: string): string | undefined {
   const index = args.findIndex((arg) => arg === name || (short ? arg === short : false));
@@ -41,6 +42,26 @@ function updateBosConfig(
   return next;
 }
 
+function printConfigView(result: {
+  account: string;
+  domain?: string;
+  app: {
+    host: { name?: string; development: string; production?: string };
+    ui: { name?: string; development?: string; production?: string; ssr?: string };
+    api: { name?: string; development?: string; production?: string; proxy?: string };
+  };
+}) {
+  console.log();
+  console.log(colors.cyan(frames.top(52)));
+  console.log(`  ${icons.app} ${gradients.cyber("CONFIG")}`);
+  console.log(colors.cyan(frames.bottom(52)));
+  console.log();
+
+  console.log(`  ${colors.dim("Account")}  ${colors.cyan(result.account)}`);
+  console.log(`  ${colors.dim("Domain")}   ${colors.white(result.domain ?? "not configured")}`);
+  console.log();
+}
+
 function printHelp() {
   process.stdout.write(`everything-dev commands\n\n`);
   process.stdout.write(
@@ -49,7 +70,11 @@ function printHelp() {
   process.stdout.write(
     `  everything-dev start [--account <account>] [--domain <domain>] [--port <port>] [--no-interactive]\n`,
   );
+  process.stdout.write(`  everything-dev config\n`);
   process.stdout.write(`  everything-dev build [all|host|ui|api] [--force] [--deploy]\n`);
+  process.stdout.write(
+    `  everything-dev publish [--deploy] [--dry-run] [--packages all|host,ui,api] [--network mainnet|testnet] [--private-key <key>]\n`,
+  );
   process.stdout.write(`  everything-dev add plugin <bos://account/gateway/plugins/pluginId>\n`);
   process.stdout.write(`  everything-dev logs [--tail <count>]\n\n`);
   process.stdout.write(`  everything-dev types sync\n\n`);
@@ -147,6 +172,19 @@ async function main() {
 
   const client = plugin.createClient();
 
+  if (command === "config") {
+    const result = await client.config({});
+
+    if (!result.config) {
+      console.error("No bos.config.json found");
+      process.exit(1);
+    }
+
+    printConfigView(result.config);
+    process.stdout.write(`${JSON.stringify(result.config, null, 2)}\n`);
+    return;
+  }
+
   if (command === "dev") {
     const result = await client.dev({
       host: (readFlag(args, "--host") as "local" | "remote" | undefined) ?? "local",
@@ -178,6 +216,18 @@ async function main() {
       packages: pkgArg,
       force: hasFlag(args, "--force"),
       deploy: hasFlag(args, "--deploy"),
+    });
+    if (result.status === "error") process.exit(1);
+    return;
+  }
+
+  if (command === "publish") {
+    const result = await client.publish({
+      deploy: hasFlag(args, "--deploy"),
+      dryRun: hasFlag(args, "--dry-run"),
+      packages: readFlag(args, "--packages") ?? "all",
+      network: (readFlag(args, "--network") as "mainnet" | "testnet" | undefined) ?? undefined,
+      privateKey: readFlag(args, "--private-key"),
     });
     if (result.status === "error") process.exit(1);
     return;

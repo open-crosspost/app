@@ -25,13 +25,11 @@ import { Route as LayoutAuthenticatedHomeRouteImport } from './routes/_layout/_a
 import { Route as LayoutAuthenticatedAdminRouteImport } from './routes/_layout/_authenticated/_admin'
 import { Route as LayoutAuthenticatedOrganizationsIndexRouteImport } from './routes/_layout/_authenticated/organizations/index'
 import { Route as LayoutAuthenticatedKeysIndexRouteImport } from './routes/_layout/_authenticated/keys/index'
-import { Route as LayoutAppsAccountIdRunRouteImport } from './routes/_layout/apps/$accountId/run'
 import { Route as LayoutAppsAccountIdGatewayIdRouteImport } from './routes/_layout/apps/$accountId/$gatewayId'
 import { Route as LayoutAuthenticatedOrganizationsNewRouteImport } from './routes/_layout/_authenticated/organizations/new'
 import { Route as LayoutAuthenticatedOrganizationsIdRouteImport } from './routes/_layout/_authenticated/organizations/$id'
 import { Route as LayoutAuthenticatedKeysKeyRouteImport } from './routes/_layout/_authenticated/keys/$key'
 import { Route as LayoutAuthenticatedAdminDashboardRouteImport } from './routes/_layout/_authenticated/_admin/dashboard'
-import { Route as LayoutAppsAccountIdGatewayIdRunRouteImport } from './routes/_layout/apps/$accountId/$gatewayId/run'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -115,11 +113,6 @@ const LayoutAuthenticatedKeysIndexRoute =
     path: '/keys/',
     getParentRoute: () => LayoutAuthenticatedRoute,
   } as any)
-const LayoutAppsAccountIdRunRoute = LayoutAppsAccountIdRunRouteImport.update({
-  id: '/run',
-  path: '/run',
-  getParentRoute: () => LayoutAppsAccountIdRoute,
-} as any)
 const LayoutAppsAccountIdGatewayIdRoute =
   LayoutAppsAccountIdGatewayIdRouteImport.update({
     id: '/$gatewayId',
@@ -150,12 +143,6 @@ const LayoutAuthenticatedAdminDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => LayoutAuthenticatedAdminRoute,
   } as any)
-const LayoutAppsAccountIdGatewayIdRunRoute =
-  LayoutAppsAccountIdGatewayIdRunRouteImport.update({
-    id: '/run',
-    path: '/run',
-    getParentRoute: () => LayoutAppsAccountIdGatewayIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -173,11 +160,9 @@ export interface FileRoutesByFullPath {
   '/keys/$key': typeof LayoutAuthenticatedKeysKeyRoute
   '/organizations/$id': typeof LayoutAuthenticatedOrganizationsIdRoute
   '/organizations/new': typeof LayoutAuthenticatedOrganizationsNewRoute
-  '/apps/$accountId/$gatewayId': typeof LayoutAppsAccountIdGatewayIdRouteWithChildren
-  '/apps/$accountId/run': typeof LayoutAppsAccountIdRunRoute
+  '/apps/$accountId/$gatewayId': typeof LayoutAppsAccountIdGatewayIdRoute
   '/keys/': typeof LayoutAuthenticatedKeysIndexRoute
   '/organizations/': typeof LayoutAuthenticatedOrganizationsIndexRoute
-  '/apps/$accountId/$gatewayId/run': typeof LayoutAppsAccountIdGatewayIdRunRoute
 }
 export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
@@ -195,11 +180,9 @@ export interface FileRoutesByTo {
   '/keys/$key': typeof LayoutAuthenticatedKeysKeyRoute
   '/organizations/$id': typeof LayoutAuthenticatedOrganizationsIdRoute
   '/organizations/new': typeof LayoutAuthenticatedOrganizationsNewRoute
-  '/apps/$accountId/$gatewayId': typeof LayoutAppsAccountIdGatewayIdRouteWithChildren
-  '/apps/$accountId/run': typeof LayoutAppsAccountIdRunRoute
+  '/apps/$accountId/$gatewayId': typeof LayoutAppsAccountIdGatewayIdRoute
   '/keys': typeof LayoutAuthenticatedKeysIndexRoute
   '/organizations': typeof LayoutAuthenticatedOrganizationsIndexRoute
-  '/apps/$accountId/$gatewayId/run': typeof LayoutAppsAccountIdGatewayIdRunRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -221,11 +204,9 @@ export interface FileRoutesById {
   '/_layout/_authenticated/keys/$key': typeof LayoutAuthenticatedKeysKeyRoute
   '/_layout/_authenticated/organizations/$id': typeof LayoutAuthenticatedOrganizationsIdRoute
   '/_layout/_authenticated/organizations/new': typeof LayoutAuthenticatedOrganizationsNewRoute
-  '/_layout/apps/$accountId/$gatewayId': typeof LayoutAppsAccountIdGatewayIdRouteWithChildren
-  '/_layout/apps/$accountId/run': typeof LayoutAppsAccountIdRunRoute
+  '/_layout/apps/$accountId/$gatewayId': typeof LayoutAppsAccountIdGatewayIdRoute
   '/_layout/_authenticated/keys/': typeof LayoutAuthenticatedKeysIndexRoute
   '/_layout/_authenticated/organizations/': typeof LayoutAuthenticatedOrganizationsIndexRoute
-  '/_layout/apps/$accountId/$gatewayId/run': typeof LayoutAppsAccountIdGatewayIdRunRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -246,10 +227,8 @@ export interface FileRouteTypes {
     | '/organizations/$id'
     | '/organizations/new'
     | '/apps/$accountId/$gatewayId'
-    | '/apps/$accountId/run'
     | '/keys/'
     | '/organizations/'
-    | '/apps/$accountId/$gatewayId/run'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -268,10 +247,8 @@ export interface FileRouteTypes {
     | '/organizations/$id'
     | '/organizations/new'
     | '/apps/$accountId/$gatewayId'
-    | '/apps/$accountId/run'
     | '/keys'
     | '/organizations'
-    | '/apps/$accountId/$gatewayId/run'
   id:
     | '__root__'
     | '/_layout'
@@ -293,10 +270,8 @@ export interface FileRouteTypes {
     | '/_layout/_authenticated/organizations/$id'
     | '/_layout/_authenticated/organizations/new'
     | '/_layout/apps/$accountId/$gatewayId'
-    | '/_layout/apps/$accountId/run'
     | '/_layout/_authenticated/keys/'
     | '/_layout/_authenticated/organizations/'
-    | '/_layout/apps/$accountId/$gatewayId/run'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -418,13 +393,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthenticatedKeysIndexRouteImport
       parentRoute: typeof LayoutAuthenticatedRoute
     }
-    '/_layout/apps/$accountId/run': {
-      id: '/_layout/apps/$accountId/run'
-      path: '/run'
-      fullPath: '/apps/$accountId/run'
-      preLoaderRoute: typeof LayoutAppsAccountIdRunRouteImport
-      parentRoute: typeof LayoutAppsAccountIdRoute
-    }
     '/_layout/apps/$accountId/$gatewayId': {
       id: '/_layout/apps/$accountId/$gatewayId'
       path: '/$gatewayId'
@@ -459,13 +427,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof LayoutAuthenticatedAdminDashboardRouteImport
       parentRoute: typeof LayoutAuthenticatedAdminRoute
-    }
-    '/_layout/apps/$accountId/$gatewayId/run': {
-      id: '/_layout/apps/$accountId/$gatewayId/run'
-      path: '/run'
-      fullPath: '/apps/$accountId/$gatewayId/run'
-      preLoaderRoute: typeof LayoutAppsAccountIdGatewayIdRunRouteImport
-      parentRoute: typeof LayoutAppsAccountIdGatewayIdRoute
     }
   }
 }
@@ -513,29 +474,12 @@ const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
 const LayoutAuthenticatedRouteWithChildren =
   LayoutAuthenticatedRoute._addFileChildren(LayoutAuthenticatedRouteChildren)
 
-interface LayoutAppsAccountIdGatewayIdRouteChildren {
-  LayoutAppsAccountIdGatewayIdRunRoute: typeof LayoutAppsAccountIdGatewayIdRunRoute
-}
-
-const LayoutAppsAccountIdGatewayIdRouteChildren: LayoutAppsAccountIdGatewayIdRouteChildren =
-  {
-    LayoutAppsAccountIdGatewayIdRunRoute: LayoutAppsAccountIdGatewayIdRunRoute,
-  }
-
-const LayoutAppsAccountIdGatewayIdRouteWithChildren =
-  LayoutAppsAccountIdGatewayIdRoute._addFileChildren(
-    LayoutAppsAccountIdGatewayIdRouteChildren,
-  )
-
 interface LayoutAppsAccountIdRouteChildren {
-  LayoutAppsAccountIdGatewayIdRoute: typeof LayoutAppsAccountIdGatewayIdRouteWithChildren
-  LayoutAppsAccountIdRunRoute: typeof LayoutAppsAccountIdRunRoute
+  LayoutAppsAccountIdGatewayIdRoute: typeof LayoutAppsAccountIdGatewayIdRoute
 }
 
 const LayoutAppsAccountIdRouteChildren: LayoutAppsAccountIdRouteChildren = {
-  LayoutAppsAccountIdGatewayIdRoute:
-    LayoutAppsAccountIdGatewayIdRouteWithChildren,
-  LayoutAppsAccountIdRunRoute: LayoutAppsAccountIdRunRoute,
+  LayoutAppsAccountIdGatewayIdRoute: LayoutAppsAccountIdGatewayIdRoute,
 }
 
 const LayoutAppsAccountIdRouteWithChildren =

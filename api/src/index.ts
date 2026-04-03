@@ -252,19 +252,11 @@ export default createPlugin({
         return listRegistryApps(input);
       }),
 
-      getRegistryAppsByAccount: builder.getRegistryAppsByAccount.handler(
-        async ({ input, errors }) => {
-          const result = await getRegistryAppsByAccount(input.accountId);
-          if (result.data.length === 0) {
-            throw errors.NOT_FOUND({
-              message: "No published apps found for account",
-              data: { resource: "registry-account", resourceId: input.accountId },
-            });
-          }
+      getRegistryAppsByAccount: builder.getRegistryAppsByAccount.handler(async ({ input }) => {
+        const result = await getRegistryAppsByAccount(input.accountId);
 
-          return result;
-        },
-      ),
+        return result;
+      }),
 
       getRegistryApp: builder.getRegistryApp.handler(async ({ input, errors }) => {
         const result = await getRegistryApp(input.accountId, input.gatewayId);

@@ -71,6 +71,10 @@
       "types": "./src/ui/head.ts",
       "import": "./src/ui/head.ts"
     },
+    "./ui/metadata": {
+      "types": "./src/ui/metadata.ts",
+      "import": "./src/ui/metadata.ts"
+    },
     "./ui/router": {
       "types": "./src/ui/router.ts",
       "import": "./src/ui/router.ts"

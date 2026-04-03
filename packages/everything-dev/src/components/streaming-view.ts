@@ -4,6 +4,7 @@ import { colors, icons } from "../utils/theme";
 import type { ProcessState, ProcessStatus } from "./dev-view";
 
 const orange = chalk.hex("#ffaa00");
+const PLUGIN_PREFIX = "plugin:";
 
 export interface StreamingViewHandle {
   updateProcess: (name: string, status: ProcessStatus, message?: string) => void;
@@ -19,10 +20,35 @@ const getTimestamp = (): string => {
 const write = (text: string) => process.stdout.write(text + "\n");
 
 const getServiceColor = (name: string): ((s: string) => string) => {
+  if (name.startsWith(PLUGIN_PREFIX)) return orange;
   if (name === "host") return colors.cyan;
   if (name === "ui" || name === "ui-ssr") return colors.magenta;
   if (name === "api") return colors.blue;
   return colors.white;
+};
+
+const getDisplayName = (name: string): string => {
+  return name.startsWith(PLUGIN_PREFIX)
+    ? name.slice(PLUGIN_PREFIX.length).toUpperCase()
+    : name.toUpperCase();
+};
+
+const isPlugin = (name: string): boolean => name.startsWith(PLUGIN_PREFIX);
+
+const getSectionedProcesses = (processes: ProcessState[]) => {
+  const plugins = processes.filter((p) => isPlugin(p.name));
+  const services = processes.filter((p) => !isPlugin(p.name));
+  const sections: Array<{ key: string; title: string; processes: ProcessState[] }> = [];
+  if (plugins.length > 0) sections.push({ key: "plugins", title: "PLUGINS", processes: plugins });
+  if (services.length > 0)
+    sections.push({ key: "services", title: "SERVICES", processes: services });
+  return sections;
+};
+
+const getColumnWidths = (processes: ProcessState[]) => {
+  const name = Math.max(6, ...processes.map((p) => getDisplayName(p.name).length));
+  const source = Math.max(10, ...processes.map((p) => (p.source ? ` (${p.source})`.length : 0)));
+  return { name, source };
 };
 
 const getStatusIcon = (status: ProcessStatus): string => {
@@ -53,6 +79,8 @@ export function renderStreamingView(
   const hostProcess = initialProcesses.find((p) => p.name === "host");
   const hostPort = hostProcess?.port || 3000;
   const proxyTarget = env.API_PROXY;
+  const sectionedProcesses = getSectionedProcesses(initialProcesses);
+  const columnWidths = getColumnWidths(initialProcesses);
 
   console.log();
   console.log(colors.cyan(`${"─".repeat(52)}`));
@@ -65,12 +93,16 @@ export function renderStreamingView(
     console.log();
   }
 
-  for (const proc of initialProcesses) {
-    const color = getServiceColor(proc.name);
-    const sourceLabel = proc.source ? ` (${proc.source})` : "";
-    console.log(
-      `${colors.dim(`[${getTimestamp()}]`)} ${color(`[${proc.name.toUpperCase()}]`)}  ${icons.pending} waiting${sourceLabel}`,
-    );
+  for (const section of sectionedProcesses) {
+    console.log(colors.cyan(`  ${section.title}`));
+    for (const proc of section.processes) {
+      const color = getServiceColor(proc.name);
+      const sourceLabel = proc.source ? ` (${proc.source})` : "";
+      console.log(
+        `${colors.dim(`[${getTimestamp()}]`)} ${color(`[${getDisplayName(proc.name).padEnd(columnWidths.name)}]`)}  ${icons.pending} waiting${sourceLabel.padEnd(columnWidths.source)}`,
+      );
+    }
+    console.log();
   }
 
   const checkAllReady = () => {
@@ -96,6 +128,8 @@ export function renderStreamingView(
 
     const color = getServiceColor(name);
     const icon = getStatusIcon(status);
+    const displayName = getDisplayName(name).padEnd(columnWidths.name);
+    const sourceLabel = proc?.source ? ` (${proc.source})` : "";
     const statusText =
       status === "ready"
         ? "ready"
@@ -107,7 +141,7 @@ export function renderStreamingView(
     const portStr = proc.port > 0 && status === "ready" ? ` :${proc.port}` : "";
 
     write(
-      `${colors.dim(`[${getTimestamp()}]`)} ${color(`[${name.toUpperCase()}]`)}  ${status === "ready" ? colors.green(icon) : status === "error" ? colors.error(icon) : icon} ${statusText}${portStr}`,
+      `${colors.dim(`[${getTimestamp()}]`)} ${color(`[${displayName}]`)}  ${status === "ready" ? colors.green(icon) : status === "error" ? colors.error(icon) : icon} ${statusText}${sourceLabel.padEnd(columnWidths.source)}${portStr}`,
     );
 
     checkAllReady();

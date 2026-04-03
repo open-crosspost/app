@@ -3,7 +3,7 @@ import { kvStore } from "@/db/schema";
 import { getPluginClient, getTestDb, runMigrations, teardown } from "../setup";
 
 describe("API Integration", () => {
-  const testOwner = "test-user.near";
+  const testOwner = "test-user-123";
 
   beforeAll(async () => {
     await runMigrations();
@@ -31,7 +31,7 @@ describe("API Integration", () => {
 
   describe("kv operations", () => {
     it("sets and gets a value", async () => {
-      const client = await getPluginClient({ nearAccountId: testOwner });
+      const client = await getPluginClient({ userId: testOwner });
 
       const setResult = await client.setValue({ key: "test-key", value: "test-value" });
       expect(setResult.key).toBe("test-key");
@@ -45,7 +45,7 @@ describe("API Integration", () => {
     });
 
     it("updates an existing value", async () => {
-      const client = await getPluginClient({ nearAccountId: testOwner });
+      const client = await getPluginClient({ userId: testOwner });
 
       await client.setValue({ key: "update-key", value: "initial" });
       const result = await client.setValue({ key: "update-key", value: "updated" });
@@ -71,7 +71,7 @@ describe("API Integration", () => {
     });
 
     it("returns NOT_FOUND for missing key", async () => {
-      const client = await getPluginClient({ nearAccountId: testOwner });
+      const client = await getPluginClient({ userId: testOwner });
 
       await expect(client.getValue({ key: "missing-key" })).rejects.toMatchObject({
         code: "NOT_FOUND",

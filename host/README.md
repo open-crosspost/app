@@ -42,6 +42,8 @@ bos dev                 # Full local development
 bos start --no-interactive   # All remotes, production URLs
 ```
 
+For the temporary publish registry, use `bos publish` or `bos publish --deploy`.
+
 ## Configuration
 
 **bos.config.json**:
@@ -52,7 +54,7 @@ bos start --no-interactive   # All remotes, production URLs
     "host": {
       "title": "App Title",
       "description": "Description of the application",
-      "development": "http://localhost:3000",
+      "development": "local:host",
       "production": "https://example.zephyrcloud.app",
       "secrets": [
         "HOST_DATABASE_URL",

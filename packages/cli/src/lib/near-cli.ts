@@ -67,10 +67,14 @@ const installNearCli = Effect.gen(function* () {
   yield* Effect.tryPromise({
     try: async () => {
       return new Promise<void>((resolve, reject) => {
-        const proc = spawn("sh", ["-c", `curl --proto '=https' --tlsv1.2 -LsSf ${INSTALLER_URL} | sh`], {
-          stdio: "inherit",
-          shell: true,
-        });
+        const proc = spawn(
+          "sh",
+          ["-c", `curl --proto '=https' --tlsv1.2 -LsSf ${INSTALLER_URL} | sh`],
+          {
+            stdio: "inherit",
+            shell: true,
+          },
+        );
         proc.on("close", (code) => {
           if (code === 0) resolve();
           else reject(new NearCliInstallError(`Installer exited with code ${code}`));
@@ -96,10 +100,11 @@ export const ensureNearCli = Effect.gen(function* () {
   console.log(colors.error(`  ${icons.err} NEAR CLI not found`));
 
   const shouldInstall = yield* Effect.tryPromise({
-    try: () => confirm({
-      message: "Install NEAR CLI? (required for publishing)",
-      default: true,
-    }),
+    try: () =>
+      confirm({
+        message: "Install NEAR CLI? (required for publishing)",
+        default: true,
+      }),
     catch: () => new Error("Prompt cancelled"),
   });
 
@@ -128,7 +133,9 @@ export interface CreateSubaccountResult {
   error?: string;
 }
 
-export const createSubaccount = (config: CreateSubaccountConfig): Effect.Effect<CreateSubaccountResult, Error> =>
+export const createSubaccount = (
+  config: CreateSubaccountConfig,
+): Effect.Effect<CreateSubaccountResult, Error> =>
   Effect.gen(function* () {
     const balance = config.initialBalance || "0.1NEAR";
     const network = config.network;
@@ -203,7 +210,9 @@ export const createSubaccount = (config: CreateSubaccountConfig): Effect.Effect<
     };
   });
 
-export const executeTransaction = (config: TransactionConfig): Effect.Effect<TransactionResult, Error> =>
+export const executeTransaction = (
+  config: TransactionConfig,
+): Effect.Effect<TransactionResult, Error> =>
   Effect.gen(function* () {
     const gas = (config.gas || "300Tgas").replace(/\s+/g, "");
     const deposit = (config.deposit || "0NEAR").replace(/\s+/g, "");
@@ -258,12 +267,20 @@ export const executeTransaction = (config: TransactionConfig): Effect.Effect<Tra
           proc.stderr?.on("data", (data) => {
             const text = data.toString();
             stderr += text;
-            process.stderr.write(text);
           });
 
           proc.on("close", (code) => {
-            if (code === 0) {
-              resolve(stdout);
+            const combined = `${stdout}\n${stderr}`;
+            const txHashMatch =
+              combined.match(/Transaction ID:\s*([A-Za-z0-9]+)/i) ||
+              combined.match(/([A-HJ-NP-Za-km-z1-9]{43,44})/);
+            const softSuccess =
+              Boolean(txHashMatch?.[1]) &&
+              /CodeDoesNotExist/i.test(combined) &&
+              /Transaction failed/i.test(combined);
+
+            if (code === 0 || softSuccess) {
+              resolve(combined);
             } else {
               reject(new TransactionError(stderr || `Transaction failed with code ${code}`));
             }
@@ -277,7 +294,8 @@ export const executeTransaction = (config: TransactionConfig): Effect.Effect<Tra
       catch: (e) => e as Error,
     });
 
-    const txHashMatch = output.match(/Transaction ID:\s*([A-Za-z0-9]+)/i) ||
+    const txHashMatch =
+      output.match(/Transaction ID:\s*([A-Za-z0-9]+)/i) ||
       output.match(/([A-HJ-NP-Za-km-z1-9]{43,44})/);
 
     const txHash = txHashMatch?.[1] || "unknown";

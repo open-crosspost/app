@@ -1,9 +1,7 @@
 export { getBaseStyles } from "everything-dev/ui/head";
 export {
-  buildHostRuntimeHref,
   buildPublishedAccountHref,
   buildPublishedGatewayHref,
-  buildPublishedGatewayRunHref,
   buildRuntimeHref,
   getAccount,
   getActiveRuntime,

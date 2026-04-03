@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { apiClient, buildPublishedGatewayHref, buildPublishedGatewayRunHref } from "@/app";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 
 export const Route = createFileRoute("/_layout/apps/$accountId" as never)({
@@ -32,9 +32,9 @@ function AccountAppsPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <a href="/apps" className="hover:text-foreground transition-colors">
+          <Link to="/apps" className="hover:text-foreground transition-colors">
             apps
-          </a>
+          </Link>
           <span>/</span>
           <span>{accountId}</span>
         </div>
@@ -87,7 +87,7 @@ function AccountAppsPage() {
           <CardContent className="p-8 text-center space-y-3">
             <p className="text-sm">No published gateways were found for this account.</p>
             <Button asChild variant="outline" size="sm">
-              <a href="/apps">back to registry</a>
+              <Link to="/apps">back to registry</Link>
             </Button>
           </CardContent>
         </Card>
@@ -104,12 +104,13 @@ function AccountAppsPage() {
                       </Badge>
                       {app.metadata?.claimedBy && <Badge variant="outline">claimed</Badge>}
                     </div>
-                    <a
-                      href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}
+                    <Link
+                      to="/_layout/apps/$accountId/$gatewayId"
+                      params={{ accountId, gatewayId: app.gatewayId }}
                       className="font-medium hover:underline break-all"
                     >
                       {app.metadata?.title ?? app.gatewayId}
-                    </a>
+                    </Link>
                     <div className="text-xs font-mono text-muted-foreground break-all">
                       {app.gatewayId}
                     </div>
@@ -131,20 +132,16 @@ function AccountAppsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}>
+                    <Link
+                      to="/_layout/apps/$accountId/$gatewayId"
+                      params={{ accountId, gatewayId: app.gatewayId }}
+                    >
                       inspect runtime
-                    </a>
+                    </Link>
                   </Button>
-                  {app.hostUrl && (
+                  {app.openUrl && (
                     <Button asChild variant="outline" size="sm">
-                      <a href={buildPublishedGatewayRunHref(app.accountId, app.gatewayId)}>
-                        run in host
-                      </a>
-                    </Button>
-                  )}
-                  {app.hostUrl && (
-                    <Button asChild variant="outline" size="sm">
-                      <a href={app.hostUrl} target="_blank" rel="noreferrer">
+                      <a href={app.openUrl} target="_blank" rel="noreferrer">
                         open app
                       </a>
                     </Button>

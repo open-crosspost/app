@@ -1,0 +1,45 @@
+name: Publish Config
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "bos.config.json"
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Build/deploy all workspaces before publish"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    env:
+      BOS_INSTALL_NEAR_CLI: "true"
+      NEAR_PRIVATE_KEY: ${{ secrets.NEAR_PRIVATE_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish config
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.deploy }}" = "true" ]; then
+            bun packages/everything-dev/cli.js publish --deploy
+          else
+            bun packages/everything-dev/cli.js publish
+          fi

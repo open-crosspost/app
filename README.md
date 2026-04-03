@@ -1,4 +1,15 @@
-# everything-dev
+<!-- markdownlint-disable MD014 -->
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD041 -->
+<!-- markdownlint-disable MD029 -->
+
+<div align="center">
+
+<h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">everything</h1>
+
+<img src="ui/src/assets/under-construction.gif" alt="Under construction" width="760" />
+
+</div>
 
 Module Federation monorepo with runtime-loaded configuration, demonstrating every-plugin architecture and NEAR Protocol integration.
 
@@ -39,7 +50,9 @@ everything-dev start --no-interactive   # All remotes, production URLs
 
 ```bash
 bos build               # Build all packages (updates bos.config.json)
-bos publish             # Publish config to the FastKV registry
+bos publish             # Publish config to the temporary dev.everything.near registry
+bos publish --deploy    # Build/deploy all workspaces, then publish
+bun run publish         # Same publish command via root script
 bos sync                # Sync from every.near/everything.dev
 ```
 
@@ -56,9 +69,9 @@ bos clean                   # Clean build artifacts
 
 ### Making Changes
 
-- **UI Changes**: Edit `ui/src/` → hot reload automatically → deploy with `bun build:ui`
-- **API Changes**: Edit `api/src/` → hot reload automatically → deploy with `bun build:api`
-- **Host Changes**: Edit `host/src/` or `bos.config.json` → deploy with `bun build:host`
+- **UI Changes**: Edit `ui/src/` → hot reload automatically → publish with `bos publish --deploy`
+- **API Changes**: Edit `api/src/` → hot reload automatically → publish with `bos publish --deploy`
+- **Host Changes**: Edit `host/src/` or `bos.config.json` → publish with `bos publish --deploy`
 
 ### Before Committing
 
@@ -146,41 +159,51 @@ All runtime configuration lives in `bos.config.json`:
 
 ```json
 {
-  "account": "every.near",
-  "testnet": "althe.testnet",
-  "template": "near-everything/every-plugin/demo",
-  "gateway": {
-    "development": "http://localhost:8787",
-    "production": "https://everything.dev"
-  },
-  "shared": {
-    "ui": {
-      "react": { "requiredVersion": "19.2.4", "singleton": true }
+  "account": "dev.everything.near",
+  "domain": "everything.dev",
+  "repository": "https://github.com/nearbuilders/everything-dev",
+  "testnet": "dev.allthethings.testnet",
+  "plugins": {
+    "template": {
+      "development": "local:plugins/_template"
     }
   },
   "app": {
     "host": {
-      "title": "App Title",
-      "development": "http://localhost:3000",
-      "production": "https://example.zephyrcloud.app",
-      "template": "near-everything/every-plugin/demo/host",
-      "sync": { "scripts": ["dev", "build", "test"] }
+      "name": "host",
+      "development": "local:host",
+      "production": "https://..."
     },
     "ui": {
       "name": "ui",
-      "development": "http://localhost:3002",
-      "production": "https://example-ui.zephyrcloud.app",
-      "ssr": "https://example-ui-ssr.zephyrcloud.app"
+      "development": "local:ui",
+      "production": "https://...",
+      "ssr": "https://..."
     },
     "api": {
       "name": "api",
-      "development": "http://localhost:3014",
-      "production": "https://example-api.zephyrcloud.app",
-      "secrets": ["API_DATABASE_URL", "API_DATABASE_AUTH_TOKEN"]
+      "development": "local:api",
+      "production": "https://...",
+      "variables": {},
+      "secrets": []
     }
   }
 }
 ```
+
+The temporary publish registry currently points at `dev.everything.near`, and `bos publish --deploy` is the release path when you want Zephyr URLs refreshed first.
+
+### Railway
+
+Use the repo `Dockerfile` for the service, and treat the GHCR image as the deployable artifact.
+
+- Image source: `ghcr.io/<lowercased github.repository>:latest`
+- Config updates: `bos.config.json` publish workflow; restart/redeploy is provider-specific
+- Code updates: GHCR build workflow
+
+Required runtime vars:
+- `BOS_ACCOUNT=dev.everything.near`
+- `GATEWAY_DOMAIN=everything.dev`
 
 See [.agent/skills/bos/docs/types.md](.agent/skills/bos/docs/types.md) for the complete schema.
 

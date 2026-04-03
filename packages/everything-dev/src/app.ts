@@ -125,7 +125,10 @@ export function detectLocalPackages(
     packages.push("api");
   }
 
-  if (existsSync(join(configDir, "host", "package.json"))) {
+  const hostLocalPath = resolveLocalDevelopmentPath(bosConfig?.app.host.development, configDir);
+  if (hostLocalPath && existsSync(join(hostLocalPath, "package.json"))) {
+    packages.push("host");
+  } else if (existsSync(join(configDir, "host", "package.json"))) {
     packages.push("host");
   }
 

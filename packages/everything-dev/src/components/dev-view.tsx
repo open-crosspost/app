@@ -4,6 +4,8 @@ import type { SourceMode } from "../types";
 import { linkify } from "../utils/linkify";
 import { colors, divider, frames, gradients, icons } from "../utils/theme";
 
+const PLUGIN_PREFIX = "plugin:";
+
 export type ProcessStatus = "pending" | "starting" | "ready" | "error";
 
 export interface ProcessState {
@@ -44,10 +46,49 @@ function StatusIcon({ status }: { status: ProcessStatus }) {
 }
 
 function getServiceColor(name: string): string {
+  if (name.startsWith(PLUGIN_PREFIX)) return "#ffaa00";
   return name === "host" ? "#00ffff" : name === "ui" ? "#ff00ff" : "#0080ff";
 }
 
-function ProcessRow({ proc }: { proc: ProcessState }) {
+function getDisplayName(name: string): string {
+  return name.startsWith(PLUGIN_PREFIX)
+    ? name.slice(PLUGIN_PREFIX.length).toUpperCase()
+    : name.toUpperCase();
+}
+
+function isPlugin(name: string): boolean {
+  return name.startsWith(PLUGIN_PREFIX);
+}
+
+function getSectionedProcesses(processes: ProcessState[]): Array<{
+  key: string;
+  title: string;
+  processes: ProcessState[];
+}> {
+  const plugins = processes.filter((p) => isPlugin(p.name));
+  const services = processes.filter((p) => !isPlugin(p.name));
+  const sections: Array<{ key: string; title: string; processes: ProcessState[] }> = [];
+  if (plugins.length > 0) sections.push({ key: "plugins", title: "PLUGINS", processes: plugins });
+  if (services.length > 0)
+    sections.push({ key: "services", title: "SERVICES", processes: services });
+  return sections;
+}
+
+function getColumnWidths(processes: ProcessState[]): { name: number; source: number } {
+  const name = Math.max(6, ...processes.map((p) => getDisplayName(p.name).length));
+  const source = Math.max(10, ...processes.map((p) => (p.source ? `(${p.source})`.length : 0)));
+  return { name, source };
+}
+
+function ProcessRow({
+  proc,
+  nameWidth,
+  sourceWidth,
+}: {
+  proc: ProcessState;
+  nameWidth: number;
+  sourceWidth: number;
+}) {
   const color = getServiceColor(proc.name);
   const portStr = proc.port > 0 ? `:${proc.port}` : "";
   const sourceLabel = proc.source ? ` (${proc.source})` : "";
@@ -67,11 +108,21 @@ function ProcessRow({ proc }: { proc: ProcessState }) {
       <StatusIcon status={proc.status} />
       <Text> </Text>
       <Text color={color} bold>
-        {proc.name.toUpperCase().padEnd(6)}
+        {getDisplayName(proc.name).padEnd(nameWidth)}
       </Text>
-      <Text color="gray">{sourceLabel.padEnd(10)}</Text>
+      <Text color="gray">{sourceLabel.padEnd(sourceWidth)}</Text>
       <Text color={proc.status === "ready" ? "#00ff41" : "gray"}>{statusText}</Text>
       {proc.port > 0 && <Text color="#00ffff"> {portStr}</Text>}
+    </Box>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Box marginBottom={0} marginTop={1}>
+      <Text color="#00ffff" bold>
+        {title}
+      </Text>
     </Box>
   );
 }
@@ -137,6 +188,8 @@ function DevView({
   const hostProcess = processes.find((p) => p.name === "host");
   const hostPort = hostProcess?.port || 3000;
   const recentLogs = logs.slice(-12);
+  const sectionedProcesses = getSectionedProcesses(processes);
+  const columnWidths = getColumnWidths(processes);
 
   return (
     <Box flexDirection="column">
@@ -183,8 +236,18 @@ function DevView({
         <Text>{colors.dim(divider(52))}</Text>
       </Box>
 
-      {processes.map((proc) => (
-        <ProcessRow key={proc.name} proc={proc} />
+      {sectionedProcesses.map((section) => (
+        <Box key={section.key} flexDirection="column">
+          <SectionHeader title={section.title} />
+          {section.processes.map((proc) => (
+            <ProcessRow
+              key={proc.name}
+              proc={proc}
+              nameWidth={columnWidths.name}
+              sourceWidth={columnWidths.source}
+            />
+          ))}
+        </Box>
       ))}
 
       <Box marginTop={1} marginBottom={0}>
@@ -210,8 +273,8 @@ function DevView({
             <Text>{colors.dim(divider(52))}</Text>
           </Box>
           <Box flexDirection="column" marginTop={0}>
-            {recentLogs.map((entry, i) => (
-              <LogLine key={`${entry.timestamp}-${i}`} entry={entry} />
+            {recentLogs.map((entry) => (
+              <LogLine key={`${entry.timestamp}-${entry.source}`} entry={entry} />
             ))}
           </Box>
         </>

@@ -23,6 +23,8 @@ jobs:
       ZE_SECRET_TOKEN: ${{ secrets.ZEPHYR_AUTH_TOKEN }}
       ZE_SERVER_TOKEN: ${{ secrets.ZEPHYR_SERVER_AUTH_TOKEN }}
       ZE_USER_EMAIL: ${{ secrets.ZEPHYR_USER_EMAIL }}
+      BOS_INSTALL_NEAR_CLI: "true"
+      NEAR_PRIVATE_KEY: ${{ secrets.NEAR_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,9 +78,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build with Zephyr
+      - name: Publish runtime config
         if: steps.changesets.outputs.hasChangesets == 'false'
-        run: bun run deploy
+        run: bun packages/everything-dev/cli.js publish --deploy
 
       - name: Commit bos.config.json updates
         if: steps.changesets.outputs.hasChangesets == 'false'

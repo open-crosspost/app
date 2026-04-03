@@ -18,6 +18,7 @@ interface BosConfigInput extends Record<string, unknown> {
 }
 
 const LOCAL_PREFIX = "local:";
+const DEFAULT_HOST_PORT = 3000;
 
 interface RuntimeTarget {
   source: "local" | "remote";
@@ -147,7 +148,10 @@ function buildRuntimeConfig(
     domain: config.domain,
     networkId: getNetworkIdForAccount(config.account),
     repository: config.repository,
-    hostUrl: config.app.host[env],
+    hostUrl:
+      env === "development"
+        ? resolveDevelopmentHostUrl(config.app.host.development)
+        : config.app.host.production,
     shared: config.shared,
     ui: {
       name: uiConfig.name,
@@ -419,6 +423,18 @@ export function resolveLocalDevelopmentPath(
 
   const localTarget = value!.slice(LOCAL_PREFIX.length).trim();
   return localTarget ? resolve(baseDir, localTarget) : null;
+}
+
+export function resolveDevelopmentHostUrl(value: string | undefined): string {
+  if (!value || isLocalDevelopmentTarget(value)) {
+    return `http://localhost:${DEFAULT_HOST_PORT}`;
+  }
+
+  return value.replace(/\/$/, "");
+}
+
+export function getHostDevelopmentPort(value: string | undefined): number {
+  return parsePort(resolveDevelopmentHostUrl(value));
 }
 
 export function parsePort(url: string): number {

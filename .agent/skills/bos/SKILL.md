@@ -1,6 +1,6 @@
 ---
 name: bos
-description: CLI alias for everything-dev Module Federation projects. Use when creating new BOS projects, publishing bos.config.json to the FastKV registry, syncing with remote configs (every.near/everything.dev), running development servers (`everything-dev dev` or `bos dev`), or building/deploying federated apps. Deploy → publish → sync workflow for shared configuration.
+description: CLI alias for everything-dev Module Federation projects. Use when creating new BOS projects, publishing bos.config.json to the temporary dev.everything.near FastKV registry, syncing with remote configs (every.near/everything.dev), running development servers (`everything-dev dev` or `bos dev`), or building/deploying federated apps. Build/deploy → publish → sync workflow for shared configuration.
 ---
 
 # everything-dev CLI (`bos` alias)
@@ -57,10 +57,10 @@ bos start --no-interactive   # All remotes, production URLs
 The core workflow for sharing configuration:
 
 ```bash
-# 1. Deploy apps to Zephyr (updates bos.config.json with production URLs)
-bos deploy
+# 1. Build/deploy all workspaces when needed (updates bos.config.json with production URLs)
+bos publish --deploy
 
-# 2. Publish config to the FastKV registry
+# 2. Publish config to the temporary FastKV registry
 bos publish
 
 # 3. Others sync from your published config
@@ -78,8 +78,7 @@ bos sync --account your.near --gateway your-gateway.com
 | `bos dev` | Development (auto-detects missing packages) |
 | `bos start --no-interactive` | Production mode |
 | `bos build` | Build existing packages (skips missing) |
-| `bos deploy` | Deploy existing packages to Zephyr |
-| `bos publish` | Publish config to the FastKV registry |
+| `bos publish` | Publish config to the temporary FastKV registry |
 | `bos info` | Show current configuration |
 | `bos status` | Check remote health |
 
@@ -116,7 +115,7 @@ Commands automatically detect which packages exist locally:
 |---------|-------------------------|
 | `bos dev` | Uses remote mode |
 | `bos build` | Skips package |
-| `bos deploy` | Skips package |
+| `bos publish --deploy` | Skips package |
 
 ### Process Management
 
@@ -130,21 +129,14 @@ Process tracking uses `.bos/pids.json` to track spawned processes for cleanup.
 
 ### Docker Commands
 
-| Command | Description |
-|---------|-------------|
-| `bos docker build` | Build production Docker image |
-| `bos docker build --target development` | Build development/agent-ready image |
-| `bos docker build --no-cache` | Build without cache |
-| `bos docker run` | Run container in production mode |
-| `bos docker run --detach` | Run container in background |
-| `bos docker run --target development --mode serve` | Run agent-ready container (RPC exposed) |
-| `bos docker stop <containerId>` | Stop specific container |
-| `bos docker stop --all` | Stop all BOS containers |
+Use the repo `Dockerfile` directly for production containers.
 
-**Docker modes:**
-- `start` (default): Production mode, fetches config from the FastKV registry
-- `serve`: Exposes CLI as RPC API (agent-ready)
-- `dev`: Full development mode
+```bash
+docker build -t everything-dev .
+docker run -p 3000:3000 everything-dev
+```
+
+The container uses `bun run start` and fetches config from the FastKV registry.
 
 For full command reference, see [commands.md](docs/commands.md).
 
@@ -172,6 +164,6 @@ For detailed workflow guides, see [workflows.md](docs/workflows.md):
 Key files for understanding the system:
 
 - `bos.config.json` - Runtime configuration
-- `demo/cli/src/types.ts` - BosConfig schema
-- `demo/cli/src/cli.ts` - CLI implementation
-- `demo/cli/src/plugin.ts` - Command handlers
+- `packages/everything-dev/src/types.ts` - BosConfig schema
+- `packages/everything-dev/src/cli.ts` - CLI implementation
+- `packages/everything-dev/src/bos-plugin.ts` - Command handlers

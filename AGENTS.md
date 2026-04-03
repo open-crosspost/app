@@ -15,6 +15,12 @@ everything-dev dev --host remote   # Typical: remote host, local UI + API
 everything-dev start --no-interactive   # All remotes, production URLs
 ```
 
+**Publish:**
+```bash
+bos publish           # Publish config to the temporary dev.everything.near registry
+bos publish --deploy  # Build/deploy all workspaces, then publish
+```
+
 **Check Status:**
 ```bash
 bos ps        # List running processes

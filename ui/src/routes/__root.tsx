@@ -7,9 +7,11 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { getBaseStyles, getRuntimeBasePath } from "@/app";
+import { APP_DESCRIPTION, APP_NAME, METADATA_IMAGE_ALT } from "@/lib/branding";
 import { type SessionData, sessionQueryOptions } from "@/lib/session";
 import type { RouterContext } from "@/types";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
@@ -46,10 +48,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const siteUrl = runtimeConfig?.hostUrl
       ? `${runtimeConfig.hostUrl}${runtimeBasePath === "/" ? "" : runtimeBasePath}`
       : "";
-    const title = "everything.dev";
-    const description =
-      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.";
-    const siteName = "everything.dev";
+    const title = APP_NAME;
+    const description = APP_DESCRIPTION;
+    const siteName = APP_NAME;
     const ogImage = `${assetsUrl}/metadata.png`;
 
     return {
@@ -71,16 +72,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { name: "format-detection", content: "telephone=no" },
         { name: "robots", content: "index, follow" },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "website" },
-        { property: "og:image", content: ogImage },
-        { property: "og:site_name", content: siteName },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: title },
-        { name: "twitter:description", content: description },
-        { name: "twitter:image", content: ogImage },
-        ...(siteUrl ? [{ property: "og:url", content: siteUrl }] : []),
+        ...getSocialImageMeta({
+          imageUrl: ogImage,
+          title,
+          description,
+          siteName,
+          siteUrl,
+          alt: METADATA_IMAGE_ALT,
+        }),
       ],
       links: [
         { rel: "stylesheet", href: `${assetsUrl}/static/css/async/style.css` },
@@ -90,8 +89,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           href: "https://fonts.gstatic.com",
           crossOrigin: "anonymous",
         },
-        { rel: "icon", type: "image/x-icon", href: `${assetsUrl}/favicon.ico` },
+        { rel: "shortcut icon", href: `${assetsUrl}/favicon.ico` },
         { rel: "icon", type: "image/svg+xml", href: `${assetsUrl}/icon.svg` },
+        { rel: "icon", type: "image/png", sizes: "32x32", href: `${assetsUrl}/favicon-32x32.png` },
+        { rel: "icon", type: "image/png", sizes: "16x16", href: `${assetsUrl}/favicon-16x16.png` },
         {
           rel: "apple-touch-icon",
           sizes: "180x180",
@@ -110,9 +111,8 @@ function RootComponent() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "everything.dev",
-    description:
-      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.",
+    name: APP_NAME,
+    description: APP_DESCRIPTION,
     url: runtimeConfig?.hostUrl || undefined,
   };
 

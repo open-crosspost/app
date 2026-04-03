@@ -50,10 +50,21 @@ export async function runMigrations() {
   });
 }
 
-export async function getPluginClient(context?: { nearAccountId?: string }) {
+export async function getPluginClient(context?: { userId?: string; nearAccountId?: string }) {
   const runtime = getRuntime();
   const { createClient } = await runtime.usePlugin(pluginDevConfig.pluginId, TEST_CONFIG);
-  return createClient(context);
+
+  if (!context?.userId && !context?.nearAccountId) {
+    return createClient();
+  }
+
+  const userId = context.userId ?? context.nearAccountId!;
+
+  return createClient({
+    userId,
+    user: { id: userId },
+    nearAccountId: context.nearAccountId,
+  });
 }
 
 export async function teardown() {

@@ -52,7 +52,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#fafafa",
+  "theme_color": "#ffffff",
   "background_color": "#fafafa",
   "categories": ["developer tools", "productivity", "web development"],
   "orientation": "portrait-primary"

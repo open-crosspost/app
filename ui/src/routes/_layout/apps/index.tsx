@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { apiClient, buildPublishedAccountHref, buildPublishedGatewayHref } from "@/app";
+import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
 
 export const Route = createFileRoute("/_layout/apps/" as never)({
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_layout/apps/" as never)({
 function AppsIndex() {
   const search = Route.useSearch() as { q?: string };
   const [query, setQuery] = useState(search.q ?? "");
+  const navigate = useNavigate({ from: Route.fullPath });
 
   type ListRegistryAppsResult = Awaited<ReturnType<typeof apiClient.listRegistryApps>>;
   type RegistryStatusResult = Awaited<ReturnType<typeof apiClient.getRegistryStatus>>;
@@ -69,9 +70,9 @@ function AppsIndex() {
                 effective host/ui/api shape, and jump into account or gateway detail views.
               </p>
               <UnderConstruction
-                label="apps"
+                label="published apps"
                 sourceFile="ui/src/routes/_layout/apps/index.tsx"
-                className="w-full max-w-sm"
+                className="w-full max-w-sm mt-3"
               />
             </div>
 
@@ -79,9 +80,10 @@ function AppsIndex() {
               className="flex flex-col gap-3 sm:flex-row"
               onSubmit={(event) => {
                 event.preventDefault();
-                window.location.href = query.trim()
-                  ? `/apps?q=${encodeURIComponent(query.trim())}`
-                  : "/apps";
+                void navigate({
+                  to: "/apps" as never,
+                  search: { q: query.trim() || undefined } as never,
+                });
               }}
             >
               <Input
@@ -101,7 +103,7 @@ function AppsIndex() {
                   disabled={!search.q && query.length === 0}
                   onClick={() => {
                     setQuery("");
-                    window.location.href = "/apps";
+                    void navigate({ to: "/apps" as never });
                   }}
                 >
                   clear
@@ -168,12 +170,13 @@ function AppsIndex() {
                       )}
                     </div>
                     <div className="space-y-1 min-w-0">
-                      <a
-                        href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}
+                      <Link
+                        to="/_layout/apps/$accountId/$gatewayId"
+                        params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
                         className="block font-medium hover:underline break-all"
                       >
                         {app.metadata?.title ?? `${app.accountId} / ${app.gatewayId}`}
-                      </a>
+                      </Link>
                       <div className="text-xs font-mono text-muted-foreground break-all">
                         {app.accountId} / {app.gatewayId}
                       </div>
@@ -201,12 +204,17 @@ function AppsIndex() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a href={buildPublishedGatewayHref(app.accountId, app.gatewayId)}>
-                      runtime view
-                    </a>
+                    <Link
+                      to="/_layout/apps/$accountId/$gatewayId"
+                      params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
+                    >
+                      inspect runtime
+                    </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <a href={buildPublishedAccountHref(app.accountId)}>account view</a>
+                    <Link to="/_layout/apps/$accountId" params={{ accountId: app.accountId }}>
+                      account view
+                    </Link>
                   </Button>
                   {app.openUrl && (
                     <Button asChild variant="outline" size="sm">

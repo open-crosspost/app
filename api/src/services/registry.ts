@@ -405,7 +405,6 @@ async function getRegistryMetadata(
   const value = await readLatestValue({
     baseUrl: getFastKvBaseUrlForAccount(accountId),
     currentAccountId: getRegistryNamespaceForAccount(accountId),
-    predecessorId: accountId,
     key: getRegistryMetadataKey(accountId, gatewayId),
   });
 
@@ -416,7 +415,7 @@ async function getRegistryMetadata(
   const normalized = normalizeMetadataValue(value);
 
   return {
-    claimedBy: accountId,
+    claimedBy: readString(normalized.claimedBy),
     title: readString(normalized.title),
     description: readString(normalized.description),
     repoUrl: readString(normalized.repoUrl),

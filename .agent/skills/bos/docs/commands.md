@@ -56,24 +56,18 @@ bos build --force            # Force rebuild (ignore cache)
 
 ### `bos deploy`
 
-Build and deploy to Zephyr Cloud. Updates `bos.config.json` with production Zephyr URLs after successful deployment.
-
-```bash
-bos deploy                   # Deploy all
-bos deploy ui                # Deploy UI only
-bos deploy --force           # Force rebuild
-```
-
-Requires `ZE_SERVER_TOKEN` and `ZE_USER_EMAIL` in `.env.bos` for CI/CD.
+`bos deploy` is not a standalone command in the current CLI. Use `bos publish --deploy` to build/deploy all workspaces and then publish the updated config.
 
 ### `bos publish`
 
-Publish `bos.config.json` to the FastKV registry.
+Publish `bos.config.json` to the temporary `dev.everything.near` FastKV registry.
 
 ```bash
-bos publish                  # Mainnet
+bos publish                  # Publish only
+bos publish --deploy         # Build/deploy all workspaces, then publish
 bos publish --network testnet
 bos publish --dry-run        # Preview without sending
+bos publish --packages ui,api
 ```
 
 ### `bos clean`
@@ -251,34 +245,14 @@ Process tracking uses `.bos/pids.json` to track spawned processes.
 
 ## Docker
 
-### `bos docker build`
-
-Build Docker image for production or development.
+Use the repo `Dockerfile` directly, or build the image in CI and push to GHCR.
 
 ```bash
-bos docker build                         # Production image (Dockerfile)
-bos docker build --target development    # Dev image (Dockerfile.dev)
-bos docker build --tag my-tag            # Custom tag
-bos docker build --no-cache              # Build without cache
+docker build -t everything-dev .
+docker run -p 3000:3000 everything-dev
 ```
 
-### `bos docker run`
-
-Run container with configurable modes.
-
-```bash
-bos docker run                                    # Production mode
-bos docker run --detach                           # Run in background
-bos docker run --port 8080                        # Custom port
-bos docker run --target development --mode serve  # Agent-ready (RPC exposed)
-bos docker run --target development --mode dev    # Full dev mode
-bos docker run --env KEY=value                    # Pass env vars
-```
-
-**Modes:**
-- `start` (default): Production mode, fetches config from the FastKV registry
-- `serve`: Exposes CLI as RPC API at `/api/rpc` (agent-ready)
-- `dev`: Full development mode with hot reload
+The container uses `bun run start` and fetches config from the FastKV registry.
 
 ### `bos docker stop`
 

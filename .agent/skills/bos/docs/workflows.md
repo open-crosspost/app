@@ -100,26 +100,28 @@ The core sharing workflow:
 
 ### 1. Publish (Full Release)
 
-`bos publish` builds, deploys to Zephyr Cloud, and publishes config to the FastKV registry in one step:
+`bos publish` publishes `bos.config.json` to the temporary `dev.everything.near` FastKV registry. Add `--deploy` to build/deploy all workspaces first:
 
 ```bash
 # Preview first
 bos publish --dry-run
 
-# Full release: build + deploy + publish to mainnet
+# Publish only
 bos publish
+
+# Build/deploy all workspaces, then publish
+bos publish --deploy
 
 # Publish to testnet
 bos publish --network testnet
 
 # Publish specific packages only
-bos publish ui,api
+bos publish --packages ui,api
 ```
 
 The publish command:
-1. Builds packages locally (`bun run build`)
-2. Deploys to Zephyr Cloud (updates `production` URLs in config)
-3. Publishes config to the FastKV registry
+1. Optionally builds/deploys all workspaces when `--deploy` is set
+2. Publishes config to the FastKV registry
 
 Your config is now at: `{account}/bos/gateways/{gateway}/bos.config.json`
 
@@ -297,39 +299,24 @@ bos secrets sync --env .env.my-tenant
 
 Each tenant can have their own:
 - `bos.config.json` with their account
-- Published config in the FastKV registry
+- Published config in the temporary FastKV registry
 - NOVA secrets group
 
 ## Docker Deployment
 
 ### Production Container
 
-Build and run a production container that fetches config from the FastKV registry:
+Build and run the repo Docker image that fetches config from the FastKV registry:
 
 ```bash
-# Build production image
-bos docker build
+docker build -t everything-dev .
 
-# Run in background
-bos docker run --detach
-
-# Stop all containers
-bos docker stop --all
+docker run -p 3000:3000 everything-dev
 ```
 
 ### Agent-Ready Container
 
-For AI agents that need to interact via RPC:
-
-```bash
-# Build development image
-bos docker build --target development
-
-# Run with RPC exposed
-bos docker run --target development --mode serve --detach
-
-# RPC available at http://localhost:4000/api/rpc
-```
+The repo Dockerfile is production-oriented. Use the CLI directly for agent workflows.
 
 ### Container Management
 
@@ -342,9 +329,6 @@ bos kill
 
 # Force kill
 bos kill --force
-
-# Stop specific container
-bos docker stop <containerId>
 ```
 
 ## Debugging
