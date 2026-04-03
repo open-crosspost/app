@@ -251,18 +251,16 @@ export const startApp = (orchestrator: AppOrchestrator) => {
     process.exit(0);
   };
 
-  process.on("SIGINT", () => {
+  process.once("SIGINT", () => {
     const timeout = setTimeout(forceExit, 5000);
-    handleSignal().finally(() => {
+    void handleSignal().finally(() => {
       clearTimeout(timeout);
-      process.exit(0);
     });
   });
-  process.on("SIGTERM", () => {
+  process.once("SIGTERM", () => {
     const timeout = setTimeout(forceExit, 5000);
-    handleSignal().finally(() => {
+    void handleSignal().finally(() => {
       clearTimeout(timeout);
-      process.exit(0);
     });
   });
 

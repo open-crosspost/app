@@ -162,13 +162,12 @@ export function renderStreamingView(
     process.exit(0);
   };
 
-  process.on("SIGINT", () => {
+  process.once("SIGINT", () => {
     console.log();
     console.log(colors.dim(`[${getTimestamp()}] Shutting down...`));
     const timeout = setTimeout(forceExit, 5000);
     Promise.resolve(unmount()).then(() => {
       clearTimeout(timeout);
-      process.exit(0);
     });
   });
 

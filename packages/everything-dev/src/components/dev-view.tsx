@@ -170,14 +170,12 @@ function DevView({
       setIsShuttingDown(true);
       Promise.resolve(onExit?.()).then(() => {
         exit();
-        process.exit(0);
       });
     }
     if (input === "l") {
       setIsShuttingDown(true);
       Promise.resolve(onExportLogs?.()).then(() => {
         exit();
-        process.exit(0);
       });
     }
   });

@@ -548,7 +548,10 @@ export const spawnDevProcess = (
               }
               return;
             }
-            buffer += decoder.decode(value, { stream: true });
+            buffer += decoder
+              .decode(value, { stream: true })
+              .replace(/\r\n/g, "\n")
+              .replace(/\r/g, "\n");
             const lines = buffer.split("\n");
             buffer = lines.pop() ?? "";
             for (const line of lines) {
@@ -578,7 +581,10 @@ export const spawnDevProcess = (
               }
               return;
             }
-            buffer += decoder.decode(value, { stream: true });
+            buffer += decoder
+              .decode(value, { stream: true })
+              .replace(/\r\n/g, "\n")
+              .replace(/\r/g, "\n");
             const lines = buffer.split("\n");
             buffer = lines.pop() ?? "";
             for (const line of lines) {
