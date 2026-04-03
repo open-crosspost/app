@@ -7,4 +7,3 @@ export type ApiContract = {
     template: templateContract;
   };
 };
-
