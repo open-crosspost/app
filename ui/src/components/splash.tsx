@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { UnderConstruction } from "./under-construction";
 
 interface SplashProps {
   visible: boolean;
@@ -7,11 +8,21 @@ interface SplashProps {
 }
 
 export function Splash({ visible, onDismiss }: SplashProps) {
+  const [pressed, setPressed] = useState(false);
+
   useEffect(() => {
     if (!visible) return;
-    const timeout = setTimeout(onDismiss, 4200);
-    return () => clearTimeout(timeout);
+    const pressTimeout = setTimeout(() => setPressed(true), 4000);
+    const dismissTimeout = setTimeout(onDismiss, 4200);
+    return () => {
+      clearTimeout(pressTimeout);
+      clearTimeout(dismissTimeout);
+    };
   }, [visible, onDismiss]);
+
+  useEffect(() => {
+    if (!visible) setPressed(false);
+  }, [visible]);
 
   return (
     <AnimatePresence>
@@ -21,9 +32,8 @@ export function Splash({ visible, onDismiss }: SplashProps) {
           initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background cursor-pointer"
-          onClick={onDismiss}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background"
         >
           <motion.div
             initial={{ opacity: 0 }}
@@ -39,10 +49,13 @@ export function Splash({ visible, onDismiss }: SplashProps) {
             >
               everything.dev
             </h1>
-            <img
-              src="https://ipfs.near.social/ipfs/bafkreidhy7zo33wqjxhqsv2dd6dp2wzloitaa4lmj3rzq5zvcdtp2smeaa"
-              alt="under construction"
-              className="h-auto w-full max-w-xl"
+            <UnderConstruction
+              label="splash"
+              sourceFile="ui/src/components/splash.tsx"
+              className="w-full max-w-xl"
+              onClick={onDismiss}
+              skipNavigation
+              pressed={pressed}
             />
           </motion.div>
         </motion.div>

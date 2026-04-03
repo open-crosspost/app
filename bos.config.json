@@ -1,6 +1,7 @@
 {
   "account": "dev.everything.near",
   "domain": "everything.dev",
+  "repository": "https://github.com/nearbuilders/everything-dev",
   "plugins": {
     "template": {
       "development": "local:plugins/_template"

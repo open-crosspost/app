@@ -20,12 +20,12 @@ export const Route = createFileRoute("/_layout/")({
 
 const subtitles = [
   <>
-    An open runtime for apps on{" "}
+    A common runtime for apps on{" "}
     <a href="https://near.org" className="underline hover:text-foreground transition-colors">
       NEAR
     </a>
   </>,
-  "an upgradable runtime for a verifiable internet",
+  "upgradable and secure for a verifiable internet",
   "in pursuit of the open web.",
 ];
 

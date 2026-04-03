@@ -20,7 +20,7 @@ function getFastKvBaseUrlForAccount(accountId: string): string {
     : process.env.REGISTRY_FASTKV_MAINNET_URL || "https://kv.main.fastnear.com";
 }
 
-function getRegistryNamespaceForAccount(accountId: string): string {
+export function getRegistryNamespaceForAccount(accountId: string): string {
   return accountId.endsWith(".testnet")
     ? process.env.REGISTRY_FASTKV_TESTNET_NAMESPACE || "registry.everything.testnet"
     : process.env.REGISTRY_FASTKV_MAINNET_NAMESPACE || "registry.everything.near";

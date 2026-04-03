@@ -2,9 +2,17 @@ import { Effect } from "effect";
 import { syncApiContractBridge } from "./api-contract";
 import { buildRuntimeConfig, detectLocalPackages, prepareDevelopmentRuntimeConfig } from "./app";
 import { getProjectRoot, loadConfig, parsePort } from "./config";
-import { type BuildOptions, bosContract, type DevOptions, type StartOptions } from "./contract";
+import {
+  type BuildOptions,
+  bosContract,
+  type DevOptions,
+  type PublishOptions,
+  type StartOptions,
+} from "./contract";
 import { type AppConfig, type AppOrchestrator, startApp } from "./dev-session";
-import { fetchBosConfigFromFastKv } from "./fastkv";
+import { fetchBosConfigFromFastKv, getRegistryNamespaceForAccount } from "./fastkv";
+import { ensureNearCli, executeTransaction } from "./near-cli";
+import { getNetworkIdForAccount } from "./network";
 import { createPlugin, z } from "./plugin";
 import { syncAndGenerateSharedUi } from "./shared";
 import type { BosConfig, RuntimeConfig, SourceMode } from "./types";
@@ -175,6 +183,75 @@ async function fetchPublishedConfig(
   } catch {
     return null;
   }
+}
+
+function selectWorkspaceTargets(packages: string, bosConfig: BosConfig): string[] {
+  const allPackages = Object.keys(bosConfig.app);
+  if (packages === "all") {
+    return allPackages;
+  }
+
+  return packages
+    .split(",")
+    .map((pkg) => pkg.trim())
+    .filter((pkg) => allPackages.includes(pkg));
+}
+
+async function buildWorkspaceTargets(opts: {
+  configDir: string;
+  bosConfig: BosConfig;
+  targets: string[];
+  deploy: boolean;
+}): Promise<{ built: string[]; skipped: string[] }> {
+  const existing: string[] = [];
+  const skipped: string[] = [];
+
+  for (const target of opts.targets) {
+    const exists = await Bun.file(`${opts.configDir}/${target}/package.json`).exists();
+    if (exists) existing.push(target);
+    else skipped.push(target);
+  }
+
+  if (existing.length === 0) {
+    return { built: [], skipped };
+  }
+
+  const sharedSync = await syncAndGenerateSharedUi({
+    configDir: opts.configDir,
+    hostMode: "local",
+  });
+  if (sharedSync.catalogChanged) {
+    await run("bun", ["install"], { cwd: opts.configDir });
+  }
+
+  if (existing.includes("api")) {
+    await buildEveryPluginQuietly(opts.configDir);
+  }
+
+  const env: Record<string, string> = {
+    ...process.env,
+    NODE_ENV: opts.deploy ? "production" : "development",
+  };
+  if (opts.deploy) {
+    env.DEPLOY = "true";
+  }
+
+  const order = opts.deploy ? ["ui", "api", "host"] : existing;
+  const built: string[] = [];
+
+  for (const target of order) {
+    if (!existing.includes(target)) continue;
+    const buildConfig = buildCommands[target];
+    if (!buildConfig) continue;
+
+    await run(buildConfig.cmd, buildConfig.args, {
+      cwd: `${opts.configDir}/${target}`,
+      env,
+    });
+    built.push(target);
+  }
+
+  return { built, skipped };
 }
 
 export default createPlugin({

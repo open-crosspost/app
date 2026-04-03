@@ -148,7 +148,7 @@ function Layout() {
 
         <footer className="shrink-0 flex justify-center py-6">
           <a
-            href="https://near.org"
+            href="https://near.dev"
             target="_blank"
             rel="noopener noreferrer"
             className="relative h-6 w-[100px]"

@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { apiClient, authClient } from "@/app";
-import { Badge, Button, Card, CardContent } from "@/components";
+import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 import {
   getActiveOrganization,
   isPersonalOrganization,
@@ -110,6 +110,11 @@ function Home() {
                 Manage identity, switch organizations, create API keys, and jump back into the
                 published runtime browser.
               </p>
+              <UnderConstruction
+                label="home"
+                sourceFile="ui/src/routes/_layout/_authenticated/home.tsx"
+                className="w-full max-w-sm"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>

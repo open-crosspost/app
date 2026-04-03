@@ -144,7 +144,9 @@ function buildRuntimeConfig(
   return {
     env,
     account: config.account,
+    domain: config.domain,
     networkId: getNetworkIdForAccount(config.account),
+    repository: config.repository,
     hostUrl: config.app.host[env],
     shared: config.shared,
     ui: {

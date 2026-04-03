@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient, buildPublishedAccountHref, buildPublishedGatewayHref } from "@/app";
-import { Badge, Button, Card, CardContent, Input } from "@/components";
+import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
 
 export const Route = createFileRoute("/_layout/apps/" as never)({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -68,6 +68,11 @@ function AppsIndex() {
                 Browse runtimes that resolve from canonical `bos.config.json` records, inspect the
                 effective host/ui/api shape, and jump into account or gateway detail views.
               </p>
+              <UnderConstruction
+                label="apps"
+                sourceFile="ui/src/routes/_layout/apps/index.tsx"
+                className="w-full max-w-sm"
+              />
             </div>
 
             <form

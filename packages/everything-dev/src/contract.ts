@@ -42,6 +42,23 @@ export const BuildResultSchema = z.object({
   deployed: z.boolean().optional(),
 });
 
+export const PublishOptionsSchema = z.object({
+  deploy: z.boolean().default(false),
+  dryRun: z.boolean().default(false),
+  packages: z.string().default("all"),
+  network: z.enum(["mainnet", "testnet"]).optional(),
+  privateKey: z.string().optional(),
+});
+
+export const PublishResultSchema = z.object({
+  status: z.enum(["published", "error", "dry-run"]),
+  registryUrl: z.string(),
+  txHash: z.string().optional(),
+  error: z.string().optional(),
+  built: z.array(z.string()).optional(),
+  skipped: z.array(z.string()).optional(),
+});
+
 export const bosContract = oc.router({
   dev: oc.route({ method: "POST", path: "/dev" }).input(DevOptionsSchema).output(DevResultSchema),
   start: oc
@@ -52,8 +69,13 @@ export const bosContract = oc.router({
     .route({ method: "POST", path: "/build" })
     .input(BuildOptionsSchema)
     .output(BuildResultSchema),
+  publish: oc
+    .route({ method: "POST", path: "/publish" })
+    .input(PublishOptionsSchema)
+    .output(PublishResultSchema),
 });
 
 export type DevOptions = z.infer<typeof DevOptionsSchema>;
 export type StartOptions = z.infer<typeof StartOptionsSchema>;
 export type BuildOptions = z.infer<typeof BuildOptionsSchema>;
+export type PublishOptions = z.infer<typeof PublishOptionsSchema>;

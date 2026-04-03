@@ -78,3 +78,8 @@ export function getNetworkId(config?: Partial<ClientRuntimeConfig>): "mainnet" |
   const cfg = config ?? getRuntimeConfig();
   return cfg?.networkId ?? getNetworkIdForAccount(cfg?.account ?? "every.near");
 }
+
+export function getRepository(config?: Partial<ClientRuntimeConfig>): string | undefined {
+  const cfg = config ?? getRuntimeConfig();
+  return cfg?.repository;
+}

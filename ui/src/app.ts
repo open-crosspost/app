@@ -11,6 +11,7 @@ export {
   getAssetsUrl,
   getHostUrl,
   getNetworkId,
+  getRepository,
   getRuntimeBasePath,
   getRuntimeConfig,
 } from "everything-dev/ui/runtime";

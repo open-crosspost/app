@@ -168,6 +168,7 @@ export function buildRuntimeConfig(
   return {
     env: options.env ?? "development",
     account: bosConfig.account,
+    domain: bosConfig.domain,
     networkId: getNetworkIdForAccount(bosConfig.account),
     hostUrl: options.hostUrl,
     shared: bosConfig.shared,

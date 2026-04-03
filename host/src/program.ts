@@ -59,6 +59,10 @@ function getRuntimeOverride(pathname: string) {
 }
 
 function getFallbackGatewayId(config: RuntimeConfig) {
+  if (config.domain) {
+    return config.domain;
+  }
+
   if (process.env.GATEWAY_DOMAIN) {
     return process.env.GATEWAY_DOMAIN;
   }
@@ -100,14 +104,28 @@ async function resolveActiveRuntime(config: RuntimeConfig, request: Request) {
     } satisfies ActiveRuntimeState;
   }
 
+  const fallbackGatewayId = getFallbackGatewayId(config);
+  const fallbackRuntime = await getRegistryApp(config.account, fallbackGatewayId).catch(() => null);
+  if (fallbackRuntime) {
+    return {
+      accountId: fallbackRuntime.accountId,
+      gatewayId: fallbackRuntime.gatewayId,
+      runtimeBasePath: "/",
+      canonicalConfigUrl: fallbackRuntime.canonicalConfigUrl,
+      resolvedConfig: fallbackRuntime.resolvedConfig,
+      title: fallbackRuntime.metadata?.title ?? fallbackRuntime.gatewayId,
+      hostUrl: fallbackRuntime.hostUrl,
+    } satisfies ActiveRuntimeState;
+  }
+
   return {
     accountId: config.account,
-    gatewayId: getFallbackGatewayId(config),
+    gatewayId: fallbackGatewayId,
     runtimeBasePath: "/",
     canonicalConfigUrl: null,
     resolvedConfig: null,
     title: config.account,
-    hostUrl: config.hostUrl,
+    hostUrl: url.origin,
   } satisfies ActiveRuntimeState;
 }
 
@@ -131,6 +149,7 @@ function buildRuntimeClientConfig(
     assetsUrl: uiConfig.url,
     apiBase: "/api",
     rpcBase: "/api/rpc",
+    repository: config.repository,
     ui: {
       name: uiConfig.name,
       url: uiConfig.url,

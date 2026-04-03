@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { authClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UnderConstruction } from "@/components/under-construction";
 import type { SessionData } from "@/lib/session";
 import { organizationsQueryOptions, sessionQueryOptions } from "@/lib/session";
 
@@ -259,14 +260,6 @@ function LoginPage() {
     verifyOtpMutation.isPending ||
     githubMutation.isPending;
 
-  const renderConstructionImage = (methodLabel: string) => (
-    <img
-      src="https://ipfs.near.social/ipfs/bafkreidhy7zo33wqjxhqsv2dd6dp2wzloitaa4lmj3rzq5zvcdtp2smeaa"
-      alt={`${methodLabel} under construction`}
-      className="mx-auto w-full max-w-xs rounded-xl border border-border object-cover"
-    />
-  );
-
   if (session?.user) {
     const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/home";
     return <Navigate to={redirectTo as never} replace search={{} as never} />;
@@ -292,7 +285,11 @@ function LoginPage() {
       case "passkey":
         return (
           <div className="space-y-6">
-            {renderConstructionImage("Passkey")}
+            <UnderConstruction
+              label="Passkey"
+              sourceFile="ui/src/routes/_layout/login.tsx"
+              className="mx-auto w-full max-w-xs"
+            />
             <p className="text-xs text-muted-foreground text-center leading-relaxed">
               Use Face ID, Touch ID, or security key
             </p>
@@ -328,7 +325,11 @@ function LoginPage() {
       case "email":
         return (
           <div className="space-y-6">
-            {renderConstructionImage("Email")}
+            <UnderConstruction
+              label="Email"
+              sourceFile="ui/src/routes/_layout/login.tsx"
+              className="mx-auto w-full max-w-xs"
+            />
             <Input
               type="email"
               value={email}
@@ -364,7 +365,11 @@ function LoginPage() {
       case "phone":
         return (
           <div className="space-y-6">
-            {renderConstructionImage("Phone")}
+            <UnderConstruction
+              label="Phone"
+              sourceFile="ui/src/routes/_layout/login.tsx"
+              className="mx-auto w-full max-w-xs"
+            />
             {!otpSent ? (
               <>
                 <Input
@@ -412,7 +417,11 @@ function LoginPage() {
       case "github":
         return (
           <div className="space-y-6">
-            {renderConstructionImage("GitHub")}
+            <UnderConstruction
+              label="GitHub"
+              sourceFile="ui/src/routes/_layout/login.tsx"
+              className="mx-auto w-full max-w-xs"
+            />
             <p className="text-xs text-muted-foreground text-center leading-relaxed">
               Sign in with your GitHub account
             </p>

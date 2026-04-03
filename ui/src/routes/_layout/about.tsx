@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { apiClient } from "@/app";
-import { Badge, Card, CardContent } from "@/components";
+import { Badge, Card, CardContent, UnderConstruction } from "@/components";
 
 export const Route = createFileRoute("/_layout/about")({
   head: () => ({
@@ -77,6 +77,11 @@ function About() {
             keep building over. The same host can support multiple sites, while each published
             config can point at its own remotes, plugins, and interfaces.
           </p>
+          <UnderConstruction
+            label="about"
+            sourceFile="ui/src/routes/_layout/about.tsx"
+            className="w-full max-w-sm mt-3"
+          />
         </div>
       </section>
 
@@ -107,7 +112,15 @@ function About() {
                 >
                   Module Federation
                 </a>{" "}
-                and the API through <code>every-plugin</code>
+                and the API through{" "}
+                <a
+                  href="https://github.com/near-everything/every-plugin"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-foreground transition-colors font-mono"
+                >
+                  every-plugin
+                </a>
               </p>
               <p>
                 4. layer public metadata and tooling around the canonical runtime without replacing
@@ -171,7 +184,21 @@ function About() {
         />
         <FactCard
           title="runtime-loaded product"
-          body="The host acts as the shell, loading the UI at runtime through Module Federation and the API through every-plugin, so each part can evolve independently."
+          body={
+            <>
+              The host acts as the shell, loading the UI at runtime through Module Federation and
+              the API through{" "}
+              <a
+                href="https://github.com/near-everything/every-plugin"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-foreground transition-colors font-mono"
+              >
+                every-plugin
+              </a>
+              , so each part can evolve independently.
+            </>
+          }
         />
         <FactCard
           title="shared host, different sites"
@@ -179,7 +206,33 @@ function About() {
         />
         <FactCard
           title="AI-friendly surface"
-          body="Public files such as /README.md, /skill.md, and /llms.txt make the project easier for agents to understand without losing the visual atmosphere of the site itself."
+          body={
+            <>
+              Public files such as{" "}
+              <a
+                href="/README.md"
+                className="underline hover:text-foreground transition-colors font-mono"
+              >
+                /README.md
+              </a>
+              ,{" "}
+              <a
+                href="/skill.md"
+                className="underline hover:text-foreground transition-colors font-mono"
+              >
+                /skill.md
+              </a>
+              , and{" "}
+              <a
+                href="/llms.txt"
+                className="underline hover:text-foreground transition-colors font-mono"
+              >
+                /llms.txt
+              </a>{" "}
+              make the project easier for agents to understand without losing the visual atmosphere
+              of the site itself.
+            </>
+          }
         />
       </section>
 
@@ -272,7 +325,7 @@ function BoxLink({
   );
 }
 
-function FactCard({ title, body }: { title: string; body: string }) {
+function FactCard({ title, body }: { title: string; body: React.ReactNode }) {
   return (
     <Card>
       <CardContent className="p-5 space-y-2">

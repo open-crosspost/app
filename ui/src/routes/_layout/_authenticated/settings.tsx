@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/app";
-import { Badge, Button, Card, CardContent } from "@/components";
+import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 import {
   addPasskey,
   changePassword,
@@ -62,6 +62,11 @@ function Settings() {
                 Update your profile, attach durable authentication methods, and control how your
                 workspace session behaves.
               </p>
+              <UnderConstruction
+                label="settings"
+                sourceFile="ui/src/routes/_layout/_authenticated/settings.tsx"
+                className="w-full max-w-sm mt-3"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>

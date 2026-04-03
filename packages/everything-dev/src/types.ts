@@ -94,6 +94,7 @@ export const BosConfigSchema = z.object({
   account: z.string(),
   extends: z.string().optional(),
   domain: z.string().optional(),
+  repository: z.string().optional(),
   shared: z.record(z.string(), z.record(z.string(), SharedDepConfigSchema)).optional(),
   plugins: z.record(z.string(), BosPluginRefSchema).optional(),
   app: z.object({
@@ -107,8 +108,10 @@ export type BosConfig = z.infer<typeof BosConfigSchema>;
 export const RuntimeConfigSchema = z.object({
   env: z.enum(["development", "production"]),
   account: z.string(),
+  domain: z.string().optional(),
   networkId: z.enum(["mainnet", "testnet"]),
   title: z.string().optional(),
+  repository: z.string().optional(),
   hostUrl: z.string(),
   shared: z
     .object({
@@ -139,6 +142,7 @@ export const ClientRuntimeConfigSchema = z.object({
   assetsUrl: z.string(),
   apiBase: z.string(),
   rpcBase: z.string(),
+  repository: z.string().optional(),
   runtime: ActiveRuntimeInfoSchema.optional(),
   ui: z
     .object({

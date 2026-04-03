@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Badge, Button, Card, CardContent } from "@/components";
+import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 import {
   isPersonalOrganization,
   type Organization,
@@ -57,6 +57,11 @@ function OrganizationsList() {
                 Switch contexts, create new organizations, and open team-specific member and API key
                 management flows.
               </p>
+              <UnderConstruction
+                label="organizations"
+                sourceFile="ui/src/routes/_layout/_authenticated/organizations/index.tsx"
+                className="w-full max-w-sm mt-3"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>
