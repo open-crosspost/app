@@ -45,7 +45,7 @@ const checkNearCliInstalled = Effect.gen(function* () {
   const result = yield* Effect.tryPromise({
     try: async () => {
       return new Promise<boolean>((resolve) => {
-        const proc = spawn("near", ["--version"], { shell: true, stdio: "pipe" });
+        const proc = spawn("near", ["--version"], { stdio: "pipe" });
         proc.on("close", (code) => resolve(code === 0));
         proc.on("error", () => resolve(false));
       });
@@ -69,7 +69,6 @@ const installNearCli = Effect.gen(function* () {
           ["-c", `curl --proto '=https' --tlsv1.2 -LsSf ${INSTALLER_URL} | sh`],
           {
             stdio: "inherit",
-            shell: true,
           },
         );
         proc.on("close", (code) => {
@@ -166,7 +165,6 @@ export const createSubaccount = (
       try: async () => {
         return new Promise<string>((resolve, reject) => {
           const proc = spawn("near", args, {
-            shell: true,
             stdio: ["inherit", "pipe", "pipe"],
           });
 
@@ -235,6 +233,8 @@ export const executeTransaction = (
 
     if (config.privateKey) {
       args.push("sign-with-plaintext-private-key", config.privateKey, "send");
+    } else {
+      args.push("sign-with-keychain", "send");
     }
 
     console.log();
@@ -248,7 +248,6 @@ export const executeTransaction = (
       try: async () => {
         return new Promise<string>((resolve, reject) => {
           const proc = spawn("near", args, {
-            shell: true,
             stdio: ["inherit", "pipe", "pipe"],
           });
 

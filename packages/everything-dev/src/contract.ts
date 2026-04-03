@@ -65,6 +65,22 @@ export const PublishResultSchema = z.object({
   skipped: z.array(z.string()).optional(),
 });
 
+export const KeyPublishOptionsSchema = z.object({
+  allowance: z.string().default("0.25NEAR"),
+});
+
+export const KeyPublishResultSchema = z.object({
+  status: z.enum(["published", "error"]),
+  account: z.string(),
+  network: z.enum(["mainnet", "testnet"]),
+  contract: z.string(),
+  allowance: z.string(),
+  functionNames: z.array(z.string()),
+  publicKey: z.string().optional(),
+  privateKey: z.string().optional(),
+  error: z.string().optional(),
+});
+
 export const bosContract = oc.router({
   dev: oc.route({ method: "POST", path: "/dev" }).input(DevOptionsSchema).output(DevResultSchema),
   start: oc
@@ -80,6 +96,10 @@ export const bosContract = oc.router({
     .route({ method: "POST", path: "/publish" })
     .input(PublishOptionsSchema)
     .output(PublishResultSchema),
+  keyPublish: oc
+    .route({ method: "POST", path: "/key/publish" })
+    .input(KeyPublishOptionsSchema)
+    .output(KeyPublishResultSchema),
 });
 
 export type DevOptions = z.infer<typeof DevOptionsSchema>;
@@ -87,3 +107,5 @@ export type StartOptions = z.infer<typeof StartOptionsSchema>;
 export type BuildOptions = z.infer<typeof BuildOptionsSchema>;
 export type BosConfigResult = z.infer<typeof ConfigResultSchema>;
 export type PublishOptions = z.infer<typeof PublishOptionsSchema>;
+export type KeyPublishOptions = z.infer<typeof KeyPublishOptionsSchema>;
+export type KeyPublishResult = z.infer<typeof KeyPublishResultSchema>;

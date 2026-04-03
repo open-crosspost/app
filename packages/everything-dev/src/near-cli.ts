@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { Effect } from "effect";
 
 export interface NearTransactionConfig {
@@ -18,8 +19,22 @@ export interface NearTransactionResult {
   error?: string;
 }
 
+export interface NearKeyPair {
+  publicKey: string;
+  privateKey: string;
+}
+
+export interface FunctionCallAccessKeyConfig {
+  account: string;
+  contract: string;
+  allowance: string;
+  functionNames: string[];
+  network?: "mainnet" | "testnet";
+}
+
 const NEAR_CLI_VERSION = "0.23.5";
 const INSTALLER_URL = `https://github.com/near/near-cli-rs/releases/download/v${NEAR_CLI_VERSION}/near-cli-rs-installer.sh`;
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 export class NearCliNotFoundError extends Error {
   readonly _tag = "NearCliNotFoundError";
@@ -39,10 +54,66 @@ export class NearTransactionError extends Error {
   readonly _tag = "NearTransactionError";
 }
 
+function base64UrlToBytes(input: string): Uint8Array {
+  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+  return new Uint8Array(Buffer.from(normalized, "base64"));
+}
+
+function base58Encode(input: Uint8Array): string {
+  if (input.length === 0) return "";
+
+  const digits: number[] = [0];
+  for (const byte of input) {
+    let carry = byte;
+    for (let i = 0; i < digits.length; i++) {
+      carry += digits[i]! << 8;
+      digits[i] = carry % 58;
+      carry = Math.floor(carry / 58);
+    }
+    while (carry > 0) {
+      digits.push(carry % 58);
+      carry = Math.floor(carry / 58);
+    }
+  }
+
+  let output = "";
+  for (const byte of input) {
+    if (byte === 0) output += BASE58_ALPHABET[0];
+    else break;
+  }
+
+  for (let i = digits.length - 1; i >= 0; i--) {
+    output += BASE58_ALPHABET[digits[i]!]!;
+  }
+
+  return output;
+}
+
+export function generateNearKeyPair(): NearKeyPair {
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const publicJwk = publicKey.export({ format: "jwk" }) as JsonWebKey;
+  const privateJwk = privateKey.export({ format: "jwk" }) as JsonWebKey;
+
+  if (!publicJwk.x || !privateJwk.d) {
+    throw new Error("Failed to generate NEAR keypair");
+  }
+
+  const publicBytes = base64UrlToBytes(publicJwk.x);
+  const privateSeed = base64UrlToBytes(privateJwk.d);
+  const secretBytes = new Uint8Array(privateSeed.length + publicBytes.length);
+  secretBytes.set(privateSeed, 0);
+  secretBytes.set(publicBytes, privateSeed.length);
+
+  return {
+    publicKey: `ed25519:${base58Encode(publicBytes)}`,
+    privateKey: `ed25519:${base58Encode(secretBytes)}`,
+  };
+}
+
 const checkNearCliInstalled = Effect.tryPromise({
   try: async () => {
     return await new Promise<boolean>((resolve) => {
-      const proc = spawn("near", ["--version"], { shell: true, stdio: "pipe" });
+      const proc = spawn("near", ["--version"], { stdio: "pipe" });
       proc.on("close", (code) => resolve(code === 0));
       proc.on("error", () => resolve(false));
     });
@@ -58,7 +129,6 @@ const installNearCli = Effect.tryPromise({
         ["-c", `curl --proto '=https' --tlsv1.2 -LsSf ${INSTALLER_URL} | sh`],
         {
           stdio: "inherit",
-          shell: true,
         },
       );
 
@@ -71,6 +141,21 @@ const installNearCli = Effect.tryPromise({
   },
   catch: (error) => error as Error,
 });
+
+async function runNearCommand(args: string[]): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn("near", args, {
+      stdio: "inherit",
+    });
+
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`near ${args.join(" ")} failed with exit code ${code}`));
+    });
+
+    proc.on("error", (err) => reject(new Error(err.message)));
+  });
+}
 
 export const ensureNearCli = Effect.gen(function* () {
   const isInstalled = yield* checkNearCliInstalled;
@@ -118,15 +203,14 @@ export const executeTransaction = (
 
     if (config.privateKey) {
       args.push("sign-with-plaintext-private-key", config.privateKey, "send");
+    } else {
+      args.push("sign-with-keychain", "send");
     }
 
     const output = yield* Effect.tryPromise({
       try: async () => {
         return await new Promise<string>((resolve, reject) => {
-          const proc = spawn("near", args, {
-            shell: true,
-            stdio: ["inherit", "pipe", "pipe"],
-          });
+          const proc = spawn("near", args, { stdio: ["inherit", "pipe", "pipe"] });
 
           let stdout = "";
           let stderr = "";
@@ -171,3 +255,30 @@ export const executeTransaction = (
       txHash: txHashMatch?.[1] || "unknown",
     };
   });
+
+export async function addFunctionCallAccessKey(
+  config: FunctionCallAccessKeyConfig,
+): Promise<NearKeyPair> {
+  const keyPair = generateNearKeyPair();
+  const args = [
+    "account",
+    "add-key",
+    config.account,
+    "grant-function-call-access",
+    "--allowance",
+    config.allowance,
+    "--contract-account-id",
+    config.contract,
+    "--function-names",
+    config.functionNames.join(", "),
+    "use-manually-provided-public-key",
+    keyPair.publicKey,
+    "network-config",
+    config.network || (config.account.endsWith(".testnet") ? "testnet" : "mainnet"),
+    "sign-with-keychain",
+    "send",
+  ];
+
+  await runNearCommand(args);
+  return keyPair;
+}

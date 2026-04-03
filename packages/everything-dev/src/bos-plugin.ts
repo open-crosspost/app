@@ -13,6 +13,7 @@ import {
   type BuildOptions,
   bosContract,
   type DevOptions,
+  type KeyPublishOptions,
   type PublishOptions,
   type StartOptions,
 } from "./contract";
@@ -20,9 +21,10 @@ import { type AppConfig, type AppOrchestrator, startApp } from "./dev-session";
 import {
   buildRegistryConfigUrlForNetwork,
   fetchBosConfigFromFastKv,
+  getRegistryNamespaceForAccount,
   getRegistryNamespaceForNetwork,
 } from "./fastkv";
-import { ensureNearCli, executeTransaction } from "./near-cli";
+import { addFunctionCallAccessKey, ensureNearCli, executeTransaction } from "./near-cli";
 import { getNetworkIdForAccount } from "./network";
 import { createPlugin, z } from "./plugin";
 import { syncAndGenerateSharedUi } from "./shared";
@@ -41,6 +43,8 @@ const buildCommands: Record<string, { cmd: string; args: string[] }> = {
   ui: { cmd: "bun", args: ["run", "build"] },
   api: { cmd: "bun", args: ["run", "build"] },
 };
+
+const PUBLISH_FUNCTION_NAMES = ["__fastdata_kv"];
 
 type BosDeps = {
   bosConfig: BosConfig | null;
@@ -609,6 +613,55 @@ export default createPlugin({
           error: error instanceof Error ? error.message : "Unknown error",
           built,
           skipped,
+        };
+      }
+    }),
+
+    keyPublish: builder.keyPublish.handler(async ({ input }: { input: KeyPublishOptions }) => {
+      if (!deps.bosConfig) {
+        return {
+          status: "error" as const,
+          account: "",
+          network: "mainnet" as const,
+          contract: "",
+          allowance: input.allowance,
+          functionNames: PUBLISH_FUNCTION_NAMES,
+          error: "No bos.config.json found",
+        };
+      }
+
+      const account = deps.bosConfig.account;
+      const network = getNetworkIdForAccount(account);
+      const contract = getRegistryNamespaceForAccount(account);
+      try {
+        await Effect.runPromise(ensureNearCli);
+        const keyPair = await addFunctionCallAccessKey({
+          account,
+          contract,
+          allowance: input.allowance,
+          functionNames: PUBLISH_FUNCTION_NAMES,
+          network,
+        });
+
+        return {
+          status: "published" as const,
+          account,
+          network,
+          contract,
+          allowance: input.allowance,
+          functionNames: PUBLISH_FUNCTION_NAMES,
+          publicKey: keyPair.publicKey,
+          privateKey: keyPair.privateKey,
+        };
+      } catch (error) {
+        return {
+          status: "error" as const,
+          account,
+          network,
+          contract,
+          allowance: input.allowance,
+          functionNames: PUBLISH_FUNCTION_NAMES,
+          error: error instanceof Error ? error.message : "Unknown error",
         };
       }
     }),

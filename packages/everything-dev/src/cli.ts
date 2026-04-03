@@ -75,6 +75,7 @@ function printHelp() {
   process.stdout.write(
     `  everything-dev publish [--deploy] [--dry-run] [--packages all|host,ui,api] [--network mainnet|testnet] [--private-key <key>]\n`,
   );
+  process.stdout.write(`  everything-dev key publish [--allowance <amount>]\n`);
   process.stdout.write(`  everything-dev add plugin <bos://account/gateway/plugins/pluginId>\n`);
   process.stdout.write(`  everything-dev logs [--tail <count>]\n\n`);
   process.stdout.write(`  everything-dev types sync\n\n`);
@@ -230,6 +231,33 @@ async function main() {
       privateKey: readFlag(args, "--private-key"),
     });
     if (result.status === "error") process.exit(1);
+    return;
+  }
+
+  if (command === "key") {
+    const action = args[1];
+    if (action !== "publish") {
+      console.error(`Unknown key command: ${action ?? ""}`);
+      process.exit(1);
+    }
+
+    const result = await client.keyPublish({
+      allowance: readFlag(args, "--allowance") ?? "0.25NEAR",
+    });
+
+    if (result.status === "error") {
+      console.error(`[CLI] ${result.error || "Unknown error"}`);
+      process.exit(1);
+    }
+
+    process.stdout.write(`Generated publish key for ${result.account}\n`);
+    process.stdout.write(`  Network: ${result.network}\n`);
+    process.stdout.write(`  Contract: ${result.contract}\n`);
+    process.stdout.write(`  Allowance: ${result.allowance}\n`);
+    process.stdout.write(`  Functions: ${result.functionNames.join(", ")}\n`);
+    process.stdout.write(`  Public key: ${result.publicKey}\n`);
+    process.stdout.write(`  Private key: ${result.privateKey}\n`);
+    process.stdout.write(`  Copy: NEAR_PRIVATE_KEY=${result.privateKey}\n`);
     return;
   }
 
