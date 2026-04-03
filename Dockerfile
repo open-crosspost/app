@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:alpine AS base
+FROM oven/bun:1.3.9-alpine AS base
 WORKDIR /app
 
 RUN mkdir -p api ui host packages/every-plugin packages/everything-dev
