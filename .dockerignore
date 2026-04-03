@@ -1,6 +1,8 @@
 # Git
 .git
 .gitignore
+.github
+.changeset
 
 # Dependencies (installed fresh in container)
 node_modules
@@ -33,6 +35,10 @@ dist
 *.swp
 *.swo
 
+# Local agent files
+.agent
+AGENTS.md
+
 # OS
 .DS_Store
 Thumbs.db
@@ -40,6 +46,18 @@ Thumbs.db
 # Test artifacts
 coverage
 **/coverage
+playwright-report
+test-results
+**/test-results
+api/tests
+host/tests
+packages/every-plugin/tests
+
+# Docs
+docs
+README.md
+LLM.txt
+CONTRIBUTING.md
 
 # Logs
 *.log
