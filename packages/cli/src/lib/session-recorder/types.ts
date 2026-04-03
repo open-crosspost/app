@@ -100,7 +100,11 @@ export type SessionFlow = (context: FlowContext) => Promise<void>;
 export interface FlowContext {
   page: unknown;
   context: unknown;
-  recordEvent: (type: SessionEventType, label: string, metadata?: Record<string, unknown>) => Promise<void>;
+  recordEvent: (
+    type: SessionEventType,
+    label: string,
+    metadata?: Record<string, unknown>,
+  ) => Promise<void>;
   headless: boolean;
   baseUrl: string;
 }

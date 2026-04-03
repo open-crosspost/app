@@ -40,48 +40,50 @@ export async function getPluginClient(context?: { userId?: string; sessionId?: s
     server = createServer(async (req, res) => {
       const url = new URL(req.url!, baseUrl);
 
-      if (url.pathname.startsWith('/rpc')) {
+      if (url.pathname.startsWith("/rpc")) {
         // Initialize empty context for each request to prevent closure capture
         let requestContext = {};
 
         // Allow overriding context via headers for flexibility
-        if (req.headers['x-test-user']) {
+        if (req.headers["x-test-user"]) {
           requestContext = {
             ...requestContext,
-            userId: req.headers['x-test-user'] as string,
+            userId: req.headers["x-test-user"] as string,
           };
         }
-        if (req.headers['x-test-session']) {
+        if (req.headers["x-test-session"]) {
           requestContext = {
             ...requestContext,
-            sessionId: req.headers['x-test-session'] as string,
+            sessionId: req.headers["x-test-session"] as string,
           };
         }
 
         const result = await rpcHandler.handle(req, res, {
-          prefix: '/rpc',
-          context: requestContext
+          prefix: "/rpc",
+          context: requestContext,
         });
         if (result.matched) return;
       }
 
       res.statusCode = 404;
-      res.end('Route not found');
+      res.end("Route not found");
     });
 
     await new Promise<void>((resolve, reject) => {
-      server?.listen(port, '127.0.0.1', () => resolve());
-      server?.on('error', reject);
+      server?.listen(port, "127.0.0.1", () => resolve());
+      server?.on("error", reject);
     });
   }
 
   const link = new RPCLink({
     url: `${baseUrl}/rpc`,
     fetch: globalThis.fetch,
-    headers: context ? {
-      ...(context.userId && { 'x-test-user': context.userId }),
-      ...(context.sessionId && { 'x-test-session': context.sessionId }),
-    } : {},
+    headers: context
+      ? {
+          ...(context.userId && { "x-test-user": context.userId }),
+          ...(context.sessionId && { "x-test-session": context.sessionId }),
+        }
+      : {},
   });
 
   const client: ContractRouterClient<typeof contract> = createORPCClient(link);

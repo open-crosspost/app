@@ -64,7 +64,7 @@ export const PORT_POOL = {
   RPC_TEST: 4002,
   STREAMING_TEST: 4003,
   OPENAPI_GEN_TEST: 4004,
-  REQUEST_CONTEXT_TEST: 4005
+  REQUEST_CONTEXT_TEST: 4005,
 } as const;
 
 // Export test server URL for use in tests

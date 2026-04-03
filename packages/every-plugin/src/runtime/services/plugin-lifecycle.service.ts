@@ -2,68 +2,85 @@ import { Effect, Ref } from "effect";
 import type { AnyPlugin, InitializedPlugin } from "../../types";
 import { toPluginRuntimeError } from "../errors";
 
-export class PluginLifecycleService extends Effect.Service<PluginLifecycleService>()("PluginLifecycleService", {
-  effect: Effect.gen(function* () {
-    const activePlugins = yield* Ref.make(new Set<InitializedPlugin<AnyPlugin>>());
+export class PluginLifecycleService extends Effect.Service<PluginLifecycleService>()(
+  "PluginLifecycleService",
+  {
+    effect: Effect.gen(function* () {
+      const activePlugins = yield* Ref.make(new Set<InitializedPlugin<AnyPlugin>>());
 
-    return {
-      register: <T extends AnyPlugin>(plugin: InitializedPlugin<T>) =>
-        Ref.update(activePlugins, plugins =>
-          new Set(plugins).add(plugin as InitializedPlugin<AnyPlugin>)
-        ),
+      return {
+        register: <T extends AnyPlugin>(plugin: InitializedPlugin<T>) =>
+          Ref.update(activePlugins, (plugins) =>
+            new Set(plugins).add(plugin as InitializedPlugin<AnyPlugin>),
+          ),
 
-      unregister: (plugin: InitializedPlugin<AnyPlugin>) =>
-        Ref.update(activePlugins, plugins => {
-          const newSet = new Set(plugins);
-          newSet.delete(plugin);
-          return newSet;
-        }),
-
-      shutdown: (plugin: InitializedPlugin<AnyPlugin>) =>
-        Effect.gen(function* () {
-          // Remove from active plugins
-          yield* Ref.update(activePlugins, plugins => {
+        unregister: (plugin: InitializedPlugin<AnyPlugin>) =>
+          Ref.update(activePlugins, (plugins) => {
             const newSet = new Set(plugins);
             newSet.delete(plugin);
             return newSet;
-          });
+          }),
 
-          // Shutdown the plugin
-          yield* plugin.plugin.shutdown().pipe(
-            Effect.mapError(error =>
-              toPluginRuntimeError(error, plugin.plugin.id, undefined, "shutdown-plugin", false)
-            )
-          );
-        }),
+        shutdown: (plugin: InitializedPlugin<AnyPlugin>) =>
+          Effect.gen(function* () {
+            // Remove from active plugins
+            yield* Ref.update(activePlugins, (plugins) => {
+              const newSet = new Set(plugins);
+              newSet.delete(plugin);
+              return newSet;
+            });
 
-      cleanup: () =>
-        Effect.gen(function* () {
-          const plugins = yield* Ref.get(activePlugins);
-
-          // Shutdown all active plugins concurrently
-          yield* Effect.forEach(
-            plugins,
-            plugin =>
-              plugin.plugin.shutdown().pipe(
-                Effect.mapError(error =>
-                  toPluginRuntimeError(error, plugin.plugin.id, undefined, "cleanup-shutdown", false)
-                ),
-                Effect.catchAll(error =>
-                  Effect.logError(
-                    `Failed to shutdown plugin ${plugin.plugin.id} during cleanup`,
+            // Shutdown the plugin
+            yield* plugin.plugin
+              .shutdown()
+              .pipe(
+                Effect.mapError((error) =>
+                  toPluginRuntimeError(
                     error,
-                    { pluginId: plugin.plugin.id }
-                  )
-                )
-              ),
-            { concurrency: "unbounded" }
-          );
+                    plugin.plugin.id,
+                    undefined,
+                    "shutdown-plugin",
+                    false,
+                  ),
+                ),
+              );
+          }),
 
-          // Clear the active plugins set
-          yield* Ref.set(activePlugins, new Set());
-        }).pipe(
-          Effect.catchAll(() => Effect.void) // Convert errors to void for cleanup
-        ),
-    };
-  }),
-}) { }
+        cleanup: () =>
+          Effect.gen(function* () {
+            const plugins = yield* Ref.get(activePlugins);
+
+            // Shutdown all active plugins concurrently
+            yield* Effect.forEach(
+              plugins,
+              (plugin) =>
+                plugin.plugin.shutdown().pipe(
+                  Effect.mapError((error) =>
+                    toPluginRuntimeError(
+                      error,
+                      plugin.plugin.id,
+                      undefined,
+                      "cleanup-shutdown",
+                      false,
+                    ),
+                  ),
+                  Effect.catchAll((error) =>
+                    Effect.logError(
+                      `Failed to shutdown plugin ${plugin.plugin.id} during cleanup`,
+                      error,
+                      { pluginId: plugin.plugin.id },
+                    ),
+                  ),
+                ),
+              { concurrency: "unbounded" },
+            );
+
+            // Clear the active plugins set
+            yield* Ref.set(activePlugins, new Set());
+          }).pipe(
+            Effect.catchAll(() => Effect.void), // Convert errors to void for cleanup
+          ),
+      };
+    }),
+  },
+) {}

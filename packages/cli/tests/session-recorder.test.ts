@@ -1,14 +1,14 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
+import type { SessionConfig, SessionEvent, Snapshot } from "../src/lib/session-recorder";
 import {
-  SessionRecorder,
+  diffSnapshots,
+  formatReportSummary,
   generateReport,
   generateSummary,
-  formatReportSummary,
-  diffSnapshots,
   hasLeaks,
+  SessionRecorder,
 } from "../src/lib/session-recorder";
-import type { SessionConfig, SessionEvent, Snapshot } from "../src/lib/session-recorder";
 
 const createMockSnapshot = (overrides?: Partial<Snapshot>): Snapshot => ({
   timestamp: Date.now(),
@@ -28,7 +28,7 @@ const createMockSnapshot = (overrides?: Partial<Snapshot>): Snapshot => ({
 const createMockEvent = (
   type: SessionEvent["type"],
   label: string,
-  snapshot?: Snapshot
+  snapshot?: Snapshot,
 ): SessionEvent => ({
   id: `test_${Date.now()}`,
   timestamp: Date.now(),
@@ -65,15 +65,27 @@ describe("SessionRecorder", () => {
       };
 
       const events: SessionEvent[] = [
-        createMockEvent("baseline", "start", createMockSnapshot({
-          memory: { total: 16e9, used: 8e9, free: 8e9, processRss: 100 * 1024 * 1024 },
-        })),
-        createMockEvent("interval", "tick1", createMockSnapshot({
-          memory: { total: 16e9, used: 8e9, free: 8e9, processRss: 150 * 1024 * 1024 },
-        })),
-        createMockEvent("interval", "tick2", createMockSnapshot({
-          memory: { total: 16e9, used: 8e9, free: 8e9, processRss: 120 * 1024 * 1024 },
-        })),
+        createMockEvent(
+          "baseline",
+          "start",
+          createMockSnapshot({
+            memory: { total: 16e9, used: 8e9, free: 8e9, processRss: 100 * 1024 * 1024 },
+          }),
+        ),
+        createMockEvent(
+          "interval",
+          "tick1",
+          createMockSnapshot({
+            memory: { total: 16e9, used: 8e9, free: 8e9, processRss: 150 * 1024 * 1024 },
+          }),
+        ),
+        createMockEvent(
+          "interval",
+          "tick2",
+          createMockSnapshot({
+            memory: { total: 16e9, used: 8e9, free: 8e9, processRss: 120 * 1024 * 1024 },
+          }),
+        ),
       ];
 
       events[0].timestamp = 0;
@@ -97,17 +109,23 @@ describe("SessionRecorder", () => {
       };
 
       const events: SessionEvent[] = [
-        createMockEvent("baseline", "start", createMockSnapshot({
-          processes: [
-            { pid: 1000, ppid: 1, command: "bun", args: [], rss: 1e6, children: [] },
-          ],
-        })),
-        createMockEvent("interval", "tick", createMockSnapshot({
-          processes: [
-            { pid: 1000, ppid: 1, command: "bun", args: [], rss: 1e6, children: [] },
-            { pid: 2000, ppid: 1000, command: "node", args: [], rss: 2e6, children: [] },
-          ],
-        })),
+        createMockEvent(
+          "baseline",
+          "start",
+          createMockSnapshot({
+            processes: [{ pid: 1000, ppid: 1, command: "bun", args: [], rss: 1e6, children: [] }],
+          }),
+        ),
+        createMockEvent(
+          "interval",
+          "tick",
+          createMockSnapshot({
+            processes: [
+              { pid: 1000, ppid: 1, command: "bun", args: [], rss: 1e6, children: [] },
+              { pid: 2000, ppid: 1000, command: "node", args: [], rss: 2e6, children: [] },
+            ],
+          }),
+        ),
       ];
 
       const summary = generateSummary(events, config);
@@ -131,13 +149,7 @@ describe("SessionRecorder", () => {
         createMockEvent("custom", "session_end"),
       ];
 
-      const report = generateReport(
-        "test_session",
-        config,
-        events,
-        1000,
-        5000
-      );
+      const report = generateReport("test_session", config, events, 1000, 5000);
 
       expect(report.sessionId).toBe("test_session");
       expect(report.config).toEqual(config);
@@ -214,9 +226,7 @@ describe("SessionRecorder", () => {
   describe("diffSnapshots", () => {
     it("detects new processes", () => {
       const baseline = createMockSnapshot({
-        processes: [
-          { pid: 1000, ppid: 1, command: "bun", args: [], rss: 1e6, children: [] },
-        ],
+        processes: [{ pid: 1000, ppid: 1, command: "bun", args: [], rss: 1e6, children: [] }],
       });
 
       const after = createMockSnapshot({
@@ -241,9 +251,7 @@ describe("SessionRecorder", () => {
       });
 
       const after = createMockSnapshot({
-        processes: [
-          { pid: 2000, ppid: 1000, command: "node", args: [], rss: 2e6, children: [] },
-        ],
+        processes: [{ pid: 2000, ppid: 1000, command: "node", args: [], rss: 2e6, children: [] }],
       });
 
       const diff = diffSnapshots(baseline, after);
@@ -289,9 +297,7 @@ describe("SessionRecorder", () => {
         ],
       });
       const after = createMockSnapshot({
-        processes: [
-          { pid: 2000, ppid: 1000, command: "node", args: [], rss: 2e6, children: [] },
-        ],
+        processes: [{ pid: 2000, ppid: 1000, command: "node", args: [], rss: 2e6, children: [] }],
       });
 
       const diff = diffSnapshots(baseline, after);

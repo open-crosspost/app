@@ -36,8 +36,7 @@ export const Route = createFileRoute("/_layout/login")({
         | undefined);
 
     if (session?.user) {
-      const redirectTo =
-        search.redirect && search.redirect.startsWith("/") ? search.redirect : "/home";
+      const redirectTo = search.redirect?.startsWith("/") ? search.redirect : "/home";
       throw redirect({ to: redirectTo as never, search: {} as never });
     }
   },
@@ -69,7 +68,7 @@ function LoginPage() {
     await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
     await queryClient.invalidateQueries({ queryKey: organizationsQueryOptions().queryKey });
     router.invalidate();
-    const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/home";
+    const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
     navigate({ to: redirectTo as never, replace: true, search: {} as never });
     toast.success(message);
   };
@@ -206,7 +205,7 @@ function LoginPage() {
       return new Promise<void>((resolve, reject) => {
         authClient.signIn.social({
           provider: "github",
-          callbackURL: redirect && redirect.startsWith("/") ? redirect : "/home",
+          callbackURL: redirect?.startsWith("/") ? redirect : "/home",
           fetchOptions: {
             onSuccess: () => resolve(),
             onError: (ctx) => reject(new Error(ctx.error?.message || "GitHub sign in failed")),
@@ -261,7 +260,7 @@ function LoginPage() {
     githubMutation.isPending;
 
   if (session?.user) {
-    const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/home";
+    const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
     return <Navigate to={redirectTo as never} replace search={{} as never} />;
   }
 

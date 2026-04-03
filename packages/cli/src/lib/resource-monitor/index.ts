@@ -49,16 +49,14 @@ export class ResourceMonitor {
   }
 
   static create = (
-    config?: MonitorConfig
+    config?: MonitorConfig,
   ): Effect.Effect<ResourceMonitor, never, PlatformService> =>
     Effect.gen(function* () {
       yield* Effect.logInfo("Creating ResourceMonitor instance");
       return new ResourceMonitor(config || {});
     });
 
-  static createWithPlatform = (
-    config?: MonitorConfig
-  ): Effect.Effect<ResourceMonitor> =>
+  static createWithPlatform = (config?: MonitorConfig): Effect.Effect<ResourceMonitor> =>
     withPlatform(ResourceMonitor.create(config));
 
   snapshot(): Effect.Effect<Snapshot, never, PlatformService> {
@@ -122,27 +120,21 @@ export class ResourceMonitor {
     return Effect.sync(() => hasLeaks(diff));
   }
 
-  assertAllPortsFree(
-    ports?: number[]
-  ): Effect.Effect<void, PortStillBound, PlatformService> {
+  assertAllPortsFree(ports?: number[]): Effect.Effect<void, PortStillBound, PlatformService> {
     const portsToCheck =
-      ports ||
-      Object.keys(this.baseline?.ports || {}).map((p) => parseInt(p, 10));
+      ports || Object.keys(this.baseline?.ports || {}).map((p) => parseInt(p, 10));
     return assertAllPortsFree(portsToCheck);
   }
 
-  assertAllPortsFreeWithPlatform(
-    ports?: number[]
-  ): Effect.Effect<void, PortStillBound> {
+  assertAllPortsFreeWithPlatform(ports?: number[]): Effect.Effect<void, PortStillBound> {
     const portsToCheck =
-      ports ||
-      Object.keys(this.baseline?.ports || {}).map((p) => parseInt(p, 10));
+      ports || Object.keys(this.baseline?.ports || {}).map((p) => parseInt(p, 10));
     return assertAllPortsFreeWithPlatform(portsToCheck);
   }
 
   assertNoOrphanProcesses(
     running: Snapshot,
-    after: Snapshot
+    after: Snapshot,
   ): Effect.Effect<void, OrphanedProcesses> {
     return assertNoOrphanProcesses(running, after);
   }
@@ -150,7 +142,7 @@ export class ResourceMonitor {
   assertMemoryDelta(
     baseline: Snapshot,
     after: Snapshot,
-    options: { maxDeltaMB?: number; maxDeltaPercent?: number }
+    options: { maxDeltaMB?: number; maxDeltaPercent?: number },
   ): Effect.Effect<void, MemoryLimitExceeded | MemoryPercentExceeded> {
     return assertMemoryDelta(baseline, after, options);
   }
@@ -164,28 +156,25 @@ export class ResourceMonitor {
   }
 
   assertCleanState(
-    running: Snapshot
+    running: Snapshot,
   ): Effect.Effect<void, PortStillBound | ProcessesStillAlive, PlatformService> {
     return assertCleanState(running);
   }
 
   assertCleanStateWithPlatform(
-    running: Snapshot
+    running: Snapshot,
   ): Effect.Effect<void, PortStillBound | ProcessesStillAlive> {
     return assertCleanStateWithPlatform(running);
   }
 
   waitForPortFree(
     port: number,
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Effect.Effect<boolean, never, PlatformService> {
     return waitForPortFree(port, timeoutMs);
   }
 
-  waitForPortFreeWithPlatform(
-    port: number,
-    timeoutMs?: number
-  ): Effect.Effect<boolean> {
+  waitForPortFreeWithPlatform(port: number, timeoutMs?: number): Effect.Effect<boolean> {
     return waitForPortFreeWithPlatform(port, timeoutMs);
   }
 
@@ -236,33 +225,28 @@ export class ResourceMonitor {
   }
 }
 
-export const runWithLogging = <A, E>(
-  effect: Effect.Effect<A, E, PlatformService>
-): Promise<A> =>
+export const runWithLogging = <A, E>(effect: Effect.Effect<A, E, PlatformService>): Promise<A> =>
   effect.pipe(
     Effect.provide(PlatformLive),
     Logger.withMinimumLogLevel(LogLevel.Debug),
-    Effect.runPromise
+    Effect.runPromise,
   );
 
-export const runWithInfo = <A, E>(
-  effect: Effect.Effect<A, E, PlatformService>
-): Promise<A> =>
+export const runWithInfo = <A, E>(effect: Effect.Effect<A, E, PlatformService>): Promise<A> =>
   effect.pipe(
     Effect.provide(PlatformLive),
     Logger.withMinimumLogLevel(LogLevel.Info),
-    Effect.runPromise
+    Effect.runPromise,
   );
 
-export const runSilent = <A, E>(
-  effect: Effect.Effect<A, E, PlatformService>
-): Promise<A> =>
+export const runSilent = <A, E>(effect: Effect.Effect<A, E, PlatformService>): Promise<A> =>
   effect.pipe(
     Effect.provide(PlatformLive),
     Logger.withMinimumLogLevel(LogLevel.Error),
-    Effect.runPromise
+    Effect.runPromise,
   );
 
+export type { MemoryInfo, MonitorConfig, PortInfo, ProcessInfo, Snapshot, SnapshotDiff };
 export {
   assertAllPortsFree,
   assertAllPortsFreeWithPlatform,
@@ -293,13 +277,4 @@ export {
   waitForPortFreeWithPlatform,
   waitForProcessDeath,
   withPlatform,
-};
-
-export type {
-  MemoryInfo,
-  MonitorConfig,
-  PortInfo,
-  ProcessInfo,
-  Snapshot,
-  SnapshotDiff,
 };

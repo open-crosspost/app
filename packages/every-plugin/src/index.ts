@@ -6,14 +6,21 @@ export * from "./runtime";
 export { getNormalizedRemoteName } from "./runtime/services/normalize";
 
 export type {
-	AnyPlugin,
-	EveryPlugin,
-	InitializedPlugin,
-	LoadedPlugin,
-	PluginClientType, PluginConfigInput, PluginContext, PluginContract, PluginInstance,
-	PluginMetadata,
-	PluginRegistry,
-	PluginRouterType,
-	PluginRuntimeConfig, PluginSecrets, PluginVariables, RegisteredPlugins,
-	SecretsConfig
+  AnyPlugin,
+  EveryPlugin,
+  InitializedPlugin,
+  LoadedPlugin,
+  PluginClientType,
+  PluginConfigInput,
+  PluginContext,
+  PluginContract,
+  PluginInstance,
+  PluginMetadata,
+  PluginRegistry,
+  PluginRouterType,
+  PluginRuntimeConfig,
+  PluginSecrets,
+  PluginVariables,
+  RegisteredPlugins,
+  SecretsConfig,
 } from "./types";

@@ -14,18 +14,20 @@ type SearchResult = z.infer<typeof SearchResultSchema>;
 export class TemplateService {
   constructor(
     private readonly baseUrl: string,
-    private readonly apiKey: string,
-    private readonly timeout: number
-  ) { }
+    readonly _apiKey: string,
+    private readonly timeout: number,
+  ) {}
 
   getById(id: string) {
     return Effect.tryPromise({
       try: async () => {
         // In a real plugin, use this.baseUrl, this.apiKey, this.timeout
-        console.log(`[TemplateService] Fetching from ${this.baseUrl} with timeout ${this.timeout}ms`);
+        console.log(
+          `[TemplateService] Fetching from ${this.baseUrl} with timeout ${this.timeout}ms`,
+        );
 
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         if (id === "not-found") {
           throw new Error("Item not found");
@@ -37,7 +39,10 @@ export class TemplateService {
           createdAt: new Date().toISOString(),
         } satisfies Item;
       },
-      catch: (error: unknown) => new Error(`Failed to fetch item: ${error instanceof Error ? error.message : String(error)}`)
+      catch: (error: unknown) =>
+        new Error(
+          `Failed to fetch item: ${error instanceof Error ? error.message : String(error)}`,
+        ),
     });
   }
 
@@ -67,13 +72,14 @@ export class TemplateService {
   ping() {
     return Effect.tryPromise({
       try: async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         return {
           status: "ok" as const,
           timestamp: new Date().toISOString(),
         };
       },
-      catch: (error: unknown) => new Error(`Health check failed: ${error instanceof Error ? error.message : String(error)}`)
+      catch: (error: unknown) =>
+        new Error(`Health check failed: ${error instanceof Error ? error.message : String(error)}`),
     });
   }
 }

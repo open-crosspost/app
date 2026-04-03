@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TEST_REGISTRY } from "../registry";
 
 class MockClient {
-  constructor(public baseUrl: string) { }
+  constructor(public baseUrl: string) {}
 
   async getData(id: string): Promise<{ id: string; data: string }> {
     return { id, data: `data-from-${this.baseUrl}` };
@@ -22,14 +22,14 @@ describe("Variable Serialization Integration Tests", () => {
   it("should preserve object methods when passed as variables through Module Federation", async () => {
     const runtime = createPluginRuntime({
       registry: TEST_REGISTRY,
-      secrets: SECRETS_CONFIG
+      secrets: SECRETS_CONFIG,
     });
 
     const mockClient = new MockClient("http://api.example.com");
 
     expect(mockClient).toBeInstanceOf(MockClient);
-    expect(typeof mockClient.getData).toBe('function');
-    expect(typeof mockClient.getBaseUrl).toBe('function');
+    expect(typeof mockClient.getData).toBe("function");
+    expect(typeof mockClient.getBaseUrl).toBe("function");
 
     const { createClient } = await runtime.usePlugin("test-plugin", {
       variables: {
@@ -47,15 +47,15 @@ describe("Variable Serialization Integration Tests", () => {
 
     expect(result.hasGetDataMethod).toBe(true);
     expect(result.hasGetBaseUrlMethod).toBe(true);
-    expect(result.clientType).toBe('MockClient');
-    expect(result.result).toContain('data-from-http://api.example.com');
+    expect(result.clientType).toBe("MockClient");
+    expect(result.result).toContain("data-from-http://api.example.com");
     expect(result.result).toContain('"id":"123"');
   }, 15000);
 
   it("should handle nested objects with methods through Module Federation", async () => {
     const runtime = createPluginRuntime({
       registry: TEST_REGISTRY,
-      secrets: SECRETS_CONFIG
+      secrets: SECRETS_CONFIG,
     });
 
     const mockClient = new MockClient("http://nested.example.com");
@@ -75,7 +75,7 @@ describe("Variable Serialization Integration Tests", () => {
     const result = await client.useClient({ id: "456" });
 
     expect(result.hasGetDataMethod).toBe(true);
-    expect(result.result).toContain('data-from-http://nested.example.com');
+    expect(result.result).toContain("data-from-http://nested.example.com");
     expect(result.result).toContain('"id":"456"');
   }, 15000);
 });

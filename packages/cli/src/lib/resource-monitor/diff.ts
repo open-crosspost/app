@@ -40,16 +40,16 @@ export const diffSnapshots = (from: Snapshot, to: Snapshot): SnapshotDiff => {
 };
 
 const findOrphanedProcesses = (
-  from: Snapshot,
+  _from: Snapshot,
   to: Snapshot,
   fromPids: Set<number>,
-  toPids: Set<number>
+  toPids: Set<number>,
 ): ProcessInfo[] => {
   const orphaned: ProcessInfo[] = [];
 
   for (const toProc of to.processes) {
     const parentPid = toProc.ppid;
-    
+
     if (parentPid <= 1) continue;
 
     const parentWasTracked = fromPids.has(parentPid);

@@ -142,7 +142,7 @@ export function getSessionFromData(session: SessionData | null | undefined) {
 
 export function getActiveOrganization(
   organizations: Organization[],
-  activeOrgId: string | null | undefined
+  activeOrgId: string | null | undefined,
 ) {
   if (!activeOrgId || !organizations.length) return null;
   return organizations.find((org) => org.id === activeOrgId) || null;
@@ -178,11 +178,7 @@ export async function createOrganization(name: string, slug: string) {
   return data;
 }
 
-export async function inviteMember(
-  orgId: string,
-  email: string,
-  role: "admin" | "member"
-) {
+export async function inviteMember(orgId: string, email: string, role: "admin" | "member") {
   const { data, error } = await authClient.organization.inviteMember({
     organizationId: orgId,
     email,

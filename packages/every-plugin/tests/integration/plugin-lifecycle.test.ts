@@ -7,7 +7,7 @@ import { TEST_REGISTRY } from "../registry";
 const TEST_CONFIG = {
   variables: {
     baseUrl: "http://localhost:1337",
-    timeout: 5000
+    timeout: 5000,
   },
   secrets: {
     apiKey: "test-api-key-value",
@@ -21,7 +21,7 @@ const SECRETS_CONFIG = {
 describe("Plugin Lifecycle Integration Tests", () => {
   const pluginRuntime = createPluginRuntime({
     registry: TEST_REGISTRY,
-    secrets: SECRETS_CONFIG
+    secrets: SECRETS_CONFIG,
   });
 
   it("should complete full plugin lifecycle with real MF", async () => {
@@ -32,14 +32,14 @@ describe("Plugin Lifecycle Integration Tests", () => {
     expect(pluginInstance).toBeDefined();
     expect(pluginInstance.plugin).toBeDefined();
 
-    const initializedPlugin = await pluginRuntime.initializePlugin(
-      pluginInstance,
-      TEST_CONFIG,
-    );
+    const initializedPlugin = await pluginRuntime.initializePlugin(pluginInstance, TEST_CONFIG);
     expect(initializedPlugin).toBeDefined();
     expect(initializedPlugin.config).toBeDefined();
 
-    const client = createRouterClient(initializedPlugin.plugin.createRouter(initializedPlugin.context), { } as any);
+    const client = createRouterClient(
+      initializedPlugin.plugin.createRouter(initializedPlugin.context),
+      {} as any,
+    );
     const output = await client.getById({ id: "integration-test" });
     expect(output).toBeDefined();
   }, 15000);
@@ -78,7 +78,7 @@ describe("Plugin Lifecycle Integration Tests", () => {
     const result = await client.simpleStream({ count: 3, prefix: "integration" });
 
     expect(result).not.toBeNull();
-    expect(typeof result).toBe('object');
+    expect(typeof result).toBe("object");
     expect(Symbol.asyncIterator in result).toBe(true);
   }, 15000);
 

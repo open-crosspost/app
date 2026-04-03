@@ -694,25 +694,23 @@ export default createPlugin({
         return { data: exit.value };
       }),
 
-      createProject: builder.createProject
-        .use(requireAuth)
-        .handler(async ({ input, context, errors }) => {
-          const exit = await Effect.runPromiseExit(
-            services.project.createProject(input, context.userId),
-          );
+      createProject: builder.createProject.use(requireAuth).handler(async ({ input, context }) => {
+        const exit = await Effect.runPromiseExit(
+          services.project.createProject(input, context.userId),
+        );
 
-          if (Exit.isFailure(exit)) {
-            const squashed = Cause.squash(exit.cause);
-            if (squashed instanceof ORPCError) {
-              throw squashed;
-            }
-            throw new ORPCError("INTERNAL_SERVER_ERROR", {
-              message: squashed instanceof Error ? squashed.message : String(squashed),
-            });
+        if (Exit.isFailure(exit)) {
+          const squashed = Cause.squash(exit.cause);
+          if (squashed instanceof ORPCError) {
+            throw squashed;
           }
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: squashed instanceof Error ? squashed.message : String(squashed),
+          });
+        }
 
-          return exit.value;
-        }),
+        return exit.value;
+      }),
 
       updateProject: builder.updateProject
         .use(requireAuth)
@@ -766,7 +764,7 @@ export default createPlugin({
           return exit.value;
         }),
 
-      listProjectApps: builder.listProjectApps.handler(async ({ input, errors }) => {
+      listProjectApps: builder.listProjectApps.handler(async ({ input }) => {
         const exit = await Effect.runPromiseExit(services.project.listProjectApps(input.projectId));
 
         if (Exit.isFailure(exit)) {

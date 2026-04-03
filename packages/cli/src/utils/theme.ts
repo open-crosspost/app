@@ -1,5 +1,5 @@
-import gradient from "gradient-string";
 import chalk from "chalk";
+import gradient from "gradient-string";
 
 export const gradients = {
   cyber: gradient(["#00ffff", "#ff00ff"]),
@@ -67,7 +67,8 @@ export function box(content: string, width = 50): string {
 }
 
 function stripAnsi(str: string): string {
-  const ansiPattern = new RegExp("\\x1b\\[[0-9;]*m", "g");
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape codes are intentional
+  const ansiPattern = /\x1b\[[0-9;]*m/g;
   return str.replace(ansiPattern, "");
 }
 

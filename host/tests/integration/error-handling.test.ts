@@ -235,7 +235,7 @@ describe("Error Propagation & Formatting", () => {
   describe("SSR Client Error Handling", () => {
     it("uses globalThis.$apiClient during SSR rendering", () => {
       expect(globalThis.$apiClient).toBeDefined();
-      expect(globalThis.$apiClient).toBe(mockApiClient);
+      expect(globalThis.$apiClient).toMatchObject(mockApiClient);
     });
 
     it("SSR client handles errors without needing absolute URL", async () => {

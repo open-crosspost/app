@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clearConfigCache,
@@ -10,12 +10,8 @@ import {
   loadConfig,
   resolvePackages,
 } from "../../src/config";
-import type { BosConfig, SourceMode } from "../../src/types";
-import {
-  ConfigCircularExtendsError,
-  ConfigFetchError,
-  ConfigResolutionError,
-} from "../../src/types";
+import type { BosConfig } from "../../src/types";
+import { ConfigCircularExtendsError } from "../../src/types";
 
 describe("Config Loading System", () => {
   let tempDir: string;

@@ -15,7 +15,7 @@ import { PORT_POOL } from "../setup/global-setup";
 
 const TEST_REGISTRY = {
   "test-plugin": {
-    module: TestPlugin
+    module: TestPlugin,
   },
 } as const;
 
@@ -36,7 +36,7 @@ const SECRETS_CONFIG = {
 describe("Plugin Router Access Methods", () => {
   const runtime = createPluginRuntime({
     registry: TEST_REGISTRY,
-    secrets: SECRETS_CONFIG
+    secrets: SECRETS_CONFIG,
   });
 
   let server: ReturnType<typeof createServer> | null = null;
@@ -56,29 +56,29 @@ describe("Plugin Router Access Methods", () => {
     server = createServer(async (req, res) => {
       const url = new URL(req.url!, baseUrl);
 
-      if (url.pathname.startsWith('/rpc')) {
+      if (url.pathname.startsWith("/rpc")) {
         const result = await rpcHandler.handle(req, res, {
-          prefix: '/rpc',
-          context: plugin!.initialized.context
+          prefix: "/rpc",
+          context: plugin!.initialized.context,
         });
         if (result.matched) return;
       }
 
-      if (url.pathname.startsWith('/api')) {
+      if (url.pathname.startsWith("/api")) {
         const result = await openApiHandler.handle(req, res, {
-          prefix: '/api',
-          context: plugin!.initialized.context
+          prefix: "/api",
+          context: plugin!.initialized.context,
         });
         if (result.matched) return;
       }
 
       res.statusCode = 404;
-      res.end('Route not found');
+      res.end("Route not found");
     });
 
     await new Promise<void>((resolve, reject) => {
-      server?.listen(port, '127.0.0.1', () => resolve());
-      server?.on('error', reject);
+      server?.listen(port, "127.0.0.1", () => resolve());
+      server?.on("error", reject);
     });
   });
 
@@ -98,39 +98,41 @@ describe("Plugin Router Access Methods", () => {
 
     const getByIdResult = await client.getById({ id: "direct-test-123" });
 
-    expect(getByIdResult).toHaveProperty('item');
-    expect(getByIdResult.item).toHaveProperty('externalId', 'direct-test-123');
-    expect(getByIdResult.item.content).toContain('single content for direct-test-123');
+    expect(getByIdResult).toHaveProperty("item");
+    expect(getByIdResult.item).toHaveProperty("externalId", "direct-test-123");
+    expect(getByIdResult.item.content).toContain("single content for direct-test-123");
 
     const getBulkResult = await client.getBulk({ ids: ["direct-bulk1", "direct-bulk2"] });
 
-    expect(getBulkResult).toHaveProperty('items');
+    expect(getBulkResult).toHaveProperty("items");
     expect(getBulkResult.items).toHaveLength(2);
-    expect(getBulkResult.items[0]?.externalId).toBe('direct-bulk1');
-    expect(getBulkResult.items[1]?.externalId).toBe('direct-bulk2');
+    expect(getBulkResult.items[0]?.externalId).toBe("direct-bulk1");
+    expect(getBulkResult.items[1]?.externalId).toBe("direct-bulk2");
   });
 
   it("should work via OpenAPI HTTP", { timeout: 10000 }, async () => {
     const getByIdResponse = await fetch(`${baseUrl}/api/items/http-test-123`, {
-      method: 'GET'
+      method: "GET",
     });
 
-    const getByIdResult = await getByIdResponse.json() as { item: { externalId: string; content: string } };
+    const getByIdResult = (await getByIdResponse.json()) as {
+      item: { externalId: string; content: string };
+    };
 
-    expect(getByIdResult).toHaveProperty('item');
-    expect(getByIdResult.item).toHaveProperty('externalId', 'http-test-123');
-    expect(getByIdResult.item.content).toContain('single content for http-test-123');
+    expect(getByIdResult).toHaveProperty("item");
+    expect(getByIdResult.item).toHaveProperty("externalId", "http-test-123");
+    expect(getByIdResult.item.content).toContain("single content for http-test-123");
 
     const getBulkResponse = await fetch(`${baseUrl}/api/items?ids=http-bulk1&ids=http-bulk2`, {
-      method: 'GET'
+      method: "GET",
     });
 
-    const getBulkResult = await getBulkResponse.json() as { items: { externalId: string; }[] };
+    const getBulkResult = (await getBulkResponse.json()) as { items: { externalId: string }[] };
 
-    expect(getBulkResult).toHaveProperty('items');
+    expect(getBulkResult).toHaveProperty("items");
     expect(getBulkResult.items).toHaveLength(2);
-    expect(getBulkResult.items[0]?.externalId).toBe('http-bulk1');
-    expect(getBulkResult.items[1]?.externalId).toBe('http-bulk2');
+    expect(getBulkResult.items[0]?.externalId).toBe("http-bulk1");
+    expect(getBulkResult.items[1]?.externalId).toBe("http-bulk2");
   });
 
   it("should work via oRPC client", { timeout: 10000 }, async () => {
@@ -144,16 +146,16 @@ describe("Plugin Router Access Methods", () => {
 
     const getByIdResult = await client.getById({ id: "orpc-test-123" });
 
-    expect(getByIdResult).toHaveProperty('item');
-    expect(getByIdResult.item).toHaveProperty('externalId', 'orpc-test-123');
-    expect(getByIdResult.item.content).toContain('single content for orpc-test-123');
+    expect(getByIdResult).toHaveProperty("item");
+    expect(getByIdResult.item).toHaveProperty("externalId", "orpc-test-123");
+    expect(getByIdResult.item.content).toContain("single content for orpc-test-123");
 
     const getBulkResult = await client.getBulk({ ids: ["orpc-bulk1", "orpc-bulk2"] });
 
-    expect(getBulkResult).toHaveProperty('items');
+    expect(getBulkResult).toHaveProperty("items");
     expect(getBulkResult.items).toHaveLength(2);
-    expect(getBulkResult.items[0]?.externalId).toBe('orpc-bulk1');
-    expect(getBulkResult.items[1]?.externalId).toBe('orpc-bulk2');
+    expect(getBulkResult.items[0]?.externalId).toBe("orpc-bulk1");
+    expect(getBulkResult.items[1]?.externalId).toBe("orpc-bulk2");
   });
 
   it("should handle streaming via oRPC", { timeout: 10000 }, async () => {
@@ -172,10 +174,10 @@ describe("Plugin Router Access Methods", () => {
     }
 
     expect(resultArray.length).toBe(3);
-    expect(resultArray[0]).toHaveProperty('item');
-    expect(resultArray[0]?.item.externalId).toBe('orpc-stream_0');
-    expect(resultArray[1]?.item.externalId).toBe('orpc-stream_1');
-    expect(resultArray[2]?.item.externalId).toBe('orpc-stream_2');
+    expect(resultArray[0]).toHaveProperty("item");
+    expect(resultArray[0]?.item.externalId).toBe("orpc-stream_0");
+    expect(resultArray[1]?.item.externalId).toBe("orpc-stream_1");
+    expect(resultArray[2]?.item.externalId).toBe("orpc-stream_2");
 
     const emptyStreamResult = await client.emptyStream({ reason: "testing empty stream via oRPC" });
 
@@ -193,25 +195,23 @@ describe("Plugin Router Access Methods", () => {
     const { router } = result;
 
     const generator = new OpenAPIGenerator({
-      schemaConverters: [
-        new ZodToJsonSchemaConverter()
-      ]
+      schemaConverters: [new ZodToJsonSchemaConverter()],
     });
 
     const spec = await generator.generate(router, {
       info: {
-        title: 'Test Plugin API',
-        version: '1.0.0',
-        description: 'Generated OpenAPI spec for test plugin'
-      }
+        title: "Test Plugin API",
+        version: "1.0.0",
+        description: "Generated OpenAPI spec for test plugin",
+      },
     });
 
-    expect(spec).toHaveProperty('openapi');
-    expect(spec).toHaveProperty('info');
-    expect(spec).toHaveProperty('paths');
+    expect(spec).toHaveProperty("openapi");
+    expect(spec).toHaveProperty("info");
+    expect(spec).toHaveProperty("paths");
 
-    expect(spec.info.title).toBe('Test Plugin API');
-    expect(spec.info.version).toBe('1.0.0');
+    expect(spec.info.title).toBe("Test Plugin API");
+    expect(spec.info.version).toBe("1.0.0");
 
     expect(spec.paths).toBeDefined();
     if (spec.paths) {

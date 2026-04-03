@@ -1,7 +1,7 @@
+import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { execa } from "execa";
-import { cp, mkdir, mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { dirname, join } from "path";
 
 export interface FileSyncResult {
   package: string;
@@ -14,18 +14,21 @@ export interface FileSyncOptions {
   configDir: string;
   packages: string[];
   bosConfig: {
-    app: Record<string, {
-      template?: string;
-      files?: string[];
-      sync?: { dependencies?: boolean; devDependencies?: boolean };
-    }>;
+    app: Record<
+      string,
+      {
+        template?: string;
+        files?: string[];
+        sync?: { dependencies?: boolean; devDependencies?: boolean };
+      }
+    >;
   };
   catalog?: Record<string, string>;
   force?: boolean;
 }
 
 export async function syncFiles(options: FileSyncOptions): Promise<FileSyncResult[]> {
-  const { configDir, packages, bosConfig, catalog = {}, force } = options;
+  const { configDir, packages, bosConfig, catalog = {} } = options;
   const results: FileSyncResult[] = [];
 
   for (const pkg of packages) {
@@ -59,8 +62,7 @@ export async function syncFiles(options: FileSyncOptions): Promise<FileSyncResul
           await mkdir(destDir, { recursive: true });
           await cp(srcPath, destPath, { force: true, recursive: true });
           filesSynced.push(file);
-        } catch {
-        }
+        } catch {}
       }
 
       const syncConfig = appConfig.sync ?? { dependencies: true, devDependencies: true };
@@ -70,12 +72,12 @@ export async function syncFiles(options: FileSyncOptions): Promise<FileSyncResul
         const localPkgPath = join(pkgDir, "package.json");
 
         try {
-          const templatePkg = await Bun.file(templatePkgPath).json() as {
+          const templatePkg = (await Bun.file(templatePkgPath).json()) as {
             dependencies?: Record<string, string>;
             devDependencies?: Record<string, string>;
             scripts?: Record<string, string>;
           };
-          const localPkg = await Bun.file(localPkgPath).json() as {
+          const localPkg = (await Bun.file(localPkgPath).json()) as {
             dependencies?: Record<string, string>;
             devDependencies?: Record<string, string>;
             scripts?: Record<string, string>;
@@ -87,7 +89,10 @@ export async function syncFiles(options: FileSyncOptions): Promise<FileSyncResul
               if (!(name in localPkg.dependencies)) {
                 localPkg.dependencies[name] = name in catalog ? "catalog:" : version;
                 depsAdded.push(name);
-              } else if (localPkg.dependencies[name] !== "catalog:" && version !== localPkg.dependencies[name]) {
+              } else if (
+                localPkg.dependencies[name] !== "catalog:" &&
+                version !== localPkg.dependencies[name]
+              ) {
                 localPkg.dependencies[name] = name in catalog ? "catalog:" : version;
                 depsUpdated.push(name);
               }
@@ -100,7 +105,10 @@ export async function syncFiles(options: FileSyncOptions): Promise<FileSyncResul
               if (!(name in localPkg.devDependencies)) {
                 localPkg.devDependencies[name] = name in catalog ? "catalog:" : version;
                 depsAdded.push(name);
-              } else if (localPkg.devDependencies[name] !== "catalog:" && version !== localPkg.devDependencies[name]) {
+              } else if (
+                localPkg.devDependencies[name] !== "catalog:" &&
+                version !== localPkg.devDependencies[name]
+              ) {
                 localPkg.devDependencies[name] = name in catalog ? "catalog:" : version;
                 depsUpdated.push(name);
               }
@@ -115,8 +123,7 @@ export async function syncFiles(options: FileSyncOptions): Promise<FileSyncResul
           }
 
           await Bun.write(localPkgPath, JSON.stringify(localPkg, null, 2));
-        } catch {
-        }
+        } catch {}
       }
 
       results.push({

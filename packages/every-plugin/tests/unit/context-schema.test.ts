@@ -8,17 +8,17 @@ import { describe, expect, it } from "vitest";
 const testContract = oc.router({
   publicRoute: oc
     .route({
-      method: 'GET',
-      path: '/public',
-      summary: 'Public route',
+      method: "GET",
+      path: "/public",
+      summary: "Public route",
     })
     .output(z.object({ message: z.string() })),
 
   protectedRoute: oc
     .route({
-      method: 'GET',
-      path: '/protected',
-      summary: 'Protected route',
+      method: "GET",
+      path: "/protected",
+      summary: "Protected route",
     })
     .output(z.object({ message: z.string(), userId: z.string() })),
 });
@@ -37,31 +37,30 @@ describe("Context Schema", () => {
         sessionId: z.string().optional(),
       }),
       contract: testContract,
-      initialize: (config) => Effect.succeed({
-        client: { baseUrl: config.variables.baseUrl },
-        apiKey: config.secrets.apiKey,
-      }),
-      createRouter: (deps, builder) => {
+      initialize: (config) =>
+        Effect.succeed({
+          client: { baseUrl: config.variables.baseUrl },
+          apiKey: config.secrets.apiKey,
+        }),
+      createRouter: (_deps, builder) => {
         const requireAuth = builder.middleware(async ({ context, next }) => {
           if (!context.userId) {
-            throw new Error('UNAUTHORIZED: User ID required');
+            throw new Error("UNAUTHORIZED: User ID required");
           }
           return next({ context: { ...context, userId: context.userId } });
         });
 
         return {
-          publicRoute: builder.publicRoute.handler(async ({ input }) => {
+          publicRoute: builder.publicRoute.handler(async () => {
             return { message: "public response" };
           }),
 
-          protectedRoute: builder.protectedRoute
-            .use(requireAuth)
-            .handler(async ({ input, context }) => {
-              return {
-                message: "protected response",
-                userId: context.userId, // Guaranteed non-null due to middleware
-              };
-            }),
+          protectedRoute: builder.protectedRoute.use(requireAuth).handler(async ({ context }) => {
+            return {
+              message: "protected response",
+              userId: context.userId, // Guaranteed non-null due to middleware
+            };
+          }),
         };
       },
     });
@@ -81,10 +80,13 @@ describe("Context Schema", () => {
         sessionId: z.string().optional(),
       }),
       contract: testContract,
-      initialize: (config) => Effect.succeed({ initialized: true }),
-      createRouter: (deps, builder) => ({
+      initialize: (_config) => Effect.succeed({ initialized: true }),
+      createRouter: (_deps, builder) => ({
         publicRoute: builder.publicRoute.handler(async () => ({ message: "test" })),
-        protectedRoute: builder.protectedRoute.handler(async () => ({ message: "test", userId: "test" })),
+        protectedRoute: builder.protectedRoute.handler(async () => ({
+          message: "test",
+          userId: "test",
+        })),
       }),
     });
 

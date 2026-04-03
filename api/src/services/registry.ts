@@ -336,7 +336,7 @@ async function resolveAppSummary(item: DiscoveredConfig): Promise<RegistryAppSum
 }
 
 async function resolvePublishedConfig(config: BosConfigInput): Promise<BosConfigInput> {
-  if (!config.extends || !config.extends.startsWith("bos://")) {
+  if (!config.extends?.startsWith("bos://")) {
     return config;
   }
 
@@ -347,7 +347,7 @@ async function resolveConfigWithExtends(
   config: BosConfigInput,
   visited: Set<string>,
 ): Promise<BosConfigInput> {
-  if (!config.extends || !config.extends.startsWith("bos://")) {
+  if (!config.extends?.startsWith("bos://")) {
     return config;
   }
 

@@ -13,7 +13,6 @@ import type {
   SourceMode,
 } from "./types";
 import {
-  BosConfigInputSchema,
   BosConfigSchema,
   ConfigCircularExtendsError,
   ConfigFetchError,

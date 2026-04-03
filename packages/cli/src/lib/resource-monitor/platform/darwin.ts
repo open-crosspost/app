@@ -1,16 +1,11 @@
 import { Effect, Layer } from "effect";
 import { execShellSafe } from "../command";
-import type {
-  MemoryInfo,
-  PlatformOperations,
-  PortInfo,
-  ProcessInfo,
-} from "../types";
+import type { MemoryInfo, PlatformOperations, PortInfo, ProcessInfo } from "../types";
 import { PlatformService } from "../types";
 
 const parseLsofLine = (
   line: string,
-  ports: number[]
+  ports: number[],
 ): { port: number; pid: number; command: string } | null => {
   const parts = line.split(/\s+/);
   if (parts.length < 9) return null;
@@ -28,9 +23,7 @@ const parseLsofLine = (
   return { port, pid, command };
 };
 
-const getPortInfo = (
-  ports: number[]
-): Effect.Effect<Record<number, PortInfo>, never> =>
+const getPortInfo = (ports: number[]): Effect.Effect<Record<number, PortInfo>, never> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`[darwin] Checking ${ports.length} ports`);
 
@@ -41,9 +34,7 @@ const getPortInfo = (
 
     if (ports.length === 0) return result;
 
-    const output = yield* execShellSafe(
-      "lsof -i -P -n -sTCP:LISTEN 2>/dev/null || true"
-    );
+    const output = yield* execShellSafe("lsof -i -P -n -sTCP:LISTEN 2>/dev/null || true");
     if (!output) {
       yield* Effect.logDebug("[darwin] No lsof output, all ports appear free");
       return result;
@@ -62,41 +53,31 @@ const getPortInfo = (
           state: "LISTEN",
         };
         yield* Effect.logDebug(
-          `[darwin] Port :${parsed.port} bound to PID ${parsed.pid} (${parsed.command})`
+          `[darwin] Port :${parsed.port} bound to PID ${parsed.pid} (${parsed.command})`,
         );
       }
     }
 
-    const boundCount = Object.values(result).filter(
-      (p) => p.state === "LISTEN"
-    ).length;
-    yield* Effect.logInfo(
-      `[darwin] Found ${boundCount}/${ports.length} ports in use`
-    );
+    const boundCount = Object.values(result).filter((p) => p.state === "LISTEN").length;
+    yield* Effect.logInfo(`[darwin] Found ${boundCount}/${ports.length} ports in use`);
 
     return result;
   });
 
-const getProcessTree = (
-  rootPids: number[]
-): Effect.Effect<ProcessInfo[], never> =>
+const getProcessTree = (rootPids: number[]): Effect.Effect<ProcessInfo[], never> =>
   Effect.gen(function* () {
-    yield* Effect.logInfo(
-      `[darwin] Building process tree for ${rootPids.length} root PIDs`
-    );
+    yield* Effect.logInfo(`[darwin] Building process tree for ${rootPids.length} root PIDs`);
 
     const processes: ProcessInfo[] = [];
     const visited = new Set<number>();
 
-    const getProcess = (
-      pid: number
-    ): Effect.Effect<ProcessInfo | null, never> =>
+    const getProcess = (pid: number): Effect.Effect<ProcessInfo | null, never> =>
       Effect.gen(function* () {
         if (visited.has(pid)) return null;
         visited.add(pid);
 
         const output = yield* execShellSafe(
-          `ps -p ${pid} -o pid=,ppid=,rss=,comm=,args= 2>/dev/null || true`
+          `ps -p ${pid} -o pid=,ppid=,rss=,comm=,args= 2>/dev/null || true`,
         );
         if (!output) return null;
 
@@ -107,9 +88,7 @@ const getProcessTree = (
         const command = rest[0] || "";
         const args = rest.slice(1);
 
-        yield* Effect.logDebug(
-          `[darwin] Process ${pid}: ${command} (RSS: ${rssStr}KB)`
-        );
+        yield* Effect.logDebug(`[darwin] Process ${pid}: ${command} (RSS: ${rssStr}KB)`);
 
         return {
           pid: parseInt(pidStr, 10),
@@ -123,20 +102,18 @@ const getProcessTree = (
 
     const getChildren = (pid: number): Effect.Effect<number[], never> =>
       Effect.gen(function* () {
-        const output = yield* execShellSafe(
-          `pgrep -P ${pid} 2>/dev/null || true`
-        );
+        const output = yield* execShellSafe(`pgrep -P ${pid} 2>/dev/null || true`);
         if (!output) return [];
 
         const children = output
           .split("\n")
           .filter(Boolean)
           .map((s) => parseInt(s, 10))
-          .filter((n) => !isNaN(n));
+          .filter((n) => !Number.isNaN(n));
 
         if (children.length > 0) {
           yield* Effect.logDebug(
-            `[darwin] PID ${pid} has ${children.length} children: ${children.join(", ")}`
+            `[darwin] PID ${pid} has ${children.length} children: ${children.join(", ")}`,
           );
         }
 
@@ -161,9 +138,7 @@ const getProcessTree = (
       yield* traverse(pid);
     }
 
-    yield* Effect.logInfo(
-      `[darwin] Process tree contains ${processes.length} processes`
-    );
+    yield* Effect.logInfo(`[darwin] Process tree contains ${processes.length} processes`);
 
     return processes;
   });
@@ -172,14 +147,10 @@ const getMemoryInfo = (): Effect.Effect<MemoryInfo, never> =>
   Effect.gen(function* () {
     yield* Effect.logDebug("[darwin] Getting memory info");
 
-    const sysctlMem = yield* execShellSafe(
-      "sysctl -n hw.memsize 2>/dev/null || echo 0"
-    );
+    const sysctlMem = yield* execShellSafe("sysctl -n hw.memsize 2>/dev/null || echo 0");
     const total = parseInt(sysctlMem, 10) || 16 * 1024 * 1024 * 1024;
 
-    const pageSizeOutput = yield* execShellSafe(
-      "sysctl -n hw.pagesize 2>/dev/null || echo 16384"
-    );
+    const pageSizeOutput = yield* execShellSafe("sysctl -n hw.pagesize 2>/dev/null || echo 16384");
     const pageSize = parseInt(pageSizeOutput.trim(), 10) || 16384;
 
     const vmStat = yield* execShellSafe("vm_stat 2>/dev/null || true");
@@ -218,7 +189,7 @@ const getMemoryInfo = (): Effect.Effect<MemoryInfo, never> =>
     const usedMB = (used / 1024 / 1024).toFixed(0);
     const freeMB = (effectiveFree / 1024 / 1024).toFixed(0);
     yield* Effect.logDebug(
-      `[darwin] Memory: ${usedMB}MB used / ${freeMB}MB free / ${totalMB}MB total`
+      `[darwin] Memory: ${usedMB}MB used / ${freeMB}MB free / ${totalMB}MB total`,
     );
 
     return {
@@ -235,9 +206,7 @@ const getAllProcesses = (): Effect.Effect<ProcessInfo[], never> =>
 
     const processes: ProcessInfo[] = [];
 
-    const output = yield* execShellSafe(
-      "ps -axo pid=,ppid=,rss=,comm= 2>/dev/null || true"
-    );
+    const output = yield* execShellSafe("ps -axo pid=,ppid=,rss=,comm= 2>/dev/null || true");
     for (const line of output.split("\n").filter(Boolean)) {
       const parts = line.trim().split(/\s+/);
       if (parts.length < 4) continue;
@@ -270,14 +239,12 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
         if (visited.has(parentPid)) return;
         visited.add(parentPid);
 
-        const output = yield* execShellSafe(
-          `pgrep -P ${parentPid} 2>/dev/null || true`
-        );
+        const output = yield* execShellSafe(`pgrep -P ${parentPid} 2>/dev/null || true`);
         if (!output) return;
 
         for (const line of output.split("\n").filter(Boolean)) {
           const childPid = parseInt(line, 10);
-          if (!isNaN(childPid)) {
+          if (!Number.isNaN(childPid)) {
             children.push(childPid);
             yield* recurse(childPid);
           }
@@ -287,9 +254,7 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
     yield* recurse(pid);
 
     if (children.length > 0) {
-      yield* Effect.logDebug(
-        `[darwin] PID ${pid} has ${children.length} descendants`
-      );
+      yield* Effect.logDebug(`[darwin] PID ${pid} has ${children.length} descendants`);
     }
 
     return children;

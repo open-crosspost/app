@@ -1,5 +1,5 @@
-import { TEST_REMOTE_ENTRY_URL } from "./setup/global-setup";
 import type { TestPlugin } from "./fixtures/test-plugin/src/index";
+import { TEST_REMOTE_ENTRY_URL } from "./setup/global-setup";
 
 export type TestRegistry = {
   "test-plugin": typeof TestPlugin;

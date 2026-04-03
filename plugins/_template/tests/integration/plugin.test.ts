@@ -19,17 +19,15 @@ describe("Template Plugin Integration Tests", () => {
     it("should reject unauthorized access without userId", async () => {
       const client = await getPluginClient();
 
-      await expect(
-        client.getById({ id: "test-123" })
-      ).rejects.toThrow("User ID required");
+      await expect(client.getById({ id: "test-123" })).rejects.toThrow("User ID required");
     });
 
     it("should handle not found error", async () => {
       const client = await getPluginClient({ userId: "user123" });
 
-      await expect(
-        client.getById({ id: "not-found" })
-      ).rejects.toThrow("Failed to fetch item: Item not found");
+      await expect(client.getById({ id: "not-found" })).rejects.toThrow(
+        "Failed to fetch item: Item not found",
+      );
     });
   });
 

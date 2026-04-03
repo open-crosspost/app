@@ -5,7 +5,7 @@ import { implement, onError } from "@orpc/server";
 import { Effect, type Scope } from "effect";
 import { extractFromFiberFailure, formatORPCError } from "./runtime/errors";
 
-type ContextOutput<T> = T extends AnySchema ? InferSchemaOutput<T> : {};
+type ContextOutput<T> = T extends AnySchema ? InferSchemaOutput<T> : Record<string, never>;
 
 /**
  * Helper type that correctly constructs the config schema type

@@ -6,7 +6,12 @@ import { siwn } from "better-near-auth";
 export const getPlugins = (config: {
   account: string;
   baseUrl: string;
-  sendEmail: (data: { to: string; subject: string; text: string; html?: string }) => void | Promise<void>;
+  sendEmail: (data: {
+    to: string;
+    subject: string;
+    text: string;
+    html?: string;
+  }) => void | Promise<void>;
   sendSMS: (data: { phoneNumber: string; code: string }) => void | Promise<void>;
 }) => [
   siwn({

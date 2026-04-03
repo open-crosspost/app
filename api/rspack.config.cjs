@@ -32,10 +32,9 @@ const baseConfig = {
     {
       apply(compiler) {
         compiler.hooks.afterEmit.tapPromise("EmitPluginManifest", async () => {
-          const outDir =
-            compiler.options.output && compiler.options.output.path
-              ? compiler.options.output.path
-              : path.resolve(__dirname, "dist");
+          const outDir = compiler.options.output?.path
+            ? compiler.options.output.path
+            : path.resolve(__dirname, "dist");
 
           const sourceContractPath = path.join(__dirname, "types", "contract.d.ts");
           const publishedContractPath = path.join(outDir, "types", "contract.d.ts");

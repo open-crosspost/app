@@ -1,4 +1,4 @@
-import { Context, Effect } from "effect";
+import { Context, type Effect } from "effect";
 
 export interface PortInfo {
   port: number;
@@ -53,13 +53,9 @@ export interface MonitorConfig {
 }
 
 export interface PlatformOperations {
-  readonly getPortInfo: (
-    ports: number[]
-  ) => Effect.Effect<Record<number, PortInfo>, never>;
+  readonly getPortInfo: (ports: number[]) => Effect.Effect<Record<number, PortInfo>, never>;
 
-  readonly getProcessTree: (
-    rootPids: number[]
-  ) => Effect.Effect<ProcessInfo[], never>;
+  readonly getProcessTree: (rootPids: number[]) => Effect.Effect<ProcessInfo[], never>;
 
   readonly getMemoryInfo: () => Effect.Effect<MemoryInfo, never>;
 

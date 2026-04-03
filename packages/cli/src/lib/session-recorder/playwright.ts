@@ -28,7 +28,7 @@ type Page = {
   evaluate: <T>(fn: () => T) => Promise<T>;
 };
 
-type CDPSession = {
+type _CDPSession = {
   send: (method: string) => Promise<Record<string, unknown>>;
   detach: () => Promise<void>;
 };
@@ -50,9 +50,7 @@ const loadPlaywright = async (): Promise<PlaywrightModule> => {
     playwrightModule = pw as PlaywrightModule;
     return playwrightModule;
   } catch {
-    throw new Error(
-      "Playwright is not installed. Run: bun add -d playwright"
-    );
+    throw new Error("Playwright is not installed. Run: bun add -d playwright");
   }
 };
 
@@ -63,48 +61,52 @@ export interface BrowserHandle {
   close: () => Promise<void>;
 }
 
-export const launchBrowser = (
-  headless = true
-): Effect.Effect<BrowserHandle, BrowserLaunchFailed> =>
+export const launchBrowser = (headless = true): Effect.Effect<BrowserHandle, BrowserLaunchFailed> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Launching browser (headless: ${headless})`);
 
     const pw = yield* Effect.tryPromise({
       try: () => loadPlaywright(),
-      catch: (e) => new BrowserLaunchFailed({
-        reason: String(e),
-        headless,
-      }),
+      catch: (e) =>
+        new BrowserLaunchFailed({
+          reason: String(e),
+          headless,
+        }),
     });
 
     const browser = yield* Effect.tryPromise({
-      try: () => pw.chromium.launch({
-        headless,
-        devtools: !headless,
-      }),
-      catch: (e) => new BrowserLaunchFailed({
-        reason: `Failed to launch chromium: ${e}`,
-        headless,
-      }),
+      try: () =>
+        pw.chromium.launch({
+          headless,
+          devtools: !headless,
+        }),
+      catch: (e) =>
+        new BrowserLaunchFailed({
+          reason: `Failed to launch chromium: ${e}`,
+          headless,
+        }),
     });
 
     const context = yield* Effect.tryPromise({
-      try: () => browser.newContext({
-        viewport: { width: 1280, height: 720 },
-        userAgent: "SessionRecorder/1.0",
-      }),
-      catch: (e) => new BrowserLaunchFailed({
-        reason: `Failed to create context: ${e}`,
-        headless,
-      }),
+      try: () =>
+        browser.newContext({
+          viewport: { width: 1280, height: 720 },
+          userAgent: "SessionRecorder/1.0",
+        }),
+      catch: (e) =>
+        new BrowserLaunchFailed({
+          reason: `Failed to create context: ${e}`,
+          headless,
+        }),
     });
 
     const page = yield* Effect.tryPromise({
       try: () => context.newPage(),
-      catch: (e) => new BrowserLaunchFailed({
-        reason: `Failed to create page: ${e}`,
-        headless,
-      }),
+      catch: (e) =>
+        new BrowserLaunchFailed({
+          reason: `Failed to create page: ${e}`,
+          headless,
+        }),
     });
 
     yield* Effect.logInfo("Browser launched successfully");
@@ -120,9 +122,7 @@ export const launchBrowser = (
     };
   });
 
-export const closeBrowser = (
-  handle: BrowserHandle
-): Effect.Effect<void> =>
+export const closeBrowser = (handle: BrowserHandle): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Closing browser");
     yield* Effect.promise(() => handle.close());
@@ -130,7 +130,7 @@ export const closeBrowser = (
   });
 
 export const getBrowserMetrics = (
-  page: Page
+  page: Page,
 ): Effect.Effect<BrowserMetrics, BrowserMetricsFailed> =>
   Effect.gen(function* () {
     yield* Effect.logDebug("Collecting browser metrics");
@@ -140,19 +140,21 @@ export const getBrowserMetrics = (
         const pageMetrics = await page.metrics();
 
         const memoryInfo = await page.evaluate(() => {
-          const perf = (performance as Performance & {
+          const perf = performance as Performance & {
             memory?: {
               usedJSHeapSize: number;
               totalJSHeapSize: number;
             };
-          });
-          return perf.memory ? {
-            jsHeapUsedSize: perf.memory.usedJSHeapSize,
-            jsHeapTotalSize: perf.memory.totalJSHeapSize,
-          } : {
-            jsHeapUsedSize: 0,
-            jsHeapTotalSize: 0,
           };
+          return perf.memory
+            ? {
+                jsHeapUsedSize: perf.memory.usedJSHeapSize,
+                jsHeapTotalSize: perf.memory.totalJSHeapSize,
+              }
+            : {
+                jsHeapUsedSize: 0,
+                jsHeapTotalSize: 0,
+              };
         });
 
         return {
@@ -168,47 +170,35 @@ export const getBrowserMetrics = (
           taskDuration: pageMetrics.TaskDuration ?? 0,
         };
       },
-      catch: (e) => new BrowserMetricsFailed({
-        reason: String(e),
-      }),
+      catch: (e) =>
+        new BrowserMetricsFailed({
+          reason: String(e),
+        }),
     });
 
-    yield* Effect.logDebug(
-      `JS Heap: ${(metrics.jsHeapUsedSize / 1024 / 1024).toFixed(1)}MB`
-    );
+    yield* Effect.logDebug(`JS Heap: ${(metrics.jsHeapUsedSize / 1024 / 1024).toFixed(1)}MB`);
 
     return metrics;
   });
 
-export const navigateTo = (
-  page: Page,
-  url: string
-): Effect.Effect<void> =>
+export const navigateTo = (page: Page, url: string): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Navigating to ${url}`);
     yield* Effect.promise(() => page.goto(url, { waitUntil: "networkidle" }));
     yield* Effect.logInfo(`Loaded: ${page.url()}`);
   });
 
-export const clickElement = (
-  page: Page,
-  selector: string
-): Effect.Effect<void> =>
+export const clickElement = (page: Page, selector: string): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logDebug(`Clicking: ${selector}`);
     yield* Effect.promise(() => page.click(selector));
   });
 
-export const waitForPopup = (
-  context: BrowserContext,
-  timeoutMs = 30000
-): Effect.Effect<Page> =>
+export const waitForPopup = (context: BrowserContext, timeoutMs = 30000): Effect.Effect<Page> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Waiting for popup window");
 
-    const popup = yield* Effect.promise(() =>
-      context.waitForEvent("page", { timeout: timeoutMs })
-    );
+    const popup = yield* Effect.promise(() => context.waitForEvent("page", { timeout: timeoutMs }));
 
     yield* Effect.promise(() => popup.waitForLoadState("domcontentloaded"));
     yield* Effect.logInfo(`Popup opened: ${popup.url()}`);
@@ -216,9 +206,7 @@ export const waitForPopup = (
     return popup;
   });
 
-export const closePopup = (
-  popup: Page
-): Effect.Effect<void> =>
+export const closePopup = (popup: Page): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Closing popup");
     yield* Effect.promise(() => popup.close());
@@ -227,26 +215,20 @@ export const closePopup = (
 export const waitForSelector = (
   page: Page,
   selector: string,
-  timeoutMs = 10000
+  timeoutMs = 10000,
 ): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logDebug(`Waiting for selector: ${selector}`);
     yield* Effect.promise(() => page.waitForSelector(selector, { timeout: timeoutMs }));
   });
 
-export const fillInput = (
-  page: Page,
-  selector: string,
-  value: string
-): Effect.Effect<void> =>
+export const fillInput = (page: Page, selector: string, value: string): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logDebug(`Filling input: ${selector}`);
     yield* Effect.promise(() => page.fill(selector, value));
   });
 
-export const getPageInfo = (
-  page: Page
-): Effect.Effect<{ url: string; title: string }> =>
+export const getPageInfo = (page: Page): Effect.Effect<{ url: string; title: string }> =>
   Effect.gen(function* () {
     const url = page.url();
     const title = yield* Effect.promise(() => page.title());

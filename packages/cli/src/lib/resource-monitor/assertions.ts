@@ -12,7 +12,7 @@ import { isProcessAlive } from "./snapshot";
 import type { Snapshot, SnapshotDiff } from "./types";
 
 export const assertAllPortsFree = (
-  ports: number[]
+  ports: number[],
 ): Effect.Effect<void, PortStillBound, PlatformService> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Asserting ${ports.length} ports are free`);
@@ -48,13 +48,12 @@ export const assertAllPortsFree = (
   });
 
 export const assertAllPortsFreeWithPlatform = (
-  ports: number[]
-): Effect.Effect<void, PortStillBound> =>
-  withPlatform(assertAllPortsFree(ports));
+  ports: number[],
+): Effect.Effect<void, PortStillBound> => withPlatform(assertAllPortsFree(ports));
 
 export const assertNoOrphanProcesses = (
   runningSnapshot: Snapshot,
-  afterSnapshot: Snapshot
+  afterSnapshot: Snapshot,
 ): Effect.Effect<void, OrphanedProcesses> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Checking for orphaned processes");
@@ -66,9 +65,7 @@ export const assertNoOrphanProcesses = (
     for (const proc of runningSnapshot.processes) {
       if (!runningPids.has(proc.pid)) continue;
 
-      const stillInAfter = afterSnapshot.processes.some(
-        (p) => p.pid === proc.pid
-      );
+      const stillInAfter = afterSnapshot.processes.some((p) => p.pid === proc.pid);
       if (stillInAfter) continue;
 
       const alive = yield* isProcessAlive(proc.pid);
@@ -85,7 +82,7 @@ export const assertNoOrphanProcesses = (
       yield* Effect.logError(`${orphans.length} orphaned processes found:`);
       for (const p of orphans) {
         yield* Effect.logError(
-          `  PID ${p.pid}: ${p.command} (${(p.rss / 1024 / 1024).toFixed(1)}MB)`
+          `  PID ${p.pid}: ${p.command} (${(p.rss / 1024 / 1024).toFixed(1)}MB)`,
         );
       }
       return yield* Effect.fail(new OrphanedProcesses({ processes: orphans }));
@@ -97,21 +94,18 @@ export const assertNoOrphanProcesses = (
 export const assertMemoryDelta = (
   baseline: Snapshot,
   after: Snapshot,
-  options: { maxDeltaMB?: number; maxDeltaPercent?: number }
+  options: { maxDeltaMB?: number; maxDeltaPercent?: number },
 ): Effect.Effect<void, MemoryLimitExceeded | MemoryPercentExceeded> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Checking memory delta");
 
-    const deltaMB =
-      (after.memory.processRss - baseline.memory.processRss) / 1024 / 1024;
+    const deltaMB = (after.memory.processRss - baseline.memory.processRss) / 1024 / 1024;
 
-    yield* Effect.logDebug(
-      `Memory delta: ${deltaMB >= 0 ? "+" : ""}${deltaMB.toFixed(1)}MB`
-    );
+    yield* Effect.logDebug(`Memory delta: ${deltaMB >= 0 ? "+" : ""}${deltaMB.toFixed(1)}MB`);
 
     if (options.maxDeltaMB !== undefined && deltaMB > options.maxDeltaMB) {
       yield* Effect.logError(
-        `Memory delta ${deltaMB.toFixed(1)}MB exceeds max ${options.maxDeltaMB}MB`
+        `Memory delta ${deltaMB.toFixed(1)}MB exceeds max ${options.maxDeltaMB}MB`,
       );
       return yield* Effect.fail(
         new MemoryLimitExceeded({
@@ -119,23 +113,21 @@ export const assertMemoryDelta = (
           limitMB: options.maxDeltaMB,
           baselineRss: baseline.memory.processRss,
           afterRss: after.memory.processRss,
-        })
+        }),
       );
     }
 
     if (options.maxDeltaPercent !== undefined && baseline.memory.processRss > 0) {
       const deltaPercent =
-        ((after.memory.processRss - baseline.memory.processRss) /
-          baseline.memory.processRss) *
-        100;
+        ((after.memory.processRss - baseline.memory.processRss) / baseline.memory.processRss) * 100;
 
       yield* Effect.logDebug(
-        `Memory delta: ${deltaPercent >= 0 ? "+" : ""}${deltaPercent.toFixed(1)}%`
+        `Memory delta: ${deltaPercent >= 0 ? "+" : ""}${deltaPercent.toFixed(1)}%`,
       );
 
       if (deltaPercent > options.maxDeltaPercent) {
         yield* Effect.logError(
-          `Memory delta ${deltaPercent.toFixed(1)}% exceeds max ${options.maxDeltaPercent}%`
+          `Memory delta ${deltaPercent.toFixed(1)}% exceeds max ${options.maxDeltaPercent}%`,
         );
         return yield* Effect.fail(
           new MemoryPercentExceeded({
@@ -143,7 +135,7 @@ export const assertMemoryDelta = (
             limitPercent: options.maxDeltaPercent,
             baselineRss: baseline.memory.processRss,
             afterRss: after.memory.processRss,
-          })
+          }),
         );
       }
     }
@@ -151,9 +143,7 @@ export const assertMemoryDelta = (
     yield* Effect.logInfo("Memory delta within limits ✓");
   });
 
-export const assertProcessesDead = (
-  pids: number[]
-): Effect.Effect<void, ProcessesStillAlive> =>
+export const assertProcessesDead = (pids: number[]): Effect.Effect<void, ProcessesStillAlive> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Asserting ${pids.length} processes are dead`);
 
@@ -168,7 +158,7 @@ export const assertProcessesDead = (
 
     if (stillAlive.length > 0) {
       yield* Effect.logError(
-        `${stillAlive.length} processes still alive: ${stillAlive.join(", ")}`
+        `${stillAlive.length} processes still alive: ${stillAlive.join(", ")}`,
       );
       return yield* Effect.fail(new ProcessesStillAlive({ pids: stillAlive }));
     }
@@ -176,27 +166,22 @@ export const assertProcessesDead = (
     yield* Effect.logInfo(`All ${pids.length} processes are dead ✓`);
   });
 
-export const assertNoLeaks = (
-  diff: SnapshotDiff
-): Effect.Effect<void, ResourceLeaks> =>
+export const assertNoLeaks = (diff: SnapshotDiff): Effect.Effect<void, ResourceLeaks> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Checking for resource leaks");
 
-    if (
-      diff.orphanedProcesses.length > 0 ||
-      diff.stillBoundPorts.length > 0
-    ) {
+    if (diff.orphanedProcesses.length > 0 || diff.stillBoundPorts.length > 0) {
       yield* Effect.logError("Resource leaks detected:");
 
       for (const proc of diff.orphanedProcesses) {
         yield* Effect.logError(
-          `  Orphaned PID ${proc.pid}: ${proc.command} (${(proc.rss / 1024 / 1024).toFixed(1)}MB)`
+          `  Orphaned PID ${proc.pid}: ${proc.command} (${(proc.rss / 1024 / 1024).toFixed(1)}MB)`,
         );
       }
 
       for (const port of diff.stillBoundPorts) {
         yield* Effect.logError(
-          `  Port :${port.port} still bound to PID ${port.pid} (${port.command})`
+          `  Port :${port.port} still bound to PID ${port.pid} (${port.command})`,
         );
       }
 
@@ -204,7 +189,7 @@ export const assertNoLeaks = (
         new ResourceLeaks({
           orphanedProcesses: diff.orphanedProcesses,
           stillBoundPorts: diff.stillBoundPorts,
-        })
+        }),
       );
     }
 
@@ -212,7 +197,7 @@ export const assertNoLeaks = (
   });
 
 export const assertCleanState = (
-  baseline: Snapshot
+  baseline: Snapshot,
 ): Effect.Effect<void, PortStillBound | ProcessesStillAlive, PlatformService> =>
   Effect.gen(function* () {
     yield* Effect.logInfo("Asserting clean state");
@@ -229,6 +214,6 @@ export const assertCleanState = (
   });
 
 export const assertCleanStateWithPlatform = (
-  baseline: Snapshot
+  baseline: Snapshot,
 ): Effect.Effect<void, PortStillBound | ProcessesStillAlive> =>
   withPlatform(assertCleanState(baseline));

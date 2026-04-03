@@ -1,21 +1,13 @@
 import { Effect } from "effect";
 import { AuthenticationFailed, PopupNotDetected } from "../errors";
-import {
-  type BrowserHandle,
-  clickElement,
-  getBrowserMetrics,
-  navigateTo,
-  sleep,
-  waitForPopup,
-  waitForSelector,
-} from "../playwright";
+import { type BrowserHandle, clickElement, navigateTo, sleep, waitForPopup } from "../playwright";
 import type { SessionEventType } from "../types";
 
 interface FlowRecorder {
   recordEvent: (
     type: SessionEventType,
     label: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ) => Effect.Effect<void>;
 }
 
@@ -36,7 +28,7 @@ const DEFAULT_LOGIN_OPTIONS: LoginFlowOptions = {
 export const runLoginFlow = (
   browser: BrowserHandle,
   recorder: FlowRecorder,
-  options: Partial<LoginFlowOptions> = {}
+  options: Partial<LoginFlowOptions> = {},
 ): Effect.Effect<void, AuthenticationFailed | PopupNotDetected> =>
   Effect.gen(function* () {
     const opts = { ...DEFAULT_LOGIN_OPTIONS, ...options };
@@ -46,7 +38,9 @@ export const runLoginFlow = (
     yield* Effect.asVoid(recorder.recordEvent("custom", "login_flow_start"));
 
     yield* navigateTo(page, `${opts.baseUrl}/login`);
-    yield* Effect.asVoid(recorder.recordEvent("pageload", "/login", { url: `${opts.baseUrl}/login` }));
+    yield* Effect.asVoid(
+      recorder.recordEvent("pageload", "/login", { url: `${opts.baseUrl}/login` }),
+    );
 
     yield* sleep(1000);
 
@@ -54,17 +48,20 @@ export const runLoginFlow = (
 
     yield* Effect.tryPromise({
       try: () => page.waitForSelector(connectButtonSelector, { timeout: opts.timeout }),
-      catch: () => new AuthenticationFailed({
-        step: "find_connect_button",
-        reason: "Connect wallet button not found",
-      }),
+      catch: () =>
+        new AuthenticationFailed({
+          step: "find_connect_button",
+          reason: "Connect wallet button not found",
+        }),
     });
 
     yield* Effect.asVoid(recorder.recordEvent("auth_start", "wallet_connect_initiated"));
 
     if (opts.headless && opts.stubWallet) {
       yield* Effect.logInfo("Stubbing wallet connection in headless mode");
-      yield* Effect.asVoid(recorder.recordEvent("custom", "wallet_stubbed", { reason: "headless_mode" }));
+      yield* Effect.asVoid(
+        recorder.recordEvent("custom", "wallet_stubbed", { reason: "headless_mode" }),
+      );
 
       yield* clickElement(page, connectButtonSelector);
 
@@ -85,13 +82,14 @@ export const runLoginFlow = (
       if (hasSignInButton) {
         yield* Effect.asVoid(recorder.recordEvent("custom", "sign_in_button_appeared"));
       } else {
-        yield* Effect.asVoid(recorder.recordEvent("custom", "wallet_popup_would_open", {
-          note: "In headed mode, NEAR wallet popup would appear here",
-        }));
+        yield* Effect.asVoid(
+          recorder.recordEvent("custom", "wallet_popup_would_open", {
+            note: "In headed mode, NEAR wallet popup would appear here",
+          }),
+        );
       }
 
       yield* Effect.asVoid(recorder.recordEvent("auth_complete", "login_flow_completed_stubbed"));
-
     } else {
       yield* Effect.logInfo("Running full wallet flow (headed mode)");
 
@@ -101,12 +99,14 @@ export const runLoginFlow = (
       const popupPromise = waitForPopup(context, opts.timeout);
 
       const popup = yield* Effect.catchAll(popupPromise, () =>
-        Effect.fail(new PopupNotDetected({ timeoutMs: opts.timeout }))
+        Effect.fail(new PopupNotDetected({ timeoutMs: opts.timeout })),
       );
 
-      yield* Effect.asVoid(recorder.recordEvent("popup_open", "near_wallet_popup", {
-        url: popup.url(),
-      }));
+      yield* Effect.asVoid(
+        recorder.recordEvent("popup_open", "near_wallet_popup", {
+          url: popup.url(),
+        }),
+      );
 
       yield* Effect.logInfo("NEAR wallet popup opened - waiting for user interaction");
       yield* Effect.asVoid(recorder.recordEvent("custom", "awaiting_user_approval"));
@@ -158,7 +158,7 @@ export const runNavigationFlow = (
   browser: BrowserHandle,
   recorder: FlowRecorder,
   routes: string[],
-  baseUrl: string
+  baseUrl: string,
 ): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Running navigation flow through ${routes.length} routes`);
@@ -179,7 +179,7 @@ export const runNavigationFlow = (
 export const runClickFlow = (
   browser: BrowserHandle,
   recorder: FlowRecorder,
-  selectors: Array<{ selector: string; label: string }>
+  selectors: Array<{ selector: string; label: string }>,
 ): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Running click flow with ${selectors.length} interactions`);

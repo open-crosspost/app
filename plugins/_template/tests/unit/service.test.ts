@@ -3,11 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TemplateService } from "@/service";
 
 describe("TemplateService", () => {
-  const service = new TemplateService(
-    "https://api.example.com",
-    "test-api-key",
-    5000
-  );
+  const service = new TemplateService("https://api.example.com", "test-api-key", 5000);
 
   describe("getById", () => {
     it("should fetch item by id successfully", async () => {
@@ -21,17 +17,15 @@ describe("TemplateService", () => {
     });
 
     it("should handle not found error", async () => {
-      await expect(
-        Effect.runPromise(service.getById("not-found"))
-      ).rejects.toThrow("Failed to fetch item: Item not found");
+      await expect(Effect.runPromise(service.getById("not-found"))).rejects.toThrow(
+        "Failed to fetch item: Item not found",
+      );
     });
   });
 
   describe("search", () => {
     it("should return search results as async generator", async () => {
-      const generator = await Effect.runPromise(
-        service.search("test-query", 3)
-      );
+      const generator = await Effect.runPromise(service.search("test-query", 3));
 
       const results = [];
       for await (const result of generator) {
@@ -52,9 +46,7 @@ describe("TemplateService", () => {
     });
 
     it("should respect limit parameter", async () => {
-      const generator = await Effect.runPromise(
-        service.search("limited", 2)
-      );
+      const generator = await Effect.runPromise(service.search("limited", 2));
 
       const results = [];
       for await (const result of generator) {

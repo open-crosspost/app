@@ -12,10 +12,7 @@ describe("Module Federation Integration Tests", () => {
 
   it("should test name transformation logic", async () => {
     const pluginId = "test-plugin";
-    const remoteName = pluginId
-      .toLowerCase()
-      .replace("@", "")
-      .replace("/", "_");
+    const remoteName = pluginId.toLowerCase().replace("@", "").replace("/", "_");
 
     const modulePath = `${remoteName}/plugin`;
 

@@ -53,6 +53,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const siteName = APP_NAME;
     const ogImage = `${assetsUrl}/metadata.png`;
 
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: APP_NAME,
+      description: APP_DESCRIPTION,
+      url: runtimeConfig?.hostUrl || undefined,
+    };
+
     return {
       meta: [
         { charSet: "utf-8" },
@@ -101,6 +109,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         { rel: "manifest", href: `${assetsUrl}/manifest.json` },
         ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(structuredData),
+        },
+      ],
     };
   },
   component: RootComponent,
@@ -108,13 +122,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   const { assetsUrl, runtimeConfig } = Route.useLoaderData();
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: APP_NAME,
-    description: APP_DESCRIPTION,
-    url: runtimeConfig?.hostUrl || undefined,
-  };
 
   const hydrateBootstrap = `window.__RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig ?? null)};window.addEventListener('load', function handleEverythingDevHydrate() { window.__hydrate?.(); }, { once: true });`;
 
@@ -122,10 +129,6 @@ function RootComponent() {
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
         {assetsUrl ? <script src={`${assetsUrl}/remoteEntry.js`} /> : null}
         <script dangerouslySetInnerHTML={{ __html: hydrateBootstrap }} />
         <style dangerouslySetInnerHTML={{ __html: getBaseStyles() }} />

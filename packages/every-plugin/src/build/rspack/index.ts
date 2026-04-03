@@ -1,8 +1,8 @@
-export { EveryPluginDevServer, type EveryPluginOptions } from './plugin';
 export {
+  getMajorMinorVersion,
   getPluginSharedDependencies,
   getPluginSharedDependenciesVersionRange,
-  getMajorMinorVersion,
-  type SharedDependencyConfig,
   type SharedDependencies,
-} from '../shared-deps';
+  type SharedDependencyConfig,
+} from "../shared-deps";
+export { EveryPluginDevServer, type EveryPluginOptions } from "./plugin";

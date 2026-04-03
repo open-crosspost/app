@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 export interface LogEntry {
   timestamp: number;
@@ -58,7 +58,7 @@ export async function createDevLogger(configDir: string, description: string): P
     latestFile,
     write: (entry) =>
       enqueue(async () => {
-        const line = formatLogLine(entry) + "\n";
+        const line = `${formatLogLine(entry)}\n`;
         await appendFile(logFile, line);
         await appendFile(latestFile, line);
       }),

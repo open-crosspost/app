@@ -28,10 +28,10 @@ describe("getNormalizedRemoteName", () => {
       "@scope/telegram",
       "@everything/test-plugin",
       "simple-plugin",
-      "@SCOPE/Foo/Bar"
+      "@SCOPE/Foo/Bar",
     ];
 
-    testCases.forEach(pluginName => {
+    testCases.forEach((pluginName) => {
       const normalized = getNormalizedRemoteName(pluginName);
 
       // Verify it follows the expected pattern

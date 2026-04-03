@@ -98,9 +98,7 @@ export class ConfigNotFound extends Data.TaggedError("ConfigNotFound")<{
   readonly path: string | undefined;
 }> {
   get message() {
-    return this.path
-      ? `Config not found at ${this.path}`
-      : `No bos.config.json found in project`;
+    return this.path ? `Config not found at ${this.path}` : `No bos.config.json found in project`;
   }
 }
 

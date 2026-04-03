@@ -129,12 +129,12 @@ export function setupPluginMiddleware(
     clearTimeout(timeout);
   });
 
-  devServer.app.options("*", (req: any, res: any) => {
+  devServer.app.options("*", (_req: any, res: any) => {
     applyCorsHeaders(res);
     res.status(200).end();
   });
 
-  devServer.app.get("/", (req: any, res: any) => {
+  devServer.app.get("/", (_req: any, res: any) => {
     applyCorsHeaders(res);
     res.json({
       ok: true,
@@ -149,7 +149,7 @@ export function setupPluginMiddleware(
     });
   });
 
-  devServer.app.get("/health", (req: any, res: any) => {
+  devServer.app.get("/health", (_req: any, res: any) => {
     applyCorsHeaders(res);
     res.status(200).send("OK");
   });

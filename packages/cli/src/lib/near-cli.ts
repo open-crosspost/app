@@ -39,9 +39,6 @@ export class NearCliInstallError extends Error {
 
 export class TransactionError extends Error {
   readonly _tag = "TransactionError";
-  constructor(message: string) {
-    super(message);
-  }
 }
 
 const checkNearCliInstalled = Effect.gen(function* () {
@@ -165,7 +162,7 @@ export const createSubaccount = (
     console.log(colors.dim(`  Balance: ${balance}`));
     console.log();
 
-    const output = yield* Effect.tryPromise({
+    const _output = yield* Effect.tryPromise({
       try: async () => {
         return new Promise<string>((resolve, reject) => {
           const proc = spawn("near", args, {

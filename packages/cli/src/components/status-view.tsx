@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { render, Text, Box } from "ink";
-import { colors, icons, gradients, divider } from "../utils/theme";
+import { Box, render, Text } from "ink";
+import { useEffect, useState } from "react";
+import { colors, divider, gradients, icons } from "../utils/theme";
 
 interface Endpoint {
   name: string;
@@ -67,15 +67,15 @@ function StatusRow({
 }
 
 function StatusView({ endpoints, env, onComplete }: StatusViewProps) {
-  const [results, setResults] = useState<
-    Record<string, StatusResult | "checking" | "pending">
-  >(() => {
-    const initial: Record<string, "pending"> = {};
-    for (const ep of endpoints) {
-      initial[ep.name] = "pending";
-    }
-    return initial;
-  });
+  const [results, setResults] = useState<Record<string, StatusResult | "checking" | "pending">>(
+    () => {
+      const initial: Record<string, "pending"> = {};
+      for (const ep of endpoints) {
+        initial[ep.name] = "pending";
+      }
+      return initial;
+    },
+  );
 
   const [done, setDone] = useState(false);
 
@@ -103,20 +103,14 @@ function StatusView({ endpoints, env, onComplete }: StatusViewProps) {
     };
   }, [endpoints, onComplete]);
 
-  const healthy = Object.values(results).filter(
-    (r) => typeof r === "object" && r.ok
-  ).length;
+  const healthy = Object.values(results).filter((r) => typeof r === "object" && r.ok).length;
   const total = endpoints.length;
-  const checking = Object.values(results).filter(
-    (r) => r === "checking"
-  ).length;
+  const checking = Object.values(results).filter((r) => r === "checking").length;
 
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text>
-          {colors.cyan(`+${"-".repeat(46)}+`)}
-        </Text>
+        <Text>{colors.cyan(`+${"-".repeat(46)}+`)}</Text>
       </Box>
       <Box marginBottom={1}>
         <Text>
@@ -129,12 +123,7 @@ function StatusView({ endpoints, env, onComplete }: StatusViewProps) {
       </Box>
 
       {endpoints.map((ep) => (
-        <StatusRow
-          key={ep.name}
-          name={ep.name}
-          url={ep.url}
-          status={results[ep.name]}
-        />
+        <StatusRow key={ep.name} name={ep.name} url={ep.url} status={results[ep.name]} />
       ))}
 
       <Box marginTop={1}>
@@ -152,10 +141,7 @@ function StatusView({ endpoints, env, onComplete }: StatusViewProps) {
   );
 }
 
-export function renderStatusView(
-  endpoints: Endpoint[],
-  env: string
-): Promise<void> {
+export function renderStatusView(endpoints: Endpoint[], env: string): Promise<void> {
   return new Promise((resolve) => {
     const { unmount } = render(
       <StatusView
@@ -167,7 +153,7 @@ export function renderStatusView(
             resolve();
           }, 100);
         }}
-      />
+      />,
     );
   });
 }

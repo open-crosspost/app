@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto border-2 border-outset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)]">
+    <div
+      data-slot="table-container"
+      className="relative w-full overflow-x-auto border-2 border-outset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)]"
+    >
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
@@ -15,7 +18,16 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead data-slot="table-header" className={cn("[&_tr]:border-b-2 [&_tr]:border-[rgb(51,51,51)] dark:[&_tr]:border-[rgb(100,100,100)]", className)} {...props} />;
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn(
+        "[&_tr]:border-b-2 [&_tr]:border-[rgb(51,51,51)] dark:[&_tr]:border-[rgb(100,100,100)]",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
@@ -32,7 +44,10 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn("bg-muted/50 border-t-2 border-[rgb(51,51,51)] font-medium dark:border-[rgb(100,100,100)] [&>tr]:last:border-b-0", className)}
+      className={cn(
+        "bg-muted/50 border-t-2 border-[rgb(51,51,51)] font-medium dark:border-[rgb(100,100,100)] [&>tr]:last:border-b-0",
+        className,
+      )}
       {...props}
     />
   );
@@ -87,4 +102,4 @@ function TableCaption({ className, ...props }: React.ComponentProps<"caption">) 
   );
 }
 
-export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption };
+export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow };

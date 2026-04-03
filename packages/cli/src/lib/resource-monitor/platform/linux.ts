@@ -1,25 +1,16 @@
-import { Effect, Layer } from "effect";
 import { readFile } from "node:fs/promises";
+import { Effect, Layer } from "effect";
 import { execShellSafe } from "../command";
-import type {
-  MemoryInfo,
-  PlatformOperations,
-  PortInfo,
-  ProcessInfo,
-} from "../types";
+import type { MemoryInfo, PlatformOperations, PortInfo, ProcessInfo } from "../types";
 import { PlatformService } from "../types";
 
 const readFileSafe = (path: string): Effect.Effect<string | null, never> =>
   Effect.tryPromise({
     try: () => readFile(path, "utf-8"),
     catch: () => new Error("file not found"),
-  }).pipe(
-    Effect.catchAll(() => Effect.succeed(null))
-  );
+  }).pipe(Effect.catchAll(() => Effect.succeed(null)));
 
-const getPortInfo = (
-  ports: number[]
-): Effect.Effect<Record<number, PortInfo>, never> =>
+const getPortInfo = (ports: number[]): Effect.Effect<Record<number, PortInfo>, never> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`[linux] Checking ${ports.length} ports`);
 
@@ -31,7 +22,7 @@ const getPortInfo = (
     if (ports.length === 0) return result;
 
     const output = yield* execShellSafe(
-      "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || true"
+      "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || true",
     );
     if (!output) {
       yield* Effect.logDebug("[linux] No ss/netstat output, all ports appear free");
@@ -64,35 +55,23 @@ const getPortInfo = (
         state: "LISTEN",
       };
 
-      yield* Effect.logDebug(
-        `[linux] Port :${port} bound to PID ${pid} (${command})`
-      );
+      yield* Effect.logDebug(`[linux] Port :${port} bound to PID ${pid} (${command})`);
     }
 
-    const boundCount = Object.values(result).filter(
-      (p) => p.state === "LISTEN"
-    ).length;
-    yield* Effect.logInfo(
-      `[linux] Found ${boundCount}/${ports.length} ports in use`
-    );
+    const boundCount = Object.values(result).filter((p) => p.state === "LISTEN").length;
+    yield* Effect.logInfo(`[linux] Found ${boundCount}/${ports.length} ports in use`);
 
     return result;
   });
 
-const getProcessTree = (
-  rootPids: number[]
-): Effect.Effect<ProcessInfo[], never> =>
+const getProcessTree = (rootPids: number[]): Effect.Effect<ProcessInfo[], never> =>
   Effect.gen(function* () {
-    yield* Effect.logInfo(
-      `[linux] Building process tree for ${rootPids.length} root PIDs`
-    );
+    yield* Effect.logInfo(`[linux] Building process tree for ${rootPids.length} root PIDs`);
 
     const processes: ProcessInfo[] = [];
     const visited = new Set<number>();
 
-    const getProcess = (
-      pid: number
-    ): Effect.Effect<ProcessInfo | null, never> =>
+    const getProcess = (pid: number): Effect.Effect<ProcessInfo | null, never> =>
       Effect.gen(function* () {
         if (visited.has(pid)) return null;
         visited.add(pid);
@@ -119,7 +98,7 @@ const getProcessTree = (
         const command = args[0] || statParts[1].replace(/[()]/g, "");
 
         yield* Effect.logDebug(
-          `[linux] Process ${pid}: ${command} (RSS: ${(rss / 1024).toFixed(0)}KB)`
+          `[linux] Process ${pid}: ${command} (RSS: ${(rss / 1024).toFixed(0)}KB)`,
         );
 
         return {
@@ -134,9 +113,7 @@ const getProcessTree = (
 
     const getChildren = (pid: number): Effect.Effect<number[], never> =>
       Effect.gen(function* () {
-        const childrenFile = yield* readFileSafe(
-          `/proc/${pid}/task/${pid}/children`
-        );
+        const childrenFile = yield* readFileSafe(`/proc/${pid}/task/${pid}/children`);
 
         if (childrenFile) {
           const children = childrenFile
@@ -147,16 +124,14 @@ const getProcessTree = (
 
           if (children.length > 0) {
             yield* Effect.logDebug(
-              `[linux] PID ${pid} has ${children.length} children: ${children.join(", ")}`
+              `[linux] PID ${pid} has ${children.length} children: ${children.join(", ")}`,
             );
           }
 
           return children;
         }
 
-        const output = yield* execShellSafe(
-          `pgrep -P ${pid} 2>/dev/null || true`
-        );
+        const output = yield* execShellSafe(`pgrep -P ${pid} 2>/dev/null || true`);
         if (!output) return [];
 
         const children = output
@@ -165,9 +140,7 @@ const getProcessTree = (
           .map((s) => parseInt(s, 10));
 
         if (children.length > 0) {
-          yield* Effect.logDebug(
-            `[linux] PID ${pid} has ${children.length} children (via pgrep)`
-          );
+          yield* Effect.logDebug(`[linux] PID ${pid} has ${children.length} children (via pgrep)`);
         }
 
         return children;
@@ -191,9 +164,7 @@ const getProcessTree = (
       yield* traverse(pid);
     }
 
-    yield* Effect.logInfo(
-      `[linux] Process tree contains ${processes.length} processes`
-    );
+    yield* Effect.logInfo(`[linux] Process tree contains ${processes.length} processes`);
 
     return processes;
   });
@@ -226,9 +197,7 @@ const getMemoryInfo = (): Effect.Effect<MemoryInfo, never> =>
 
     const totalMB = (total / 1024 / 1024).toFixed(0);
     const usedMB = ((total - (available || free)) / 1024 / 1024).toFixed(0);
-    yield* Effect.logDebug(
-      `[linux] Memory: ${usedMB}MB used / ${totalMB}MB total`
-    );
+    yield* Effect.logDebug(`[linux] Memory: ${usedMB}MB used / ${totalMB}MB total`);
 
     return {
       total,
@@ -244,9 +213,7 @@ const getAllProcesses = (): Effect.Effect<ProcessInfo[], never> =>
 
     const processes: ProcessInfo[] = [];
 
-    const output = yield* execShellSafe(
-      "ps -eo pid=,ppid=,rss=,comm= 2>/dev/null || true"
-    );
+    const output = yield* execShellSafe("ps -eo pid=,ppid=,rss=,comm= 2>/dev/null || true");
     for (const line of output.split("\n").filter(Boolean)) {
       const parts = line.trim().split(/\s+/);
       if (parts.length < 4) continue;
@@ -279,9 +246,7 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
         if (visited.has(parentPid)) return;
         visited.add(parentPid);
 
-        const childrenFile = yield* readFileSafe(
-          `/proc/${parentPid}/task/${parentPid}/children`
-        );
+        const childrenFile = yield* readFileSafe(`/proc/${parentPid}/task/${parentPid}/children`);
 
         let childPids: number[] = [];
         if (childrenFile) {
@@ -291,9 +256,7 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
             .filter(Boolean)
             .map((s) => parseInt(s, 10));
         } else {
-          const output = yield* execShellSafe(
-            `pgrep -P ${parentPid} 2>/dev/null || true`
-          );
+          const output = yield* execShellSafe(`pgrep -P ${parentPid} 2>/dev/null || true`);
           if (output) {
             childPids = output
               .split("\n")
@@ -303,7 +266,7 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
         }
 
         for (const childPid of childPids) {
-          if (!isNaN(childPid)) {
+          if (!Number.isNaN(childPid)) {
             children.push(childPid);
             yield* recurse(childPid);
           }
@@ -313,9 +276,7 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
     yield* recurse(pid);
 
     if (children.length > 0) {
-      yield* Effect.logDebug(
-        `[linux] PID ${pid} has ${children.length} descendants`
-      );
+      yield* Effect.logDebug(`[linux] PID ${pid} has ${children.length} descendants`);
     }
 
     return children;

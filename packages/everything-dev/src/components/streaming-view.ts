@@ -17,7 +17,7 @@ const getTimestamp = (): string => {
   return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
 };
 
-const write = (text: string) => process.stdout.write(text + "\n");
+const write = (text: string) => process.stdout.write(`${text}\n`);
 
 const getServiceColor = (name: string): ((s: string) => string) => {
   if (name.startsWith(PLUGIN_PREFIX)) return orange;

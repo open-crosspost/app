@@ -1,6 +1,6 @@
-import type { AnyPluginConstructor, InferRegistryFromEntries, PluginRegistryEntry, PluginRuntimeConfig } from "../types";
-import { createPluginRuntime } from "../runtime";
 import type { LoadedPluginWithBinding } from "../plugin";
+import { createPluginRuntime } from "../runtime";
+import type { AnyPluginConstructor, PluginRegistryEntry, PluginRuntimeConfig } from "../types";
 
 export type PluginMap = Record<string, LoadedPluginWithBinding<any, any, any, any>>;
 
@@ -15,29 +15,29 @@ export type PluginMap = Record<string, LoadedPluginWithBinding<any, any, any, an
  * ```
  */
 export type InferBindingsFromMap<T extends PluginMap> = {
-	[K in keyof T]: T[K]
+  [K in keyof T]: T[K];
 };
 
 /**
  * Converts old pluginMap format to new registry format
  */
 function convertPluginMapToRegistry<T extends PluginMap>(
-	oldRegistry: Record<string, { remoteUrl: string; version?: string; description?: string }>,
-	pluginMap: T
+  oldRegistry: Record<string, { remoteUrl: string; version?: string; description?: string }>,
+  pluginMap: T,
 ): Record<keyof T, PluginRegistryEntry> {
-	const registry: Record<string, PluginRegistryEntry> = {};
-	
-	for (const [pluginId, ctor] of Object.entries(pluginMap)) {
-		const oldEntry = oldRegistry[pluginId];
-		registry[pluginId] = {
-			module: ctor as AnyPluginConstructor,
-			remote: oldEntry?.remoteUrl,
-			version: oldEntry?.version,
-			description: oldEntry?.description,
-		};
-	}
-	
-	return registry as Record<keyof T, PluginRegistryEntry>;
+  const registry: Record<string, PluginRegistryEntry> = {};
+
+  for (const [pluginId, ctor] of Object.entries(pluginMap)) {
+    const oldEntry = oldRegistry[pluginId];
+    registry[pluginId] = {
+      module: ctor as AnyPluginConstructor,
+      remote: oldEntry?.remoteUrl,
+      version: oldEntry?.version,
+      description: oldEntry?.description,
+    };
+  }
+
+  return registry as Record<keyof T, PluginRegistryEntry>;
 }
 
 /**
@@ -53,7 +53,7 @@ function convertPluginMapToRegistry<T extends PluginMap>(
  *   { registry: { "my-plugin": { remoteUrl: "..." } }, secrets },
  *   { "my-plugin": MyPlugin }
  * );
- * 
+ *
  * // New API (recommended)
  * const runtime = createPluginRuntime({
  *   registry: { "my-plugin": { module: MyPlugin } },
@@ -62,20 +62,20 @@ function convertPluginMapToRegistry<T extends PluginMap>(
  * ```
  */
 export function createLocalPluginRuntime<TMap extends PluginMap>(
-	config: {
-		registry: Record<string, { remoteUrl: string; version?: string; description?: string }>;
-		secrets?: Record<string, string>;
-		options?: any;
-	},
-	pluginMap: TMap
+  config: {
+    registry: Record<string, { remoteUrl: string; version?: string; description?: string }>;
+    secrets?: Record<string, string>;
+    options?: any;
+  },
+  pluginMap: TMap,
 ) {
-	const newRegistry = convertPluginMapToRegistry(config.registry, pluginMap);
-	
-	return createPluginRuntime({
-		registry: newRegistry,
-		secrets: config.secrets,
-		options: config.options,
-	});
+  const newRegistry = convertPluginMapToRegistry(config.registry, pluginMap);
+
+  return createPluginRuntime({
+    registry: newRegistry,
+    secrets: config.secrets,
+    options: config.options,
+  });
 }
 
 /**

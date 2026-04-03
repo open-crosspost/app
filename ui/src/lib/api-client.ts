@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { ApiContract } from "../api-contract";
 
 export type { ApiContract };
+
 type BaseApiClient = ContractRouterClient<ApiContract["api"]>;
 type PluginClientMap = {
   [K in keyof ApiContract["plugins"]]: ContractRouterClient<ApiContract["plugins"][K]>;

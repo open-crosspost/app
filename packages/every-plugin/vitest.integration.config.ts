@@ -12,7 +12,7 @@ export default defineConfig({
   },
   plugins: [
     tsconfigPaths({
-      projects: ['./tsconfig.json'],
+      projects: ["./tsconfig.json"],
     }),
   ],
 });

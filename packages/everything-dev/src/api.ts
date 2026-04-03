@@ -48,6 +48,7 @@ export async function loadApiPlugin(opts: {
     secrets: opts.secrets ?? {},
   });
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: usePlugin is not a React hook
   const plugin = await runtime.usePlugin(opts.runtimeId, {
     variables: opts.variables ?? {},
     secrets: opts.secrets ?? {},
@@ -135,5 +136,5 @@ export function createStitchedRouter(baseRouter: any, plugins: LoadedPluginResul
     return baseRouter;
   }
 
-  return plugins.reduce((router, plugin) => ({ ...router, ...plugin.router }), baseRouter);
+  return plugins.reduce((router, plugin) => Object.assign(router, plugin.router), baseRouter);
 }

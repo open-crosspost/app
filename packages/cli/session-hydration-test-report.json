@@ -1,9 +1,7 @@
 {
   "sessionId": "sess_1771269850133_wy40y9",
   "config": {
-    "ports": [
-      3000
-    ],
+    "ports": [3000],
     "snapshotIntervalMs": 2000,
     "headless": true,
     "baseUrl": "http://localhost:3000",
@@ -830,9 +828,7 @@
     "processesSpawned": 1,
     "processesKilled": 0,
     "orphanedProcesses": 0,
-    "portsUsed": [
-      3000
-    ],
+    "portsUsed": [3000],
     "portsLeaked": 1,
     "hasLeaks": true,
     "eventCount": 18,

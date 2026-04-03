@@ -1,20 +1,15 @@
 import { Effect } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  ResourceMonitor,
   assertAllPortsFreeWithPlatform,
   assertNoLeaks,
   createSnapshotWithPlatform,
   diffSnapshots,
   hasLeaks,
-  runSilent
+  ResourceMonitor,
+  runSilent,
 } from "../../src/lib/resource-monitor";
-import {
-  createMockServers,
-  sleep,
-  stopAllMockServers,
-  type MockServer
-} from "./mock-server";
+import { createMockServers, type MockServer, sleep, stopAllMockServers } from "./mock-server";
 
 const TEST_PORTS = [19990, 19991, 19992];
 
@@ -29,9 +24,7 @@ describe("ResourceMonitor Unit Tests", () => {
 
   describe("createSnapshot", () => {
     it("should detect FREE ports when nothing is bound", async () => {
-      const snapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const snapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       expect(snapshot).toBeDefined();
       expect(snapshot.platform).toBe(process.platform);
@@ -47,9 +40,7 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers(TEST_PORTS);
       await sleep(100);
 
-      const snapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const snapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       for (const port of TEST_PORTS) {
         expect(snapshot.ports[port]).toBeDefined();
@@ -59,9 +50,7 @@ describe("ResourceMonitor Unit Tests", () => {
     });
 
     it("should include memory info", async () => {
-      const snapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const snapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       expect(snapshot.memory).toBeDefined();
       expect(snapshot.memory.total).toBeGreaterThan(0);
@@ -74,17 +63,13 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers(TEST_PORTS);
       await sleep(100);
 
-      const beforeSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const beforeSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       stopAllMockServers(servers);
       servers = [];
       await sleep(200);
 
-      const afterSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const afterSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       const diff = diffSnapshots(beforeSnapshot, afterSnapshot);
 
@@ -100,13 +85,9 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers(TEST_PORTS);
       await sleep(100);
 
-      const beforeSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const beforeSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
-      const afterSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const afterSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       const diff = diffSnapshots(beforeSnapshot, afterSnapshot);
 
@@ -115,15 +96,11 @@ describe("ResourceMonitor Unit Tests", () => {
     });
 
     it("should compute memory delta", async () => {
-      const snapshot1 = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const snapshot1 = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       await sleep(50);
 
-      const snapshot2 = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const snapshot2 = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       const diff = diffSnapshots(snapshot1, snapshot2);
 
@@ -136,17 +113,13 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers([TEST_PORTS[0]]);
       await sleep(100);
 
-      const runningSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const runningSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       stopAllMockServers(servers);
       servers = [];
       await sleep(200);
 
-      const afterSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const afterSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       const diff = diffSnapshots(runningSnapshot, afterSnapshot);
 
@@ -157,13 +130,9 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers([TEST_PORTS[0]]);
       await sleep(100);
 
-      const runningSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const runningSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
-      const afterSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const afterSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       const diff = diffSnapshots(runningSnapshot, afterSnapshot);
 
@@ -180,9 +149,7 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers([TEST_PORTS[0]]);
       await sleep(100);
 
-      await expect(
-        runSilent(assertAllPortsFreeWithPlatform(TEST_PORTS))
-      ).rejects.toThrow();
+      await expect(runSilent(assertAllPortsFreeWithPlatform(TEST_PORTS))).rejects.toThrow();
     });
   });
 
@@ -191,17 +158,13 @@ describe("ResourceMonitor Unit Tests", () => {
       servers = createMockServers([TEST_PORTS[0]]);
       await sleep(100);
 
-      const runningSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const runningSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       stopAllMockServers(servers);
       servers = [];
       await sleep(200);
 
-      const afterSnapshot = await runSilent(
-        createSnapshotWithPlatform({ ports: TEST_PORTS })
-      );
+      const afterSnapshot = await runSilent(createSnapshotWithPlatform({ ports: TEST_PORTS }));
 
       const diff = diffSnapshots(runningSnapshot, afterSnapshot);
 
@@ -211,17 +174,13 @@ describe("ResourceMonitor Unit Tests", () => {
 
   describe("ResourceMonitor class", () => {
     it("should create monitor instance", async () => {
-      const monitor = await runSilent(
-        ResourceMonitor.createWithPlatform({ ports: TEST_PORTS })
-      );
+      const monitor = await runSilent(ResourceMonitor.createWithPlatform({ ports: TEST_PORTS }));
 
       expect(monitor).toBeDefined();
     });
 
     it("should capture and diff snapshots", async () => {
-      const monitor = await runSilent(
-        ResourceMonitor.createWithPlatform({ ports: TEST_PORTS })
-      );
+      const monitor = await runSilent(ResourceMonitor.createWithPlatform({ ports: TEST_PORTS }));
 
       const baseline = await runSilent(monitor.setBaselineWithPlatform());
       expect(baseline).toBeDefined();

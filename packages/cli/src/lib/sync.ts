@@ -1,1 +1,1 @@
-export { syncFiles, type FileSyncOptions, type FileSyncResult } from "../ui/files";
+export { type FileSyncOptions, type FileSyncResult, syncFiles } from "../ui/files";

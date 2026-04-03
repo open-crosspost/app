@@ -5,5 +5,3 @@ declare module "every-plugin" {
     "test-plugin": typeof TestPlugin;
   }
 }
-
-export {};

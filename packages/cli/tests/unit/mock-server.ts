@@ -8,7 +8,7 @@ export interface MockServer {
 }
 
 export const createMockServer = (port: number): MockServer => {
-  const server = createServer((req, res) => {
+  const server = createServer((_req, res) => {
     res.writeHead(200);
     res.end("ok");
   });
@@ -42,7 +42,7 @@ export const sleep = (ms: number): Promise<void> =>
 export const waitForCondition = async (
   condition: () => Promise<boolean> | boolean,
   timeoutMs = 5000,
-  intervalMs = 100
+  intervalMs = 100,
 ): Promise<boolean> => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {

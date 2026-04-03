@@ -2,17 +2,9 @@ import { writeFile } from "node:fs/promises";
 import { Effect } from "effect";
 import { diffSnapshots, hasLeaks } from "../resource-monitor";
 import { ExportFailed } from "./errors";
-import type {
-  SessionConfig,
-  SessionEvent,
-  SessionReport,
-  SessionSummary,
-} from "./types";
+import type { SessionConfig, SessionEvent, SessionReport, SessionSummary } from "./types";
 
-export const generateSummary = (
-  events: SessionEvent[],
-  config: SessionConfig
-): SessionSummary => {
+export const generateSummary = (events: SessionEvent[], config: SessionConfig): SessionSummary => {
   if (events.length === 0) {
     return {
       totalMemoryDeltaMb: 0,
@@ -37,9 +29,8 @@ export const generateSummary = (
     .filter((v) => v > 0);
 
   const peakMemoryMb = Math.max(...memoryValues, 0);
-  const averageMemoryMb = memoryValues.length > 0
-    ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length
-    : 0;
+  const averageMemoryMb =
+    memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
 
   const baselineMemory = baselineEvent?.snapshot.memory.processRss ?? 0;
   const finalMemory = lastEvent.snapshot.memory.processRss;
@@ -77,14 +68,10 @@ export const generateSummary = (
 
   if (browserMetricsEvents.length > 0) {
     const jsHeapValues = browserMetricsEvents.map(
-      (e) => e.browserMetrics!.jsHeapUsedSize / 1024 / 1024
+      (e) => e.browserMetrics!.jsHeapUsedSize / 1024 / 1024,
     );
-    const layoutCounts = browserMetricsEvents.map(
-      (e) => e.browserMetrics!.layoutCount
-    );
-    const scriptDurations = browserMetricsEvents.map(
-      (e) => e.browserMetrics!.scriptDuration
-    );
+    const layoutCounts = browserMetricsEvents.map((e) => e.browserMetrics!.layoutCount);
+    const scriptDurations = browserMetricsEvents.map((e) => e.browserMetrics!.scriptDuration);
 
     browserMetricsSummary = {
       peakJsHeapMb: Math.max(...jsHeapValues),
@@ -117,7 +104,7 @@ export const generateReport = (
   config: SessionConfig,
   events: SessionEvent[],
   startTime: number,
-  endTime: number
+  endTime: number,
 ): SessionReport => {
   const summary = generateSummary(events, config);
 
@@ -135,20 +122,23 @@ export const generateReport = (
 
 export const exportJSON = (
   report: SessionReport,
-  filepath: string
+  filepath: string,
 ): Effect.Effect<void, ExportFailed> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Exporting session report to ${filepath}`);
 
     yield* Effect.tryPromise({
       try: () => writeFile(filepath, JSON.stringify(report, null, 2)),
-      catch: (e) => new ExportFailed({
-        path: filepath,
-        reason: String(e),
-      }),
+      catch: (e) =>
+        new ExportFailed({
+          path: filepath,
+          reason: String(e),
+        }),
     });
 
-    yield* Effect.logInfo(`Report exported: ${report.events.length} events, ${report.summary.duration}ms duration`);
+    yield* Effect.logInfo(
+      `Report exported: ${report.events.length} events, ${report.summary.duration}ms duration`,
+    );
   });
 
 export const formatReportSummary = (report: SessionReport): string => {
@@ -169,7 +159,9 @@ export const formatReportSummary = (report: SessionReport): string => {
   lines.push("─".repeat(60));
   lines.push(`  Peak:           ${summary.peakMemoryMb.toFixed(1)} MB`);
   lines.push(`  Average:        ${summary.averageMemoryMb.toFixed(1)} MB`);
-  lines.push(`  Delta:          ${summary.totalMemoryDeltaMb >= 0 ? "+" : ""}${summary.totalMemoryDeltaMb.toFixed(1)} MB`);
+  lines.push(
+    `  Delta:          ${summary.totalMemoryDeltaMb >= 0 ? "+" : ""}${summary.totalMemoryDeltaMb.toFixed(1)} MB`,
+  );
   lines.push("");
   lines.push("─".repeat(60));
   lines.push("  PROCESSES");
@@ -192,7 +184,9 @@ export const formatReportSummary = (report: SessionReport): string => {
     lines.push(`  Peak JS Heap:   ${summary.browserMetricsSummary.peakJsHeapMb.toFixed(1)} MB`);
     lines.push(`  Avg JS Heap:    ${summary.browserMetricsSummary.averageJsHeapMb.toFixed(1)} MB`);
     lines.push(`  Layout Count:   ${summary.browserMetricsSummary.totalLayoutCount}`);
-    lines.push(`  Script Time:    ${summary.browserMetricsSummary.totalScriptDuration.toFixed(2)}s`);
+    lines.push(
+      `  Script Time:    ${summary.browserMetricsSummary.totalScriptDuration.toFixed(2)}s`,
+    );
     lines.push("");
   }
 
@@ -238,16 +232,18 @@ export const generateHTMLReport = (report: SessionReport): string => {
   const { summary, events } = report;
   const baseTime = events[0]?.timestamp ?? 0;
 
-  const eventRows = events.map((e) => {
-    const elapsed = ((e.timestamp - baseTime) / 1000).toFixed(2);
-    const memory = (e.snapshot.memory.processRss / 1024 / 1024).toFixed(1);
-    return `<tr>
+  const eventRows = events
+    .map((e) => {
+      const elapsed = ((e.timestamp - baseTime) / 1000).toFixed(2);
+      const memory = (e.snapshot.memory.processRss / 1024 / 1024).toFixed(1);
+      return `<tr>
       <td>${elapsed}s</td>
       <td><span class="event-type event-${e.type}">${e.type}</span></td>
       <td>${memory} MB</td>
       <td>${e.label}</td>
     </tr>`;
-  }).join("\n");
+    })
+    .join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -306,10 +302,11 @@ export const generateHTMLReport = (report: SessionReport): string => {
       </div>
     </div>
 
-    <div class="status ${summary.hasLeaks ? 'error' : 'success'}">
-      ${summary.hasLeaks
-        ? `❌ Resource leaks detected: ${summary.orphanedProcesses} orphaned processes, ${summary.portsLeaked} ports leaked`
-        : '✅ No resource leaks detected'
+    <div class="status ${summary.hasLeaks ? "error" : "success"}">
+      ${
+        summary.hasLeaks
+          ? `❌ Resource leaks detected: ${summary.orphanedProcesses} orphaned processes, ${summary.portsLeaked} ports leaked`
+          : "✅ No resource leaks detected"
       }
     </div>
 
@@ -334,7 +331,7 @@ export const generateHTMLReport = (report: SessionReport): string => {
 
 export const exportHTMLReport = (
   report: SessionReport,
-  filepath: string
+  filepath: string,
 ): Effect.Effect<void, ExportFailed> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`Exporting HTML report to ${filepath}`);
@@ -343,10 +340,11 @@ export const exportHTMLReport = (
 
     yield* Effect.tryPromise({
       try: () => writeFile(filepath, html),
-      catch: (e) => new ExportFailed({
-        path: filepath,
-        reason: String(e),
-      }),
+      catch: (e) =>
+        new ExportFailed({
+          path: filepath,
+          reason: String(e),
+        }),
     });
 
     yield* Effect.logInfo("HTML report exported");

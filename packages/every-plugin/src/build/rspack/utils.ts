@@ -1,6 +1,6 @@
-import path from 'node:path';
-import fs from 'node:fs';
-import { getNormalizedRemoteName } from 'every-plugin/normalize';
+import fs from "node:fs";
+import path from "node:path";
+import { getNormalizedRemoteName } from "every-plugin/normalize";
 
 export interface PluginInfo {
   name: string;
@@ -11,8 +11,8 @@ export interface PluginInfo {
 }
 
 export function getPluginInfo(context: string): PluginInfo {
-  const pkgPath = path.join(context, 'package.json');
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+  const pkgPath = path.join(context, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
 
   return {
     name: pkg.name,
@@ -28,7 +28,7 @@ const loadedModules = new Set<string>();
 export function loadDevConfig(devConfigPath: string) {
   try {
     const fullPath = path.resolve(devConfigPath);
-    
+
     if (loadedModules.has(fullPath)) {
       delete require.cache[fullPath];
       const dirPath = path.dirname(fullPath);
@@ -38,7 +38,7 @@ export function loadDevConfig(devConfigPath: string) {
         }
       }
     }
-    
+
     const module = require(fullPath).default;
     loadedModules.add(fullPath);
     return module;

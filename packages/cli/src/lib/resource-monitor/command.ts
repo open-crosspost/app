@@ -15,7 +15,7 @@ const DEFAULT_RETRIES = 1;
 export const execCommand = (
   cmd: string,
   args: string[],
-  options?: ExecOptions
+  options?: ExecOptions,
 ): Effect.Effect<string, CommandFailed | CommandTimeout> =>
   Effect.gen(function* () {
     const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
@@ -55,16 +55,12 @@ export const execCommand = (
     });
 
     if (result.timedOut) {
-      return yield* Effect.fail(
-        new CommandTimeout({ command: cmd, timeoutMs: timeout })
-      );
+      return yield* Effect.fail(new CommandTimeout({ command: cmd, timeoutMs: timeout }));
     }
 
     if (result.exitCode !== 0) {
       if (!silent) {
-        yield* Effect.logWarning(
-          `Command failed: ${cmd} (exit ${result.exitCode})`
-        );
+        yield* Effect.logWarning(`Command failed: ${cmd} (exit ${result.exitCode})`);
       }
       return yield* Effect.fail(
         new CommandFailed({
@@ -72,7 +68,7 @@ export const execCommand = (
           args,
           exitCode: result.exitCode ?? 1,
           stderr: result.stderr,
-        })
+        }),
       );
     }
 
@@ -84,29 +80,29 @@ export const execCommand = (
   }).pipe(
     Effect.retry(
       Schedule.recurs(options?.retries ?? DEFAULT_RETRIES).pipe(
-        Schedule.addDelay(() => "100 millis")
-      )
+        Schedule.addDelay(() => "100 millis"),
+      ),
     ),
-    Effect.catchAll((error) => Effect.fail(error))
+    Effect.catchAll((error) => Effect.fail(error)),
   );
 
 export const execCommandSafe = (
   cmd: string,
   args: string[],
-  options?: ExecOptions
+  options?: ExecOptions,
 ): Effect.Effect<string, never> =>
   execCommand(cmd, args, options).pipe(
     Effect.catchAll((error) =>
       Effect.gen(function* () {
         yield* Effect.logWarning(`Command failed (graceful): ${error.message}`);
         return "";
-      })
-    )
+      }),
+    ),
   );
 
 export const execShell = (
   script: string,
-  options?: ExecOptions
+  options?: ExecOptions,
 ): Effect.Effect<string, CommandFailed | CommandTimeout> =>
   Effect.gen(function* () {
     const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
@@ -146,16 +142,12 @@ export const execShell = (
     });
 
     if (result.timedOut) {
-      return yield* Effect.fail(
-        new CommandTimeout({ command: script, timeoutMs: timeout })
-      );
+      return yield* Effect.fail(new CommandTimeout({ command: script, timeoutMs: timeout }));
     }
 
     if (result.exitCode !== 0) {
       if (!silent) {
-        yield* Effect.logWarning(
-          `Shell command failed (exit ${result.exitCode})`
-        );
+        yield* Effect.logWarning(`Shell command failed (exit ${result.exitCode})`);
       }
       return yield* Effect.fail(
         new CommandFailed({
@@ -163,7 +155,7 @@ export const execShell = (
           args: [],
           exitCode: result.exitCode ?? 1,
           stderr: result.stderr,
-        })
+        }),
       );
     }
 
@@ -171,30 +163,28 @@ export const execShell = (
   }).pipe(
     Effect.retry(
       Schedule.recurs(options?.retries ?? DEFAULT_RETRIES).pipe(
-        Schedule.addDelay(() => "100 millis")
-      )
+        Schedule.addDelay(() => "100 millis"),
+      ),
     ),
-    Effect.catchAll((error) => Effect.fail(error))
+    Effect.catchAll((error) => Effect.fail(error)),
   );
 
 export const execShellSafe = (
   script: string,
-  options?: ExecOptions
+  options?: ExecOptions,
 ): Effect.Effect<string, never> =>
   execShell(script, options).pipe(
     Effect.catchAll((error) =>
       Effect.gen(function* () {
-        yield* Effect.logWarning(
-          `Shell command failed (graceful): ${error.message}`
-        );
+        yield* Effect.logWarning(`Shell command failed (graceful): ${error.message}`);
         return "";
-      })
-    )
+      }),
+    ),
   );
 
 export const powershell = (
   script: string,
-  options?: ExecOptions
+  options?: ExecOptions,
 ): Effect.Effect<string, CommandFailed | CommandTimeout> =>
   Effect.gen(function* () {
     const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
@@ -236,16 +226,12 @@ export const powershell = (
     });
 
     if (result.timedOut) {
-      return yield* Effect.fail(
-        new CommandTimeout({ command: "powershell", timeoutMs: timeout })
-      );
+      return yield* Effect.fail(new CommandTimeout({ command: "powershell", timeoutMs: timeout }));
     }
 
     if (result.exitCode !== 0) {
       if (!silent) {
-        yield* Effect.logWarning(
-          `PowerShell command failed (exit ${result.exitCode})`
-        );
+        yield* Effect.logWarning(`PowerShell command failed (exit ${result.exitCode})`);
       }
       return yield* Effect.fail(
         new CommandFailed({
@@ -253,7 +239,7 @@ export const powershell = (
           args: [script],
           exitCode: result.exitCode ?? 1,
           stderr: result.stderr,
-        })
+        }),
       );
     }
 
@@ -261,23 +247,21 @@ export const powershell = (
   }).pipe(
     Effect.retry(
       Schedule.recurs(options?.retries ?? DEFAULT_RETRIES).pipe(
-        Schedule.addDelay(() => "100 millis")
-      )
+        Schedule.addDelay(() => "100 millis"),
+      ),
     ),
-    Effect.catchAll((error) => Effect.fail(error))
+    Effect.catchAll((error) => Effect.fail(error)),
   );
 
 export const powershellSafe = (
   script: string,
-  options?: ExecOptions
+  options?: ExecOptions,
 ): Effect.Effect<string, never> =>
   powershell(script, options).pipe(
     Effect.catchAll((error) =>
       Effect.gen(function* () {
-        yield* Effect.logWarning(
-          `PowerShell command failed (graceful): ${error.message}`
-        );
+        yield* Effect.logWarning(`PowerShell command failed (graceful): ${error.message}`);
         return "";
-      })
-    )
+      }),
+    ),
   );

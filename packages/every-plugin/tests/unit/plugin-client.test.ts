@@ -5,7 +5,7 @@ import { TestPlugin } from "../fixtures/test-plugin/src/index";
 
 const TEST_REGISTRY = {
   "test-plugin": {
-    module: TestPlugin
+    module: TestPlugin,
   },
 } as const;
 
@@ -39,17 +39,17 @@ describe("Plugin Client Unit Tests", () => {
     const { createClient } = plugin;
     const client = createClient();
 
-    expect(typeof client.getById).toBe('function');
-    expect(typeof client.getBulk).toBe('function');
-    expect(typeof client.simpleStream).toBe('function');
-    expect(typeof client.emptyStream).toBe('function');
-    expect(typeof client.throwError).toBe('function');
-    expect(typeof client.requiresSpecialConfig).toBe('function');
+    expect(typeof client.getById).toBe("function");
+    expect(typeof client.getBulk).toBe("function");
+    expect(typeof client.simpleStream).toBe("function");
+    expect(typeof client.emptyStream).toBe("function");
+    expect(typeof client.throwError).toBe("function");
+    expect(typeof client.requiresSpecialConfig).toBe("function");
 
     const procedureResult = await client.getById({ id: "test-123" });
-    expect(procedureResult).toHaveProperty('item');
-    expect(procedureResult.item).toHaveProperty('externalId', 'test-123');
-    expect(procedureResult.item.content).toContain('single content for test-123');
+    expect(procedureResult).toHaveProperty("item");
+    expect(procedureResult.item).toHaveProperty("externalId", "test-123");
+    expect(procedureResult.item.content).toContain("single content for test-123");
   });
 
   it("should handle bulk operations", async () => {
@@ -58,12 +58,12 @@ describe("Plugin Client Unit Tests", () => {
 
     const bulkResult = await client.getBulk({ ids: ["bulk1", "bulk2", "bulk3"] });
 
-    expect(bulkResult).toHaveProperty('items');
+    expect(bulkResult).toHaveProperty("items");
     expect(bulkResult.items).toHaveLength(3);
-    expect(bulkResult.items[0]?.externalId).toBe('bulk1');
-    expect(bulkResult.items[0]?.content).toContain('bulk content for bulk1');
-    expect(bulkResult.items[1]?.externalId).toBe('bulk2');
-    expect(bulkResult.items[2]?.externalId).toBe('bulk3');
+    expect(bulkResult.items[0]?.externalId).toBe("bulk1");
+    expect(bulkResult.items[0]?.content).toContain("bulk content for bulk1");
+    expect(bulkResult.items[1]?.externalId).toBe("bulk2");
+    expect(bulkResult.items[2]?.externalId).toBe("bulk3");
   });
 
   it("should stream using plugin client directly", async () => {
@@ -73,7 +73,7 @@ describe("Plugin Client Unit Tests", () => {
     const streamResult = await client.simpleStream({ count: 3, prefix: "stream" });
 
     expect(streamResult).not.toBeNull();
-    expect(typeof streamResult).toBe('object');
+    expect(typeof streamResult).toBe("object");
     expect(Symbol.asyncIterator in streamResult).toBe(true);
 
     const resultArray: any[] = [];
@@ -82,12 +82,12 @@ describe("Plugin Client Unit Tests", () => {
     }
 
     expect(resultArray.length).toBe(3);
-    expect(resultArray[0]).toHaveProperty('item');
-    expect(resultArray[0].item).toHaveProperty('externalId', 'stream_0');
-    expect(resultArray[0]).toHaveProperty('state');
-    expect(resultArray[0]).toHaveProperty('metadata');
-    expect(resultArray[1].item.externalId).toBe('stream_1');
-    expect(resultArray[2].item.externalId).toBe('stream_2');
+    expect(resultArray[0]).toHaveProperty("item");
+    expect(resultArray[0].item).toHaveProperty("externalId", "stream_0");
+    expect(resultArray[0]).toHaveProperty("state");
+    expect(resultArray[0]).toHaveProperty("metadata");
+    expect(resultArray[1].item.externalId).toBe("stream_1");
+    expect(resultArray[2].item.externalId).toBe("stream_2");
   });
 
   it("should handle empty streams", async () => {
@@ -120,19 +120,17 @@ describe("Plugin Client Unit Tests", () => {
     }
 
     expect(processedResult.length).toBe(2);
-    expect(processedResult[0]).toHaveProperty('processed', true);
-    expect(processedResult[0]).toHaveProperty('item');
-    expect(processedResult[0].item).toHaveProperty('externalId', 'effect_0');
-    expect(processedResult[1].item.externalId).toBe('effect_1');
+    expect(processedResult[0]).toHaveProperty("processed", true);
+    expect(processedResult[0]).toHaveProperty("item");
+    expect(processedResult[0].item).toHaveProperty("externalId", "effect_0");
+    expect(processedResult[1].item.externalId).toBe("effect_1");
   });
 
   it("should propagate oRPC errors correctly", async () => {
     const { createClient } = plugin;
     const client = createClient();
 
-    await expect(
-      client.throwError({ errorType: 'UNAUTHORIZED' })
-    ).rejects.toThrow();
+    await expect(client.throwError({ errorType: "UNAUTHORIZED" })).rejects.toThrow();
   });
 
   it("should handle config-dependent procedures", async () => {
@@ -141,8 +139,8 @@ describe("Plugin Client Unit Tests", () => {
 
     const configResult = await client.requiresSpecialConfig({ checkValue: "test-input" });
 
-    expect(configResult).toHaveProperty('configValue', 'http://localhost:1337');
-    expect(configResult).toHaveProperty('inputValue', 'test-input');
-    expect(configResult).toHaveProperty('userId', 'test-user-123');
+    expect(configResult).toHaveProperty("configValue", "http://localhost:1337");
+    expect(configResult).toHaveProperty("inputValue", "test-input");
+    expect(configResult).toHaveProperty("userId", "test-user-123");
   });
 });

@@ -1,17 +1,8 @@
 import { Effect, Logger, LogLevel } from "effect";
-import { createSnapshotWithPlatform, PlatformLive, runSilent } from "../resource-monitor";
 import type { Snapshot } from "../resource-monitor";
-import {
-  type SessionRecorderError,
-  SessionTimeout,
-  SnapshotFailed,
-} from "./errors";
-import {
-  type BrowserHandle,
-  closeBrowser,
-  getBrowserMetrics,
-  launchBrowser,
-} from "./playwright";
+import { createSnapshotWithPlatform, PlatformLive, runSilent } from "../resource-monitor";
+import { type SessionRecorderError, SnapshotFailed } from "./errors";
+import { type BrowserHandle, closeBrowser, getBrowserMetrics, launchBrowser } from "./playwright";
 import {
   exportHTMLReport,
   exportJSON,
@@ -19,20 +10,15 @@ import {
   formatReportSummary,
   generateReport,
 } from "./report";
+import { checkPortsAvailable, shutdownServers, startServers } from "./server";
 import {
-  checkPortsAvailable,
-  shutdownServers,
-  startServers,
-  waitForPortFree,
-} from "./server";
-import {
-  DEFAULT_SESSION_CONFIG,
   type BrowserMetrics,
+  DEFAULT_SESSION_CONFIG,
+  type ServerOrchestrator,
   type SessionConfig,
   type SessionEvent,
   type SessionEventType,
   type SessionReport,
-  type ServerOrchestrator,
 } from "./types";
 
 let eventCounter = 0;
@@ -62,9 +48,7 @@ export class SessionRecorder {
     this.sessionId = generateSessionId();
   }
 
-  static create = (
-    config?: Partial<SessionConfig>
-  ): Effect.Effect<SessionRecorder> =>
+  static create = (config?: Partial<SessionConfig>): Effect.Effect<SessionRecorder> =>
     Effect.gen(function* () {
       const fullConfig = { ...DEFAULT_SESSION_CONFIG, ...config };
       yield* Effect.logInfo(`Creating SessionRecorder: ${JSON.stringify(fullConfig)}`);
@@ -101,7 +85,7 @@ export class SessionRecorder {
   recordEvent(
     type: SessionEventType,
     label: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Effect.Effect<SessionEvent, SnapshotFailed> {
     const self = this;
     return Effect.gen(function* () {
@@ -109,9 +93,7 @@ export class SessionRecorder {
 
       let browserMetrics: BrowserMetrics | undefined;
       if (self.browserHandle) {
-        const metricsResult = yield* Effect.either(
-          getBrowserMetrics(self.browserHandle.page)
-        );
+        const metricsResult = yield* Effect.either(getBrowserMetrics(self.browserHandle.page));
         if (metricsResult._tag === "Right") {
           browserMetrics = metricsResult.right;
         }
@@ -135,9 +117,7 @@ export class SessionRecorder {
     });
   }
 
-  startServers(
-    mode: "start" | "dev" = "start"
-  ): Effect.Effect<void, SessionRecorderError> {
+  startServers(mode: "start" | "dev" = "start"): Effect.Effect<void, SessionRecorderError> {
     const self = this;
     return Effect.gen(function* () {
       yield* Effect.logInfo(`Starting servers in ${mode} mode`);
@@ -211,9 +191,7 @@ export class SessionRecorder {
       if (self.config.snapshotIntervalMs > 0) {
         self.intervalHandle = setInterval(() => {
           Effect.runPromise(
-            self.recordEvent("interval", "auto_snapshot").pipe(
-              Effect.catchAll(() => Effect.void)
-            )
+            self.recordEvent("interval", "auto_snapshot").pipe(Effect.catchAll(() => Effect.void)),
           );
         }, self.config.snapshotIntervalMs);
       }
@@ -227,13 +205,7 @@ export class SessionRecorder {
     return Effect.gen(function* () {
       if (!self.isRecording) {
         yield* Effect.logWarning("Not recording");
-        return generateReport(
-          self.sessionId,
-          self.config,
-          self.events,
-          self.startTime,
-          Date.now()
-        );
+        return generateReport(self.sessionId, self.config, self.events, self.startTime, Date.now());
       }
 
       if (self.intervalHandle) {
@@ -253,7 +225,7 @@ export class SessionRecorder {
         self.config,
         self.events,
         self.startTime,
-        self.endTime
+        self.endTime,
       );
 
       return report;
@@ -262,7 +234,7 @@ export class SessionRecorder {
 
   exportReport(
     filepath: string,
-    format: "json" | "html" = "json"
+    format: "json" | "html" = "json",
   ): Effect.Effect<void, SessionRecorderError> {
     const self = this;
     return Effect.gen(function* () {
@@ -271,7 +243,7 @@ export class SessionRecorder {
         self.config,
         self.events,
         self.startTime,
-        self.endTime || Date.now()
+        self.endTime || Date.now(),
       );
 
       if (format === "html") {
@@ -288,22 +260,20 @@ export class SessionRecorder {
       this.config,
       this.events,
       this.startTime,
-      this.endTime || Date.now()
+      this.endTime || Date.now(),
     );
   }
 
   printSummary(): Effect.Effect<void> {
-    const self = this;
     return Effect.sync(() => {
-      const report = self.generateReport();
+      const report = this.generateReport();
       console.log(formatReportSummary(report));
     });
   }
 
   printTimeline(): Effect.Effect<void> {
-    const self = this;
     return Effect.sync(() => {
-      console.log(formatEventTimeline(self.events));
+      console.log(formatEventTimeline(this.events));
     });
   }
 
@@ -325,37 +295,31 @@ export class SessionRecorder {
   }
 }
 
-export const runSession = <E>(
-  effect: Effect.Effect<void, E>
-): Promise<void> =>
+export const runSession = <E>(effect: Effect.Effect<void, E>): Promise<void> =>
   effect.pipe(
     Effect.provide(PlatformLive),
     Logger.withMinimumLogLevel(LogLevel.Info),
-    Effect.runPromise
+    Effect.runPromise,
   );
 
-export const runSessionSilent = <E>(
-  effect: Effect.Effect<void, E>
-): Promise<void> =>
+export const runSessionSilent = <E>(effect: Effect.Effect<void, E>): Promise<void> =>
   effect.pipe(
     Effect.provide(PlatformLive),
     Logger.withMinimumLogLevel(LogLevel.Error),
-    Effect.runPromise
+    Effect.runPromise,
   );
 
-export const runSessionDebug = <E>(
-  effect: Effect.Effect<void, E>
-): Promise<void> =>
+export const runSessionDebug = <E>(effect: Effect.Effect<void, E>): Promise<void> =>
   effect.pipe(
     Effect.provide(PlatformLive),
     Logger.withMinimumLogLevel(LogLevel.Debug),
-    Effect.runPromise
+    Effect.runPromise,
   );
 
+export { diffSnapshots, hasLeaks, type Snapshot, type SnapshotDiff } from "../resource-monitor";
 export * from "./errors";
-export * from "./types";
-export * from "./server";
+export { runClickFlow, runLoginFlow, runNavigationFlow } from "./flows/login";
 export * from "./playwright";
 export * from "./report";
-export { runLoginFlow, runNavigationFlow, runClickFlow } from "./flows/login";
-export { diffSnapshots, hasLeaks, type Snapshot, type SnapshotDiff } from "../resource-monitor";
+export * from "./server";
+export * from "./types";

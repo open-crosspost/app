@@ -20,7 +20,7 @@ import { PluginRuntimeError } from "./errors";
 import { PluginService } from "./services/plugin.service";
 
 export class PluginRuntime<R = RegisteredPlugins> {
-  readonly ["__registryType"]?: R;
+  readonly __registryType?: R;
 
   private pluginCache = new Map<
     string,

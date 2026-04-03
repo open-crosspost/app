@@ -1,6 +1,6 @@
-import type { PluginInfo } from './utils';
-import { getPluginSharedDependencies } from '../shared-deps';
+import { getPluginSharedDependencies } from "../shared-deps";
+import type { PluginInfo } from "./utils";
 
-export function buildSharedDependencies(pluginInfo: PluginInfo) {
+export function buildSharedDependencies(_pluginInfo: PluginInfo) {
   return getPluginSharedDependencies();
 }

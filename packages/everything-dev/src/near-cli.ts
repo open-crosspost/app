@@ -37,9 +37,6 @@ export class NearCliInstallError extends Error {
 
 export class NearTransactionError extends Error {
   readonly _tag = "NearTransactionError";
-  constructor(message: string) {
-    super(message);
-  }
 }
 
 const checkNearCliInstalled = Effect.tryPromise({

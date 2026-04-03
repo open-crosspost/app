@@ -1,16 +1,9 @@
 import { Effect, Layer } from "effect";
 import { execShellSafe, powershellSafe } from "../command";
-import type {
-  MemoryInfo,
-  PlatformOperations,
-  PortInfo,
-  ProcessInfo,
-} from "../types";
+import type { MemoryInfo, PlatformOperations, PortInfo, ProcessInfo } from "../types";
 import { PlatformService } from "../types";
 
-const getPortInfo = (
-  ports: number[]
-): Effect.Effect<Record<number, PortInfo>, never> =>
+const getPortInfo = (ports: number[]): Effect.Effect<Record<number, PortInfo>, never> =>
   Effect.gen(function* () {
     yield* Effect.logInfo(`[windows] Checking ${ports.length} ports`);
 
@@ -23,9 +16,7 @@ const getPortInfo = (
 
     const output = yield* execShellSafe("netstat -ano -p TCP");
     if (!output) {
-      yield* Effect.logDebug(
-        "[windows] No netstat output, all ports appear free"
-      );
+      yield* Effect.logDebug("[windows] No netstat output, all ports appear free");
       return result;
     }
 
@@ -50,7 +41,7 @@ const getPortInfo = (
       let command: string | null = null;
       if (pid) {
         const cmdOutput = yield* execShellSafe(
-          `wmic process where ProcessId=${pid} get Name /format:list`
+          `wmic process where ProcessId=${pid} get Name /format:list`,
         );
         const nameMatch = cmdOutput.match(/Name=(.+)/);
         command = nameMatch ? nameMatch[1].trim() : null;
@@ -63,45 +54,31 @@ const getPortInfo = (
         state: "LISTEN",
       };
 
-      yield* Effect.logDebug(
-        `[windows] Port :${port} bound to PID ${pid} (${command})`
-      );
+      yield* Effect.logDebug(`[windows] Port :${port} bound to PID ${pid} (${command})`);
     }
 
-    const boundCount = Object.values(result).filter(
-      (p) => p.state === "LISTEN"
-    ).length;
-    yield* Effect.logInfo(
-      `[windows] Found ${boundCount}/${ports.length} ports in use`
-    );
+    const boundCount = Object.values(result).filter((p) => p.state === "LISTEN").length;
+    yield* Effect.logInfo(`[windows] Found ${boundCount}/${ports.length} ports in use`);
 
     return result;
   });
 
-const getProcessTree = (
-  rootPids: number[]
-): Effect.Effect<ProcessInfo[], never> =>
+const getProcessTree = (rootPids: number[]): Effect.Effect<ProcessInfo[], never> =>
   Effect.gen(function* () {
-    yield* Effect.logInfo(
-      `[windows] Building process tree for ${rootPids.length} root PIDs`
-    );
+    yield* Effect.logInfo(`[windows] Building process tree for ${rootPids.length} root PIDs`);
 
     const processes: ProcessInfo[] = [];
     const visited = new Set<number>();
 
-    const getProcess = (
-      pid: number
-    ): Effect.Effect<ProcessInfo | null, never> =>
+    const getProcess = (pid: number): Effect.Effect<ProcessInfo | null, never> =>
       Effect.gen(function* () {
         if (visited.has(pid)) return null;
         visited.add(pid);
 
         const output = yield* execShellSafe(
-          `wmic process where ProcessId=${pid} get ProcessId,ParentProcessId,WorkingSetSize,Name,CommandLine /format:csv`
+          `wmic process where ProcessId=${pid} get ProcessId,ParentProcessId,WorkingSetSize,Name,CommandLine /format:csv`,
         );
-        const lines = output
-          .split("\n")
-          .filter((l) => l.trim() && !l.startsWith("Node"));
+        const lines = output.split("\n").filter((l) => l.trim() && !l.startsWith("Node"));
         if (lines.length === 0) return null;
 
         const parts = lines[0].split(",");
@@ -114,7 +91,7 @@ const getProcessTree = (
         const rss = parseInt(parts[5], 10) || 0;
 
         yield* Effect.logDebug(
-          `[windows] Process ${pid}: ${name} (RSS: ${(rss / 1024).toFixed(0)}KB)`
+          `[windows] Process ${pid}: ${name} (RSS: ${(rss / 1024).toFixed(0)}KB)`,
         );
 
         return {
@@ -130,18 +107,16 @@ const getProcessTree = (
     const getChildren = (pid: number): Effect.Effect<number[], never> =>
       Effect.gen(function* () {
         const output = yield* execShellSafe(
-          `wmic process where ParentProcessId=${pid} get ProcessId /format:list`
+          `wmic process where ParentProcessId=${pid} get ProcessId /format:list`,
         );
         const matches = output.match(/ProcessId=(\d+)/g);
         if (!matches) return [];
 
-        const children = matches.map((m) =>
-          parseInt(m.replace("ProcessId=", ""), 10)
-        );
+        const children = matches.map((m) => parseInt(m.replace("ProcessId=", ""), 10));
 
         if (children.length > 0) {
           yield* Effect.logDebug(
-            `[windows] PID ${pid} has ${children.length} children: ${children.join(", ")}`
+            `[windows] PID ${pid} has ${children.length} children: ${children.join(", ")}`,
           );
         }
 
@@ -166,9 +141,7 @@ const getProcessTree = (
       yield* traverse(pid);
     }
 
-    yield* Effect.logInfo(
-      `[windows] Process tree contains ${processes.length} processes`
-    );
+    yield* Effect.logInfo(`[windows] Process tree contains ${processes.length} processes`);
 
     return processes;
   });
@@ -196,9 +169,7 @@ const getMemoryInfo = (): Effect.Effect<MemoryInfo, never> =>
 
     const totalMB = (total / 1024 / 1024).toFixed(0);
     const usedMB = ((total - free) / 1024 / 1024).toFixed(0);
-    yield* Effect.logDebug(
-      `[windows] Memory: ${usedMB}MB used / ${totalMB}MB total`
-    );
+    yield* Effect.logDebug(`[windows] Memory: ${usedMB}MB used / ${totalMB}MB total`);
 
     return {
       total,
@@ -215,11 +186,9 @@ const getAllProcesses = (): Effect.Effect<ProcessInfo[], never> =>
     const processes: ProcessInfo[] = [];
 
     const output = yield* execShellSafe(
-      "wmic process get ProcessId,ParentProcessId,WorkingSetSize,Name /format:csv"
+      "wmic process get ProcessId,ParentProcessId,WorkingSetSize,Name /format:csv",
     );
-    const lines = output
-      .split("\n")
-      .filter((l) => l.trim() && !l.startsWith("Node"));
+    const lines = output.split("\n").filter((l) => l.trim() && !l.startsWith("Node"));
 
     for (const line of lines) {
       const parts = line.split(",");
@@ -230,11 +199,11 @@ const getAllProcesses = (): Effect.Effect<ProcessInfo[], never> =>
       const pid = parseInt(parts[3], 10);
       const rss = parseInt(parts[4], 10) || 0;
 
-      if (isNaN(pid)) continue;
+      if (Number.isNaN(pid)) continue;
 
       processes.push({
         pid,
-        ppid: isNaN(ppid) ? 0 : ppid,
+        ppid: Number.isNaN(ppid) ? 0 : ppid,
         command: name,
         args: [],
         rss,
@@ -242,9 +211,7 @@ const getAllProcesses = (): Effect.Effect<ProcessInfo[], never> =>
       });
     }
 
-    yield* Effect.logDebug(
-      `[windows] Found ${processes.length} total processes`
-    );
+    yield* Effect.logDebug(`[windows] Found ${processes.length} total processes`);
 
     return processes;
   });
@@ -262,14 +229,14 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
         visited.add(parentPid);
 
         const output = yield* execShellSafe(
-          `wmic process where ParentProcessId=${parentPid} get ProcessId /format:list`
+          `wmic process where ParentProcessId=${parentPid} get ProcessId /format:list`,
         );
         const matches = output.match(/ProcessId=(\d+)/g);
         if (!matches) return;
 
         for (const match of matches) {
           const childPid = parseInt(match.replace("ProcessId=", ""), 10);
-          if (!isNaN(childPid)) {
+          if (!Number.isNaN(childPid)) {
             children.push(childPid);
             yield* recurse(childPid);
           }
@@ -279,9 +246,7 @@ const findChildProcesses = (pid: number): Effect.Effect<number[], never> =>
     yield* recurse(pid);
 
     if (children.length > 0) {
-      yield* Effect.logDebug(
-        `[windows] PID ${pid} has ${children.length} descendants`
-      );
+      yield* Effect.logDebug(`[windows] PID ${pid} has ${children.length} descendants`);
     }
 
     return children;

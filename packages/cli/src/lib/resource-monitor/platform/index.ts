@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, type Layer } from "effect";
 import { PlatformService } from "../types";
 import { DarwinLayer } from "./darwin";
 import { LinuxLayer } from "./linux";
@@ -23,13 +23,8 @@ export const makePlatformLayer = (): Layer.Layer<PlatformService> => {
 export const PlatformLive = makePlatformLayer();
 
 export const withPlatform = <A, E, R>(
-  effect: Effect.Effect<A, E, R | PlatformService>
+  effect: Effect.Effect<A, E, R | PlatformService>,
 ): Effect.Effect<A, E, Exclude<R, PlatformService>> =>
-  effect.pipe(Effect.provide(PlatformLive)) as Effect.Effect<
-    A,
-    E,
-    Exclude<R, PlatformService>
-  >;
+  effect.pipe(Effect.provide(PlatformLive)) as Effect.Effect<A, E, Exclude<R, PlatformService>>;
 
-export { DarwinLayer, LinuxLayer, WindowsLayer };
-export { PlatformService };
+export { DarwinLayer, LinuxLayer, PlatformService, WindowsLayer };

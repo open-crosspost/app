@@ -1,8 +1,8 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { Context, Effect, Layer } from "every-plugin/effect";
-import * as fs from "fs";
-import * as path from "path";
 import * as schema from "../db/schema/auth";
 import { getPlugins } from "./auth-plugins";
 import { ConfigService } from "./config";
@@ -45,7 +45,7 @@ async function sendEmail({
   };
 
   // Append to preview log
-  fs.appendFileSync(EMAIL_PREVIEW_FILE, JSON.stringify(entry) + "\n");
+  fs.appendFileSync(EMAIL_PREVIEW_FILE, `${JSON.stringify(entry)}\n`);
 
   // Also log to console for visibility
   console.log(`\n📧 [Email Preview] ============================================`);
@@ -72,7 +72,7 @@ async function sendSMS({ phoneNumber, code }: { phoneNumber: string; code: strin
   };
 
   // Append to preview log
-  fs.appendFileSync(SMS_PREVIEW_FILE, JSON.stringify(entry) + "\n");
+  fs.appendFileSync(SMS_PREVIEW_FILE, `${JSON.stringify(entry)}\n`);
 
   // Also log to console for visibility
   console.log(`\n📱 [SMS Preview] ================================================`);

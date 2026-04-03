@@ -1,6 +1,6 @@
 import { appendFile } from "node:fs/promises";
+import path from "node:path";
 import { Effect } from "every-plugin/effect";
-import path from "path";
 import {
   type DevViewHandle,
   type LogEntry,
@@ -200,7 +200,7 @@ export const runDevServers = (orchestrator: AppOrchestrator) =>
         }
 
         if (logFile) {
-          const logLine = formatLogLine(entry) + "\n";
+          const logLine = `${formatLogLine(entry)}\n`;
           appendFile(logFile, logLine).catch(() => {});
         }
       },
