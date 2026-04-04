@@ -7,7 +7,7 @@
 
 <h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">everything</h1>
 
-<img src="ui/src/assets/under-construction.gif" alt="Under construction" width="760" />
+<img src="ui/src/assets/under-construction.gif" alt="Under construction" width="380" />
 
 </div>
 
