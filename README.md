@@ -5,15 +5,15 @@
 
 <div align="center">
 
-<h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">everything</h1>
+<h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">everything.dev</h1>
 
 <img src="ui/src/assets/under-construction.gif" alt="Under construction" width="380" />
 
 </div>
 
-Module Federation monorepo with runtime-loaded configuration, demonstrating every-plugin architecture and NEAR Protocol integration.
+[Module Federation](https://module-federation.io/) monorepo with runtime-loaded configuration, demonstrating [every-plugin](https://plugin.everything.dev/) architecture, [**everything-dev**](https://github.com/NEARBuilders/everything-dev/blob/main/packages/everything-dev/README.md) api & cli, and [NEAR Protocol](https://near.dev/) integration.
 
-Built with React, Hono.js, oRPC, Better-Auth, and Module Federation.
+Built with [Tanstack Start](https://tanstack.com/start/latest/docs/framework/react/quick-start), [Hono.js](https://hono.dev/), [oRPC](https://orpc.dev/), [better-auth](https://better-auth.com/), and [rsbuild](https://rsbuild.rs/).
 
 ## Quick Start
 
@@ -22,7 +22,12 @@ bun install             # Install dependencies
 bos dev --host remote   # Start development (typical workflow)
 ```
 
-Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
+This will start serving the UI, the API, and mounting it on a universally shared (remote) HOST application's build.
+
+Visit through the host: http://localhost:3000
+Visit the api: http://localhost:3000/api
+
+This maintains a flexible, well-typed architecture that connects the entirity of the application, it's operating system, and a cli to interact with it. It is a perpetually in-development model for the [Blockchain Operating System (BOS)](https://near.social/#/)
 
 ## CLI Commands
 
@@ -34,6 +39,7 @@ Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
 everything-dev dev --host remote   # Remote host, local UI + API (typical)
 everything-dev dev --ui remote     # Isolate API work
 everything-dev dev --api remote    # Isolate UI work
+           |/ --proxy              # Use a proxy
 everything-dev dev                 # Full local, client shell by default
 
 # `bos` is an alias for the same commands
@@ -53,7 +59,7 @@ bos build               # Build all packages (updates bos.config.json)
 bos publish             # Publish config to the temporary dev.everything.near registry
 bos publish --deploy    # Build/deploy all workspaces, then publish
 bun run publish         # Same publish command via root script
-bos sync                # Sync from every.near/everything.dev
+bos sync                # Sync from production (every.near/everything.dev)
 ```
 
 ### Project Management
@@ -151,7 +157,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 - ✅ **Independent Deployment** - UI, API, and Host deploy separately
 - ✅ **Type Safety** - End-to-end with oRPC contracts
 - ✅ **UI Runtime Boundary** - `everything-dev/ui/client` and `/server` own router/runtime glue
-- ✅ **CDN-Ready** - Module Federation with Zephyr Cloud
+- ✅ **CDN-Ready** - Module Federation with [Zephyr Cloud](https://zephyr-cloud.io/)
 
 ## Configuration
 
@@ -233,7 +239,7 @@ Biome is configured in `biome.json` at the project root. Generated files (like `
 
 **Backend:**
 - Hono.js server + oRPC (type-safe RPC + OpenAPI)
-- every-plugin architecture for modular APIs
+- [every-plugin](https://plugin.everything.dev/) architecture for modular APIs
 - Effect-TS for service composition
 
 **Database & Auth:**
@@ -242,7 +248,7 @@ Biome is configured in `biome.json` at the project root. Generated files (like `
 
 ## Related Projects
 
-- **[every-plugin](https://github.com/near-everything/every-plugin)** - Plugin framework for modular APIs
+- **[[every-plugin](https://plugin.everything.dev/)](https://github.com/near-everything/[every-plugin](https://plugin.everything.dev/))** - Plugin framework for modular APIs
 - **[near-kit](https://kit.near.tools)** - Unified NEAR Protocol SDK
 - **[better-near-auth](https://github.com/elliotBraem/better-near-auth)** - NEAR authentication for Better-Auth
 
