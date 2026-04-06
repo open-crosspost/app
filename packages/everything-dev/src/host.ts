@@ -6,6 +6,7 @@ import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
 import {
   createStitchedRouter,
   type LoadedPluginResult,
@@ -240,6 +241,8 @@ async function runHostServer(opts: {
     }),
   );
 
+  app.use("*", secureHeaders());
+
   app.get("/health", (c) => c.text("OK"));
   app.get("/ready", async (c) => {
     type Check = {
@@ -461,7 +464,26 @@ async function runHostServer(opts: {
     resolveReady = resolve;
   });
 
-  const server = serve({ fetch: app.fetch, port, hostname }, (info) => {
+  const proxiedFetch = (req: Request): Response | Promise<Response> => {
+    const url = new URL(req.url);
+    const forwardedProto = req.headers.get("x-forwarded-proto");
+    const forwardedHost = req.headers.get("x-forwarded-host");
+
+    if (forwardedProto) {
+      url.protocol = forwardedProto;
+    }
+    if (forwardedHost) {
+      url.host = forwardedHost;
+    }
+
+    if (forwardedProto || forwardedHost) {
+      req = new Request(url, req);
+    }
+
+    return app.fetch(req);
+  };
+
+  const server = serve({ fetch: proxiedFetch, port, hostname }, (info) => {
     console.log(`[Host] Server running at http://${hostname}:${info.port}`);
     console.log(`[Host] API: http://${hostname}:${info.port}/api/rpc`);
     resolveReady?.();

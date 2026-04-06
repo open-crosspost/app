@@ -11,6 +11,7 @@ import { onError } from "every-plugin/orpc";
 import { getBaseStyles, getHydrateScript, getThemeInitScript } from "everything-dev/ui/head";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
 import { getRegistryApp, getRegistryAppByHost } from "../../api/src/services/registry";
 import { BaseLive, PluginsLive } from "./layers";
 import { type Auth, AuthService } from "./services/auth";
@@ -452,6 +453,8 @@ export const createStartServer = (onReady?: () => void) =>
       }),
     );
 
+    app.use("*", secureHeaders());
+
     app.get("/health", (c: Context) => c.text("OK"));
 
     let ssrRouterModule: RouterModule | null = null;
@@ -641,7 +644,27 @@ export const createStartServer = (onReady?: () => void) =>
 
     const startHttpServer = () => {
       const hostname = process.env.HOST || "0.0.0.0";
-      const server = serve({ fetch: app.fetch, port, hostname }, () => {
+
+      const proxiedFetch = (req: Request): Response | Promise<Response> => {
+        const url = new URL(req.url);
+        const forwardedProto = req.headers.get("x-forwarded-proto");
+        const forwardedHost = req.headers.get("x-forwarded-host");
+
+        if (forwardedProto) {
+          url.protocol = forwardedProto;
+        }
+        if (forwardedHost) {
+          url.host = forwardedHost;
+        }
+
+        if (forwardedProto || forwardedHost) {
+          req = new Request(url, req);
+        }
+
+        return app.fetch(req);
+      };
+
+      const server = serve({ fetch: proxiedFetch, port, hostname }, () => {
         onReady?.();
       });
       return server;
