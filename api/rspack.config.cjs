@@ -36,7 +36,7 @@ function emitPluginManifest() {
         compilation.hooks.processAssets.tapPromise(
           { name: "EmitPluginManifest", stage },
           async () => {
-            const sourceContractPath = path.join(__dirname, "types", "contract.d.ts");
+            const sourceContractPath = path.join(__dirname, "types", "api", "src", "contract.d.ts");
             const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
             const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
 
@@ -53,7 +53,7 @@ function emitPluginManifest() {
               contract: {
                 kind: "orpc",
                 types: {
-                  path: "./types/contract.d.ts",
+                  path: "./types/api/src/contract.d.ts",
                   exportName: "contract",
                   typeName: "ContractType",
                   sha256: contractSha256,
@@ -66,7 +66,7 @@ function emitPluginManifest() {
                 "plugin.manifest.json",
                 new RawSource(`${JSON.stringify(manifest, null, 2)}\n`),
               );
-              compilation.emitAsset("types/contract.d.ts", new RawSource(contractTypes));
+              compilation.emitAsset("types/api/src/contract.d.ts", new RawSource(contractTypes));
             }
           },
         );
