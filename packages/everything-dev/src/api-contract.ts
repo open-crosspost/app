@@ -192,7 +192,10 @@ function writeAggregateContractFile(opts: {
   } else {
     lines.push(`export type ApiContract = ${baseSource.importName} & {`);
     for (const source of pluginSources) {
-      lines.push(`  ${JSON.stringify(source.key)}: ${source.importName};`);
+      const key = /^[$A-Z_][0-9A-Z_$]*$/i.test(source.key)
+        ? source.key
+        : JSON.stringify(source.key);
+      lines.push(`  ${key}: ${source.importName};`);
     }
     lines.push("};");
   }

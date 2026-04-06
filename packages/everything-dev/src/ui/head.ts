@@ -3,7 +3,7 @@ import type { HeadScript } from "./types";
 
 export interface RemoteScriptsOptions {
   assetsUrl: string;
-  runtimeConfig?: ClientRuntimeConfig;
+  runtimeConfig?: Partial<ClientRuntimeConfig>;
   containerName?: string;
   hydratePath?: string;
 }
@@ -22,7 +22,7 @@ export function getThemeInitScript(): HeadScript {
 }
 
 export function getHydrateScript(
-  runtimeConfig: ClientRuntimeConfig | undefined,
+  runtimeConfig: Partial<ClientRuntimeConfig> | undefined,
   containerName = "ui",
   hydratePath = "./Hydrate",
 ): HeadScript {

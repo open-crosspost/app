@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 
@@ -32,9 +32,9 @@ function AccountAppsPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <Link to="/apps" className="hover:text-foreground transition-colors">
+          <a href="/apps" className="hover:text-foreground transition-colors">
             apps
-          </Link>
+          </a>
           <span>/</span>
           <span>{accountId}</span>
         </div>
@@ -87,7 +87,7 @@ function AccountAppsPage() {
           <CardContent className="p-8 text-center space-y-3">
             <p className="text-sm">No published gateways were found for this account.</p>
             <Button asChild variant="outline" size="sm">
-              <Link to="/apps">back to registry</Link>
+              <a href="/apps">back to registry</a>
             </Button>
           </CardContent>
         </Card>
@@ -104,13 +104,12 @@ function AccountAppsPage() {
                       </Badge>
                       {app.metadata?.claimedBy && <Badge variant="outline">claimed</Badge>}
                     </div>
-                    <Link
-                      to="/_layout/apps/$accountId/$gatewayId"
-                      params={{ accountId, gatewayId: app.gatewayId }}
+                    <a
+                      href={`/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(app.gatewayId)}`}
                       className="font-medium hover:underline break-all"
                     >
                       {app.metadata?.title ?? app.gatewayId}
-                    </Link>
+                    </a>
                     <div className="text-xs font-mono text-muted-foreground break-all">
                       {app.gatewayId}
                     </div>
@@ -132,12 +131,11 @@ function AccountAppsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <Link
-                      to="/_layout/apps/$accountId/$gatewayId"
-                      params={{ accountId, gatewayId: app.gatewayId }}
+                    <a
+                      href={`/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(app.gatewayId)}`}
                     >
                       inspect runtime
-                    </Link>
+                    </a>
                   </Button>
                   {app.openUrl && (
                     <Button asChild variant="outline" size="sm">

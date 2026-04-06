@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { apiClient } from "@/app";
 import { Badge, Card, CardContent, UnderConstruction } from "@/components";
 
@@ -19,20 +18,6 @@ export const Route = createFileRoute("/_layout/about")({
 });
 
 function About() {
-  const router = useRouter();
-
-  const preloadApps = useCallback(() => {
-    router.preloadRoute({ to: "/apps" } as Parameters<typeof router.preloadRoute>[0]);
-  }, [router]);
-
-  const navigateApps = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      router.navigate({ to: "/apps" } as Parameters<typeof router.navigate>[0]);
-    },
-    [router],
-  );
-
   const configQuery = useQuery({
     queryKey: ["registry-app", "every.near", "everything.dev"],
     queryFn: () =>
@@ -138,9 +123,6 @@ function About() {
                 href="/apps"
                 title="browse published apps"
                 body="inspect accounts, gateways, remotes, and public runtime metadata"
-                onMouseEnter={preloadApps}
-                onFocus={preloadApps}
-                onClick={navigateApps}
               />
               <BoxLink
                 href="/README.md"

@@ -6,7 +6,6 @@ import {
   renderRouterToStream,
 } from "@tanstack/react-router/ssr/server";
 import { collectHeadData } from "everything-dev/ui/router";
-import type { ReactNode } from "react";
 import { routeTree } from "./routeTree.gen";
 import type {
   CreateRouterOptions,

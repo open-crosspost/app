@@ -29,14 +29,6 @@ function isBooleanSchema(schema: SchemaLike): boolean {
   return unwrap(schema)._def?.type === "boolean";
 }
 
-function isNumberSchema(schema: SchemaLike): boolean {
-  return unwrap(schema)._def?.type === "number";
-}
-
-function isEnumSchema(schema: SchemaLike): boolean {
-  return unwrap(schema)._def?.type === "enum";
-}
-
 function coerceValue(raw: string, schema: SchemaLike): unknown {
   const inner = unwrap(schema);
   switch (inner._def?.type) {
@@ -74,7 +66,7 @@ export function parseCommandInput(descriptor: CommandDescriptor, argv: string[])
   const fieldByFlag = new Map<string, string>();
   const positionalFields: string[] = [];
 
-  for (const [fieldName, fieldSchema] of fields) {
+  for (const [fieldName] of fields) {
     fieldByFlag.set(toFlagName(fieldName), fieldName);
     if (descriptor.meta.fields?.[fieldName]?.positional) {
       positionalFields.push(fieldName);

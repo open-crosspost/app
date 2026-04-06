@@ -225,7 +225,7 @@ function AppDetailPage() {
         <CardContent className="p-8 text-center space-y-3">
           <p className="text-sm">This published runtime could not be resolved.</p>
           <Button asChild variant="outline" size="sm">
-            <Link to="/apps">back to apps</Link>
+            <a href="/apps">back to apps</a>
           </Button>
         </CardContent>
       </Card>
@@ -236,17 +236,16 @@ function AppDetailPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <Link to="/apps" className="hover:text-foreground transition-colors">
+          <a href="/apps" className="hover:text-foreground transition-colors">
             apps
-          </Link>
+          </a>
           <span>/</span>
-          <Link
-            to="/_layout/apps/$accountId"
-            params={{ accountId }}
+          <a
+            href={`/apps/${encodeURIComponent(accountId)}`}
             className="hover:text-foreground transition-colors"
           >
             {accountId}
-          </Link>
+          </a>
           <span>/</span>
           <span>{gatewayId}</span>
         </div>

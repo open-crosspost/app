@@ -103,12 +103,12 @@ function escapeHtml(value: string) {
 
 export function createHostServer(config: HostServerConfig): HostServerHandle {
   const port = config.port ?? 3000;
-  const { runtimeConfig, configDir } = config;
+  const { runtimeConfig } = config;
 
   let shutdownImpl: (() => Promise<void>) | null = null;
 
   const ready = (async () => {
-    const started = await runHostServer({ runtimeConfig, configDir, port });
+    const started = await runHostServer({ runtimeConfig, port });
     shutdownImpl = started.shutdown;
   })();
 
@@ -131,10 +131,9 @@ export function createHostServer(config: HostServerConfig): HostServerHandle {
 
 async function runHostServer(opts: {
   runtimeConfig: RuntimeConfig;
-  configDir: string;
   port: number;
 }): Promise<{ shutdown: () => Promise<void> }> {
-  const { runtimeConfig, configDir, port } = opts;
+  const { runtimeConfig, port } = opts;
 
   let apiPlugins: LoadedPluginResult[] = [];
   let baseApiPlugin: LoadedPluginResult | null = null;

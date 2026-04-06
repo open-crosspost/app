@@ -78,9 +78,7 @@ function Landing() {
 
         <div className="mt-5 flex flex-wrap items-start justify-center gap-3">
           <Button asChild>
-            <Link to="/apps" preload="intent">
-              browse apps
-            </Link>
+            <a href="/apps">browse apps</a>
           </Button>
           <div className="group relative flex flex-col items-center">
             <Button asChild variant="outline">

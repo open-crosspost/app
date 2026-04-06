@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
@@ -23,7 +23,6 @@ export const Route = createFileRoute("/_layout/apps/" as never)({
 function AppsIndex() {
   const search = Route.useSearch() as { q?: string };
   const [query, setQuery] = useState(search.q ?? "");
-  const navigate = useNavigate({ from: Route.fullPath });
 
   type ListRegistryAppsResult = Awaited<ReturnType<typeof apiClient.listRegistryApps>>;
   type RegistryStatusResult = Awaited<ReturnType<typeof apiClient.getRegistryStatus>>;
@@ -82,17 +81,9 @@ function AppsIndex() {
               />
             </div>
 
-            <form
-              className="flex flex-col gap-3 sm:flex-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void navigate({
-                  to: "/apps" as never,
-                  search: { q: query.trim() || undefined } as never,
-                });
-              }}
-            >
+            <form className="flex flex-col gap-3 sm:flex-row" action="/apps" method="get">
               <Input
+                name="q"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="search by account or gateway"
@@ -109,7 +100,7 @@ function AppsIndex() {
                   disabled={!search.q && query.length === 0}
                   onClick={() => {
                     setQuery("");
-                    void navigate({ to: "/apps" as never });
+                    window.location.assign("/apps");
                   }}
                 >
                   clear
@@ -176,13 +167,12 @@ function AppsIndex() {
                       )}
                     </div>
                     <div className="space-y-1 min-w-0">
-                      <Link
-                        to="/_layout/apps/$accountId/$gatewayId"
-                        params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
+                      <a
+                        href={`/apps/${encodeURIComponent(app.accountId)}/${encodeURIComponent(app.gatewayId)}`}
                         className="block font-medium hover:underline break-all"
                       >
                         {app.metadata?.title ?? `${app.accountId} / ${app.gatewayId}`}
-                      </Link>
+                      </a>
                       <div className="text-xs font-mono text-muted-foreground break-all">
                         {app.accountId} / {app.gatewayId}
                       </div>
@@ -210,17 +200,14 @@ function AppsIndex() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <Link
-                      to="/_layout/apps/$accountId/$gatewayId"
-                      params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
+                    <a
+                      href={`/apps/${encodeURIComponent(app.accountId)}/${encodeURIComponent(app.gatewayId)}`}
                     >
                       inspect runtime
-                    </Link>
+                    </a>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <Link to="/_layout/apps/$accountId" params={{ accountId: app.accountId }}>
-                      account view
-                    </Link>
+                    <a href={`/apps/${encodeURIComponent(app.accountId)}`}>account view</a>
                   </Button>
                   {app.openUrl && (
                     <Button asChild variant="outline" size="sm">
