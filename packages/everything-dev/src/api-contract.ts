@@ -199,7 +199,6 @@ function writeAggregateContractFile(opts: {
     }
     lines.push("};");
   }
-  lines.push("");
   writeFileSync(bridgePath, `${lines.join("\n")}\n`);
   return bridgePath;
 }

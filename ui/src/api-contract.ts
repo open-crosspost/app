@@ -4,4 +4,3 @@ import type { ContractType as templateContract } from "../../plugins/_template/s
 export type ApiContract = BaseApiContract & {
   template: templateContract;
 };
-
