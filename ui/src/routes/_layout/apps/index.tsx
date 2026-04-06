@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
 
-export const Route = createFileRoute("/_layout/apps/" as never)({
-  validateSearch: (search: Record<string, unknown>) => ({
+type SearchParams = {
+  q?: string;
+};
+
+export const Route = createFileRoute("/_layout/apps/")({
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === "string" && search.q.length > 0 ? search.q : undefined,
   }),
   head: () => ({
@@ -207,7 +211,9 @@ function AppsIndex() {
                     </a>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <a href={`/apps/${encodeURIComponent(app.accountId)}`}>account view</a>
+                    <Link to="/apps/$accountId" params={{ accountId: app.accountId }}>
+                      account view
+                    </Link>
                   </Button>
                   {app.openUrl && (
                     <Button asChild variant="outline" size="sm">

@@ -44,7 +44,7 @@ const orgApiKeysQueryOptions = (orgId: string) =>
       apiClient.listApiKeys({ organizationId: orgId }),
   });
 
-export const Route = createFileRoute("/_layout/_authenticated/organizations/$id" as never)({
+export const Route = createFileRoute("/_layout/_authenticated/organizations/$id")({
   loader: async ({
     context,
     params,

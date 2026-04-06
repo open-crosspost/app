@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 
-export const Route = createFileRoute("/_layout/apps/$accountId" as never)({
+export const Route = createFileRoute("/_layout/apps/$accountId")({
   head: ({ params }) => ({
     meta: [
       { title: `${(params as { accountId: string }).accountId} | Published Apps | everything.dev` },
@@ -32,9 +32,9 @@ function AccountAppsPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <a href="/apps" className="hover:text-foreground transition-colors">
+          <Link to="/apps" search={{}} className="hover:text-foreground transition-colors">
             apps
-          </a>
+          </Link>
           <span>/</span>
           <span>{accountId}</span>
         </div>
@@ -87,7 +87,9 @@ function AccountAppsPage() {
           <CardContent className="p-8 text-center space-y-3">
             <p className="text-sm">No published gateways were found for this account.</p>
             <Button asChild variant="outline" size="sm">
-              <a href="/apps">back to registry</a>
+              <Link to="/apps" search={{}}>
+                back to registry
+              </Link>
             </Button>
           </CardContent>
         </Card>

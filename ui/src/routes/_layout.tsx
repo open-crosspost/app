@@ -67,8 +67,8 @@ function Layout() {
           <aside className="hidden sm:flex shrink-0 w-16 flex-col items-center border-r border-border bg-card py-4 gap-1.5 overflow-y-auto animate-fade-in">
             <Tooltip>
               <TooltipTrigger asChild>
-                <a
-                  href="/"
+                <Link
+                  to="/"
                   aria-label="everything.dev home"
                   className="mb-3 flex items-center justify-center w-10 h-10 border-2 border-outset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)] bg-card shadow-sm transition-shadow duration-200 hover:shadow-md"
                 >
@@ -81,7 +81,7 @@ function Layout() {
                     <title>everything.dev</title>
                     <circle cx="12" cy="12" r="10" />
                   </svg>
-                </a>
+                </Link>
               </TooltipTrigger>
               <TooltipContent side="right">everything.dev</TooltipContent>
             </Tooltip>
@@ -95,9 +95,9 @@ function Layout() {
                 return (
                   <Tooltip key={item.label}>
                     <TooltipTrigger asChild>
-                      <a href={item.to} className={className}>
+                      <Link to={item.to} className={className}>
                         <Icon className="w-4 h-4" />
-                      </a>
+                      </Link>
                     </TooltipTrigger>
                     <TooltipContent side="right">{item.label}</TooltipContent>
                   </Tooltip>
@@ -129,10 +129,10 @@ function Layout() {
             <div className="flex items-center justify-between px-4 sm:px-6 h-12">
               {isAuthenticated ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono min-w-0">
-                  <a
+                  <Link
                     aria-label="everything.dev home"
                     className="sm:hidden flex items-center justify-center w-8 h-8 border-2 border-outset border-[rgb(51,51,51)] dark:border-[rgb(100,100,100)] bg-card shadow-sm transition-shadow duration-200 hover:shadow-md"
-                    href="/"
+                    to="/"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -143,7 +143,7 @@ function Layout() {
                       <title>everything.dev</title>
                       <circle cx="12" cy="12" r="10" />
                     </svg>
-                  </a>
+                  </Link>
                   <div className="hidden sm:flex items-center gap-2">
                     <span>everything.dev</span>
                     <span>/</span>
@@ -207,10 +207,10 @@ function Layout() {
 
                   if (item.to) {
                     return (
-                      <a key={item.label} href={item.to} className={className}>
+                      <Link key={item.label} to={item.to} className={className}>
                         <Icon className="w-4 h-4" />
                         <span className="text-[10px]">{item.label}</span>
-                      </a>
+                      </Link>
                     );
                   }
 

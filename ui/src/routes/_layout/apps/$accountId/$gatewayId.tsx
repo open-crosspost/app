@@ -8,7 +8,7 @@ import { Badge, Button, Card, CardContent } from "@/components";
 import { Input } from "@/components/ui/input";
 import { sessionQueryOptions } from "@/lib/session";
 
-export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId" as never)({
+export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId")({
   head: ({ params }) => ({
     meta: [
       {
@@ -225,7 +225,9 @@ function AppDetailPage() {
         <CardContent className="p-8 text-center space-y-3">
           <p className="text-sm">This published runtime could not be resolved.</p>
           <Button asChild variant="outline" size="sm">
-            <a href="/apps">back to apps</a>
+            <Link to="/apps" search={{}}>
+              back to apps
+            </Link>
           </Button>
         </CardContent>
       </Card>
@@ -236,9 +238,9 @@ function AppDetailPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <a href="/apps" className="hover:text-foreground transition-colors">
+          <Link to="/apps" search={{}} className="hover:text-foreground transition-colors">
             apps
-          </a>
+          </Link>
           <span>/</span>
           <a
             href={`/apps/${encodeURIComponent(accountId)}`}
@@ -438,12 +440,13 @@ function AppDetailPage() {
                       </Badge>
                       <Badge variant="outline">{project.visibility}</Badge>
                     </div>
-                    <a
-                      href={`/projects/${project.id}`}
+                    <Link
+                      to="/projects/$id"
+                      params={{ id: project.id }}
                       className="font-medium hover:underline break-all"
                     >
                       {project.title}
-                    </a>
+                    </Link>
                     {project.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2">
                         {project.description}
@@ -451,7 +454,9 @@ function AppDetailPage() {
                     )}
                   </div>
                   <Button asChild variant="outline" size="sm">
-                    <a href={`/projects/${project.id}`}>view</a>
+                    <Link to="/projects/$id" params={{ id: project.id }}>
+                      view
+                    </Link>
                   </Button>
                 </div>
               ))}

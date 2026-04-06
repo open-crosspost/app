@@ -132,7 +132,9 @@ function OrganizationsList() {
 
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm">
-                      <a href={`/organizations/${encodeURIComponent(org.id)}`}>open org</a>
+                      <Link to="/organizations/$id" params={{ id: org.id }}>
+                        open org
+                      </Link>
                     </Button>
                     {!isActive && (
                       <Button

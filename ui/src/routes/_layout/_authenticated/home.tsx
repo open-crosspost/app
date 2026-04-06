@@ -124,7 +124,9 @@ function Home() {
                 <Link to="/organizations">organizations</Link>
               </Button>
               <Button asChild variant="outline">
-                <a href="/apps">published apps</a>
+                <Link to="/apps" search={{}}>
+                  published apps
+                </Link>
               </Button>
             </div>
           </CardContent>
@@ -243,7 +245,9 @@ function Home() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm">
-                  <a href={`/organizations/${encodeURIComponent(activeOrg.id)}`}>open org</a>
+                  <Link to="/organizations/$id" params={{ id: activeOrg.id }}>
+                    open org
+                  </Link>
                 </Button>
                 {organizations.length > 1 && (
                   <Button
@@ -284,7 +288,7 @@ function Home() {
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <a href="/projects/new">new project</a>
+            <Link to="/projects/new">new project</Link>
           </Button>
         </div>
 
@@ -309,12 +313,13 @@ function Home() {
                         </Badge>
                         <Badge variant="outline">{project.visibility}</Badge>
                       </div>
-                      <a
-                        href={`/projects/${project.id}`}
+                      <Link
+                        to="/projects/$id"
+                        params={{ id: project.id }}
                         className="font-medium hover:underline break-all"
                       >
                         {project.title}
-                      </a>
+                      </Link>
                       {project.description && (
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {project.description}
@@ -333,7 +338,7 @@ function Home() {
                 No projects yet. Create your first project to start organizing apps.
               </p>
               <Button asChild variant="outline" size="sm">
-                <a href="/projects/new">create project</a>
+                <Link to="/projects/new">create project</Link>
               </Button>
             </CardContent>
           </Card>
@@ -351,7 +356,9 @@ function Home() {
           </Button>
           {activeOrgId ? (
             <Button asChild variant="outline" size="sm">
-              <a href={`/organizations/${encodeURIComponent(activeOrgId)}`}>invite member</a>
+              <Link to="/organizations/$id" params={{ id: activeOrgId }}>
+                invite member
+              </Link>
             </Button>
           ) : (
             <Button variant="outline" size="sm" disabled>
@@ -367,7 +374,9 @@ function Home() {
             </Button>
           )}
           <Button asChild variant="outline" size="sm">
-            <a href="/apps">open registry</a>
+            <Link to="/apps" search={{}}>
+              open registry
+            </Link>
           </Button>
         </div>
       </section>

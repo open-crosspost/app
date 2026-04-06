@@ -55,7 +55,7 @@ jobs:
       - name: Create GitHub Releases
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
-          for pkg in api ui; do
+          for pkg in api ui host; do
             VERSION=$(jq -r '.version' "$pkg/package.json")
             TAG="$pkg@$VERSION"
             

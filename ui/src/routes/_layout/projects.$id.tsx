@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 
-export const Route = createFileRoute("/_layout/projects/$id" as never)({
+export const Route = createFileRoute("/_layout/projects/$id")({
   head: ({ params }) => ({
     meta: [
       { title: `${(params as { id: string }).id} | Project | everything.dev` },
@@ -70,7 +70,7 @@ function ProjectDetailPage() {
         <CardContent className="p-8 text-center space-y-3">
           <p className="text-sm">Project not found or you don't have access.</p>
           <Button asChild variant="outline" size="sm">
-            <a href="/home">back to home</a>
+            <Link to="/home">back to home</Link>
           </Button>
         </CardContent>
       </Card>
@@ -83,9 +83,9 @@ function ProjectDetailPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <a href="/home" className="hover:text-foreground transition-colors">
+          <Link to="/home" className="hover:text-foreground transition-colors">
             home
-          </a>
+          </Link>
           <span>/</span>
           <span>projects</span>
           <span>/</span>

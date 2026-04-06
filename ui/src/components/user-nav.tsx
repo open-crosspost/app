@@ -95,7 +95,9 @@ export function UserNav() {
             <Link to="/settings">settings</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <a href="/apps">published apps</a>
+            <Link to="/apps" search={{}}>
+              published apps
+            </Link>
           </DropdownMenuItem>
           {user.role === "admin" && (
             <DropdownMenuItem asChild>
@@ -135,7 +137,9 @@ function DotControl() {
           <Link to="/login">connect</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/apps">apps</a>
+          <Link to="/apps" search={{}}>
+            apps
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/about">about</Link>

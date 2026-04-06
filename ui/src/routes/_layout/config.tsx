@@ -3,7 +3,7 @@ import { getActiveRuntime } from "@/app";
 import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components";
 import { Route as RootRoute } from "../__root";
 
-export const Route = createFileRoute("/_layout/config" as never)({
+export const Route = createFileRoute("/_layout/config")({
   head: () => ({
     meta: [
       { title: "Config | everything.dev" },

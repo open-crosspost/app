@@ -1,12 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 import { sessionQueryOptions } from "@/lib/session";
 
-export const Route = createFileRoute("/_layout/projects/new" as never)({
+export const Route = createFileRoute("/_layout/projects/new")({
   head: () => ({
     meta: [
       { title: "New Project | everything.dev" },
@@ -65,7 +65,7 @@ function NewProjectPage() {
         <CardContent className="p-8 text-center space-y-3">
           <p className="text-sm">Sign in to create a project.</p>
           <Button asChild variant="outline" size="sm">
-            <a href="/login">sign in</a>
+            <Link to="/login">sign in</Link>
           </Button>
         </CardContent>
       </Card>
@@ -76,9 +76,9 @@ function NewProjectPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
-          <a href="/home" className="hover:text-foreground transition-colors">
+          <Link to="/home" className="hover:text-foreground transition-colors">
             home
-          </a>
+          </Link>
           <span>/</span>
           <span>projects</span>
           <span>/</span>

@@ -73,7 +73,9 @@ function Settings() {
                 <Link to="/home">back to workspace</Link>
               </Button>
               <Button asChild variant="outline">
-                <a href="/apps">published apps</a>
+                <Link to="/apps" search={{}}>
+                  published apps
+                </Link>
               </Button>
             </div>
           </CardContent>
