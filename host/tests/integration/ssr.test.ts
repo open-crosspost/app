@@ -77,7 +77,7 @@ describe("SSR Stream Lifecycle", () => {
       expect(result.statusCode).toBe(200);
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain("</html>");
-      expect(html).toContain("demo.everything");
+      expect(html).toContain("everything.dev");
     });
   });
 

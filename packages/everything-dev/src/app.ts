@@ -152,11 +152,11 @@ export function buildRuntimeConfig(
     plugins?: Record<string, RuntimePluginConfig>;
   },
 ): RuntimeConfig {
+  const configDir = getProjectRoot();
   const uiConfig = bosConfig.app.ui;
   const apiConfig = bosConfig.app.api;
   const uiSource = options.uiSource ?? "local";
   const apiSource = options.apiSource ?? "local";
-  const configDir = getProjectRoot();
   const uiLocalPath = resolveLocalDevelopmentPath(uiConfig.development, configDir);
   const apiLocalPath = resolveLocalDevelopmentPath(apiConfig.development, configDir);
   const uiLocalUrl =

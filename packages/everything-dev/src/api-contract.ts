@@ -178,16 +178,24 @@ function writeAggregateContractFile(opts: {
   }
 
   lines.push("");
-  lines.push("export type ApiContract = {");
-  lines.push("  api: BaseApiContract;");
-  lines.push("  plugins: {");
-  for (const key of opts.pluginKeys) {
-    const source = opts.sources.find((entry) => entry.key === key);
-    if (!source) continue;
-    lines.push(`    ${JSON.stringify(key).replace(/^"|"$/g, "")}: ${source.importName};`);
+  const baseSource = opts.sources.find((source) => source.key === "api");
+  const pluginSources = opts.pluginKeys
+    .map((key) => opts.sources.find((entry) => entry.key === key))
+    .filter((source): source is ContractSource => Boolean(source));
+
+  if (!baseSource) {
+    throw new Error("API contract source is required to generate the aggregate contract");
   }
-  lines.push("  };");
-  lines.push("};");
+
+  if (pluginSources.length === 0) {
+    lines.push(`export type ApiContract = ${baseSource.importName};`);
+  } else {
+    lines.push(`export type ApiContract = ${baseSource.importName} & {`);
+    for (const source of pluginSources) {
+      lines.push(`  ${JSON.stringify(source.key)}: ${source.importName};`);
+    }
+    lines.push("};");
+  }
   lines.push("");
   writeFileSync(bridgePath, `${lines.join("\n")}\n`);
   return bridgePath;

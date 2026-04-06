@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { buildRuntimeHref, getActiveRuntime } from "@/app";
 import { Button } from "@/components";
 import { Route as RootRoute } from "../__root";
@@ -30,7 +30,6 @@ const subtitles = [
 ];
 
 function Landing() {
-  const router = useRouter();
   const { runtimeConfig } = RootRoute.useLoaderData();
   const [subtitleIndex, setSubtitleIndex] = useState(0);
   const activeRuntime = getActiveRuntime(runtimeConfig);
@@ -45,10 +44,6 @@ function Landing() {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
-
-  const preloadApps = useCallback(() => {
-    router.preloadRoute({ to: "/apps" } as Parameters<typeof router.preloadRoute>[0]);
-  }, [router]);
 
   return (
     <div className="flex min-h-[80vh] flex-col items-center justify-center pb-[8vh] animate-fade-in">
@@ -83,17 +78,9 @@ function Landing() {
 
         <div className="mt-5 flex flex-wrap items-start justify-center gap-3">
           <Button asChild>
-            <a
-              href={buildRuntimeHref("/apps", runtimeConfig)}
-              onMouseEnter={preloadApps}
-              onFocus={preloadApps}
-              onClick={(e) => {
-                e.preventDefault();
-                router.navigate({ to: "/apps" } as Parameters<typeof router.navigate>[0]);
-              }}
-            >
+            <Link to="/apps" preload="intent">
               browse apps
-            </a>
+            </Link>
           </Button>
           <div className="group relative flex flex-col items-center">
             <Button asChild variant="outline">

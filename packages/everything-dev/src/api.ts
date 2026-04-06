@@ -1,5 +1,5 @@
 import { ensureNodeRuntimePlugin, registerRemote } from "./mf";
-import { createPluginRuntime } from "./plugin";
+import { createPluginRuntime } from "./sdk";
 import type { RuntimeConfig, RuntimePluginConfig } from "./types";
 
 export interface LoadedPluginResult {

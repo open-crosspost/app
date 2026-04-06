@@ -12,6 +12,7 @@ export default defineConfig({
     "src/runtime/index.ts",
     "src/testing/index.ts",
     "src/runtime/services/normalize.ts",
+    "src/build/shared-deps.ts",
     "src/build/rspack/index.ts",
   ],
   format: ["cjs", "esm"],

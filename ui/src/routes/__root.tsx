@@ -7,6 +7,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { getRemoteScripts } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
@@ -110,6 +111,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
       scripts: [
+        ...getRemoteScripts({
+          assetsUrl,
+          runtimeConfig: runtimeConfig ?? undefined,
+          containerName: "ui",
+          hydratePath: "./Hydrate",
+        }),
         {
           type: "application/ld+json",
           children: JSON.stringify(structuredData),
@@ -121,16 +128,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  const { assetsUrl, runtimeConfig } = Route.useLoaderData();
-
-  const hydrateBootstrap = `window.__RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig ?? null)};window.addEventListener('load', function handleEverythingDevHydrate() { window.__hydrate?.(); }, { once: true });`;
-
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {assetsUrl ? <script src={`${assetsUrl}/remoteEntry.js`} /> : null}
-        <script dangerouslySetInnerHTML={{ __html: hydrateBootstrap }} />
         <style dangerouslySetInnerHTML={{ __html: getBaseStyles() }} />
       </head>
       <body>

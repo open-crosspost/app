@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -8,7 +9,12 @@
     "declaration": true,
     "declarationMap": false,
     "emitDeclarationOnly": true,
-    "outDir": "types"
+    "outDir": "types",
+    "paths": {
+      "every-plugin": ["../packages/every-plugin/src/index.ts"],
+      "every-plugin/*": ["../packages/every-plugin/src/*"],
+      "every-plugin/zod/v4/core": ["../packages/every-plugin/src/zod-core.ts"]
+    }
   },
   "include": ["src/contract.ts"]
 }

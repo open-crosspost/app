@@ -17,6 +17,7 @@ export interface ProcessState {
 }
 
 export interface LogEntry {
+  id: string;
   source: string;
   line: string;
   timestamp: number;
@@ -272,7 +273,7 @@ function DevView({
           </Box>
           <Box flexDirection="column" marginTop={0}>
             {recentLogs.map((entry) => (
-              <LogLine key={`${entry.timestamp}-${entry.source}`} entry={entry} />
+              <LogLine key={entry.id} entry={entry} />
             ))}
           </Box>
         </>
@@ -298,6 +299,7 @@ export function renderDevView(
   let logs: LogEntry[] = [];
   let rerender: (() => void) | null = null;
   const proxyTarget = env.API_PROXY;
+  let logSeq = 0;
 
   const updateProcess = (name: string, status: ProcessStatus, message?: string) => {
     processes = processes.map((p) => (p.name === name ? { ...p, status, message } : p));
@@ -305,7 +307,10 @@ export function renderDevView(
   };
 
   const addLog = (source: string, line: string, isError = false) => {
-    logs = [...logs, { source, line, timestamp: Date.now(), isError }];
+    logs = [
+      ...logs,
+      { id: `${Date.now()}-${++logSeq}`, source, line, timestamp: Date.now(), isError },
+    ];
     if (logs.length > 100) logs = logs.slice(-100);
     rerender?.();
   };

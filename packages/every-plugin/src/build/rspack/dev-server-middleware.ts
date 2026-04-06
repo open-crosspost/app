@@ -154,7 +154,6 @@ export function setupPluginMiddleware(
     res.status(200).send("OK");
   });
 
-  // OpenAPI documentation and REST endpoints at /api and /api/*
   const handleApiRequest = async (req: any, res: any) => {
     applyCorsHeaders(res);
     const apiHandler = devServer.app.locals.handlers?.api;

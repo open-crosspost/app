@@ -48,12 +48,7 @@ export function getFederationInstance(): FederationInstance {
   return mfInstance;
 }
 
-const SHARED_ALLOWLIST = [
-  "react",
-  "react-dom",
-  "@tanstack/react-router",
-  "@tanstack/react-query",
-] as const;
+const SHARED_ALLOWLIST = ["react", "react-dom"] as const;
 
 function makeSharedGetter(pkgName: string): (() => Promise<() => any>) | null {
   switch (pkgName) {
@@ -65,16 +60,6 @@ function makeSharedGetter(pkgName: string): (() => Promise<() => any>) | null {
     case "react-dom":
       return async () => {
         const mod: any = await import("react-dom");
-        return () => mod?.default ?? mod;
-      };
-    case "@tanstack/react-router":
-      return async () => {
-        const mod: any = await import("@tanstack/react-router");
-        return () => mod?.default ?? mod;
-      };
-    case "@tanstack/react-query":
-      return async () => {
-        const mod: any = await import("@tanstack/react-query");
         return () => mod?.default ?? mod;
       };
     default:
@@ -144,7 +129,10 @@ export async function registerRemote(opts: {
   ]);
 }
 
-export async function loadRemoteModule<T>(specifier: string): Promise<T> {
+export async function loadRemoteModule<T>(
+  specifier: string,
+  options?: { loadFactory?: boolean; from?: "build" | "runtime" },
+): Promise<T> {
   const instance = getFederationInstance();
 
   const isServer = typeof window === "undefined";
@@ -152,7 +140,7 @@ export async function loadRemoteModule<T>(specifier: string): Promise<T> {
     await (instance as any).initializeSharing?.("default");
   }
 
-  const mod = await instance.loadRemote<T>(specifier);
+  const mod = await instance.loadRemote<T>(specifier, options as any);
   if (!mod) {
     throw new Error(`Failed to load remote module: ${specifier}`);
   }

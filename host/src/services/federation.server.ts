@@ -59,10 +59,6 @@ function getOrCreateFederationInstance(config: RuntimeConfig) {
         alias: config.ui.name,
       },
     ],
-    // NOTE: Shared dependency management is currently disabled due to Module Federation
-    // compatibility issues. To enable: implement proper transformation of config.shared?.ui
-    // and pass it as `shared: { shared }` to createInstance. See:
-    // https://module-federation.io/api/containers/#createInstance
   });
 
   setGlobalFederationInstance(federationInstance);
@@ -75,13 +71,15 @@ export const loadRouterModule = (config: RuntimeConfig) =>
   Effect.tryPromise({
     try: async () => {
       const mf = getOrCreateFederationInstance(config);
-      const routerModule = await mf.loadRemote<RouterModule>(`${config.ui.name}/Router`);
+      const loadedModule = await mf.loadRemote<any>(`${config.ui.name}/Router`, {
+        from: "build",
+      });
 
-      if (!routerModule) {
+      if (!loadedModule) {
         throw new Error(`Module not found: ${config.ui.name}/Router`);
       }
 
-      return routerModule;
+      return loadedModule.default as RouterModule;
     },
     catch: (e) =>
       new FederationError({

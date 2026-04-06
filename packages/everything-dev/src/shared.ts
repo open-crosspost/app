@@ -80,27 +80,29 @@ export async function syncAndGenerateSharedUi(opts: {
   const originalBos = JSON.stringify(bosConfig);
   const originalPkg = JSON.stringify(pkgJson);
 
-  const sharedUi = getSharedUiDeps(bosConfig);
   const catalog = pkgJson?.workspaces?.catalog ?? {};
+  const sharedUi = getSharedUiDeps(bosConfig);
 
   const mode = opts.hostMode === "local" ? "catalog->bos" : "bos->catalog";
 
   if (mode === "catalog->bos") {
     for (const [name, cfg] of Object.entries(sharedUi)) {
+      const dep = cfg as SharedDepConfig;
       const version =
-        catalog[name] ?? extractSemverExact(cfg.version) ?? extractSemverExact(cfg.requiredVersion);
+        catalog[name] ?? extractSemverExact(dep.version) ?? extractSemverExact(dep.requiredVersion);
       if (!version) continue;
-      cfg.version = version;
-      cfg.requiredVersion = caretRange(version);
-      cfg.shareScope = cfg.shareScope ?? "default";
+      dep.version = version;
+      dep.requiredVersion = caretRange(version);
+      dep.shareScope = dep.shareScope ?? "default";
     }
   } else {
     for (const [name, cfg] of Object.entries(sharedUi)) {
-      const version = extractSemverExact(cfg.version) ?? extractSemverExact(cfg.requiredVersion);
+      const dep = cfg as SharedDepConfig;
+      const version = extractSemverExact(dep.version) ?? extractSemverExact(dep.requiredVersion);
       if (!version) continue;
-      cfg.version = version;
-      cfg.requiredVersion = caretRange(version);
-      cfg.shareScope = cfg.shareScope ?? "default";
+      dep.version = version;
+      dep.requiredVersion = caretRange(version);
+      dep.shareScope = dep.shareScope ?? "default";
       if (catalog[name] !== version) {
         catalog[name] = version;
       }

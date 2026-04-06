@@ -96,7 +96,6 @@ describe("SEO Head Extraction", () => {
       expect(routerModule).toBeDefined();
       expect(routerModule.getRouteHead).toBeTypeOf("function");
       expect(routerModule.createRouter).toBeTypeOf("function");
-      expect(routerModule.routeTree).toBeDefined();
     });
   });
 

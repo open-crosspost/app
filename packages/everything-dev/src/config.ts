@@ -125,6 +125,15 @@ export async function loadBosConfig(options?: {
   return result.runtime;
 }
 
+export async function buildRuntimePluginsForConfig(
+  config: BosConfig,
+  baseDir: string,
+  env: "development" | "production",
+): Promise<Record<string, RuntimePluginConfig> | undefined> {
+  const plugins = await resolveRuntimePlugins(config.plugins ?? {}, baseDir, env);
+  return Object.keys(plugins).length > 0 ? plugins : undefined;
+}
+
 function buildRuntimeConfig(
   config: BosConfig,
   baseDir: string,
@@ -247,6 +256,17 @@ async function resolveRuntimePlugins(
       env,
       pluginInput,
     );
+    if (
+      pluginRuntime.source === "remote" &&
+      pluginRuntime.url &&
+      !pluginRuntime.localPath &&
+      typeof resolvedConfig.app?.api?.name !== "string"
+    ) {
+      pluginRuntime.name = await resolveRemotePluginRuntimeName(
+        pluginRuntime.url,
+        pluginRuntime.name,
+      );
+    }
     out[runtimeKey] = pluginRuntime;
 
     if (resolvedConfig.plugins && Object.keys(resolvedConfig.plugins).length > 0) {
@@ -259,6 +279,25 @@ async function resolveRuntimePlugins(
   }
 
   return out;
+}
+
+async function resolveRemotePluginRuntimeName(baseUrl: string, fallback: string): Promise<string> {
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/plugin.manifest.json`);
+    if (!response.ok) {
+      return fallback;
+    }
+
+    const manifest = (await response.json()) as {
+      plugin?: { name?: unknown };
+    };
+
+    return typeof manifest.plugin?.name === "string" && manifest.plugin.name.length > 0
+      ? manifest.plugin.name
+      : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function buildRuntimePluginConfig(

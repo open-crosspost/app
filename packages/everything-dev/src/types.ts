@@ -1,4 +1,4 @@
-import { z } from "./plugin";
+import { z } from "./sdk";
 
 export const SourceModeSchema = z.enum(["local", "remote"]);
 export type SourceMode = z.infer<typeof SourceModeSchema>;

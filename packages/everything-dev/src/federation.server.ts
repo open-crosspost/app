@@ -29,10 +29,10 @@ export async function loadRouterModule(config: RuntimeConfig): Promise<RouterMod
     type: "script",
   });
 
-  const routerModule = await loadRemoteModule<RouterModule>(`${config.ui.name}/Router`);
-  if (!routerModule) {
+  const loadedModule = await loadRemoteModule<any>(`${config.ui.name}/Router`, { from: "build" });
+  if (!loadedModule) {
     throw new Error(`Module not found: ${config.ui.name}/Router`);
   }
 
-  return routerModule;
+  return loadedModule.default as RouterModule;
 }

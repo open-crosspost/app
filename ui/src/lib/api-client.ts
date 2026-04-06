@@ -3,18 +3,17 @@ import { RPCLink } from "@orpc/client/fetch";
 import type { ContractRouterClient } from "@orpc/contract";
 import { getRuntimeConfig } from "everything-dev/ui/runtime";
 import { toast } from "sonner";
+import type { ContractType as BaseApiContract } from "../../../api/src/contract";
 import type { ApiContract } from "../api-contract";
 
 export type { ApiContract };
 
-type BaseApiClient = ContractRouterClient<ApiContract["api"]>;
+type PluginKey = Exclude<keyof ApiContract, keyof BaseApiContract>;
 type PluginClientMap = {
-  [K in keyof ApiContract["plugins"]]: ContractRouterClient<ApiContract["plugins"][K]>;
+  [K in PluginKey]: ApiContract[K] extends object ? ContractRouterClient<ApiContract[K]> : never;
 };
-export type ApiClient = BaseApiClient & {
-  api: BaseApiClient;
-  plugins: PluginClientMap;
-};
+
+export type ApiClient = ContractRouterClient<BaseApiContract> & PluginClientMap;
 
 declare global {
   var $apiClient: ApiClient | undefined;
@@ -62,7 +61,7 @@ function createPluginLink(key: string) {
       if (typeof window === "undefined") {
         throw new Error("RPCLink is not allowed on the server side.");
       }
-      return `${window.location.origin}/api/rpc/plugins/${encodeURIComponent(key)}`;
+      return `${window.location.origin}/api/rpc/${encodePathKey(key)}`;
     },
     interceptors: [
       onError((error: unknown) => {
@@ -78,23 +77,30 @@ function createPluginLink(key: string) {
   });
 }
 
+function encodePathKey(key: string): string {
+  return key
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
 let clientSideApiClient: ApiClient | null = null;
 
 function getClientSideApiClient(): ApiClient {
   if (clientSideApiClient) return clientSideApiClient;
-  const client = createORPCClient(createApiLink()) as unknown as BaseApiClient;
+  const client = createORPCClient(createApiLink()) as unknown as Record<string, unknown>;
   const runtimeConfig = getRuntimeConfig();
   const plugins = Object.fromEntries(
     Object.keys(runtimeConfig?.plugins ?? {}).map((key) => [
       key,
       createORPCClient(createPluginLink(key)) as unknown,
     ]),
-  ) as PluginClientMap;
+  );
 
   clientSideApiClient = {
-    ...(client as object),
-    api: client,
-    plugins,
+    ...client,
+    ...plugins,
   } as ApiClient;
   return clientSideApiClient;
 }
@@ -107,13 +113,7 @@ export const apiClient: ApiClient = new Proxy({} as ApiClient, {
   get(_target, prop) {
     if (prop === "then") return undefined;
     const client = getActiveApiClient() as unknown as Record<string, unknown>;
-    if (prop === "api" || prop === "plugins") {
-      return client[prop as string];
-    }
-    const value =
-      client.api && typeof client.api === "object"
-        ? (client.api as Record<string, unknown>)[prop as string]
-        : client[prop as string];
+    const value = client[prop as string];
     if (typeof value === "function") {
       return (...args: unknown[]) => (value as (...a: unknown[]) => unknown)(...args);
     }

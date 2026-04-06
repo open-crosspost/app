@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import type { Compiler, RspackPluginInstance } from "@rspack/core";
@@ -6,9 +8,68 @@ import { buildSharedDependencies } from "./module-federation";
 import { getPluginInfo, loadDevConfig } from "./utils";
 
 export interface EveryPluginOptions {
-  devConfigPath?: string; // defaults to './plugin.dev.ts'
-  port?: number; // override plugin.dev.ts port
-  pluginId?: string; // override auto-detected
+  devConfigPath?: string;
+  port?: number;
+  pluginId?: string;
+}
+
+export interface PluginManifestEmitterOptions {
+  manifestFileName?: string;
+  contractFileName?: string;
+}
+
+export class EmitPluginManifest implements RspackPluginInstance {
+  name = "EmitPluginManifest";
+
+  constructor(private options: PluginManifestEmitterOptions = {}) {}
+
+  apply(compiler: Compiler) {
+    compiler.hooks.thisCompilation.tap(this.name, (compilation) => {
+      const webpack = (compiler as Compiler & { webpack?: any }).webpack;
+      const rawSource = webpack?.sources?.RawSource;
+      const stage = webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ?? 1000;
+
+      compilation.hooks.processAssets.tapPromise({ name: this.name, stage }, async () => {
+        const context = compiler.options.context || process.cwd();
+        const pluginInfo = getPluginInfo(context);
+        const contractFileName = this.options.contractFileName ?? "contract.d.ts";
+        const manifestFileName = this.options.manifestFileName ?? "plugin.manifest.json";
+
+        const sourceContractPath = path.join(context, "types", contractFileName);
+        const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
+
+        const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
+        const manifest = {
+          schemaVersion: 1,
+          kind: "every-plugin/manifest",
+          plugin: {
+            name: pluginInfo.name,
+            version: pluginInfo.version,
+          },
+          runtime: {
+            remoteEntry: "./remoteEntry.js",
+          },
+          contract: {
+            kind: "orpc",
+            types: {
+              path: `./types/${contractFileName}`,
+              exportName: "contract",
+              typeName: "ContractType",
+              sha256: contractSha256,
+            },
+          },
+        };
+
+        if (rawSource) {
+          compilation.emitAsset(
+            manifestFileName,
+            new rawSource(`${JSON.stringify(manifest, null, 2)}\n`),
+          );
+          compilation.emitAsset(`types/${contractFileName}`, new rawSource(`${contractTypes}`));
+        }
+      });
+    });
+  }
 }
 
 export class EveryPluginDevServer implements RspackPluginInstance {
@@ -17,27 +78,21 @@ export class EveryPluginDevServer implements RspackPluginInstance {
   constructor(private options: EveryPluginOptions = {}) {}
 
   apply(compiler: Compiler) {
-    // Load configuration
     const pluginInfo = getPluginInfo(compiler.options.context || process.cwd());
     const devConfig = loadDevConfig(this.options.devConfigPath || "./plugin.dev.ts");
     const port = Number(process.env.PORT) || this.options.port || devConfig?.port || 3999;
 
-    // Configure defaults immediately (no hooks needed)
     this.configureDefaults(compiler, pluginInfo);
 
-    // Initialize devServer if it doesn't exist
     if (!compiler.options.devServer) {
       compiler.options.devServer = {};
     }
 
-    // Configure dev server
     this.configureDevServer(compiler, pluginInfo, devConfig, port);
 
-    // Apply Module Federation plugin
     new ModuleFederationPlugin({
       name: pluginInfo.normalizedName,
       filename: "remoteEntry.js",
-      // manifest: true,  // Enable MF 2.0 manifest generation
       dts: false,
       runtimePlugins: [require.resolve("@module-federation/node/runtimePlugin")],
       library: { type: "commonjs-module" },
@@ -52,7 +107,6 @@ export class EveryPluginDevServer implements RspackPluginInstance {
   private configureDefaults(compiler: Compiler, pluginInfo: any) {
     const context = compiler.options.context || process.cwd();
 
-    // Configure output defaults
     if (!compiler.options.output) {
       compiler.options.output = {};
     }
@@ -62,7 +116,6 @@ export class EveryPluginDevServer implements RspackPluginInstance {
     compiler.options.output.clean = true;
     compiler.options.output.library = { type: "commonjs-module" };
 
-    // Configure target and mode defaults
     if (!compiler.options.target) {
       compiler.options.target = "async-node";
     }
@@ -71,22 +124,18 @@ export class EveryPluginDevServer implements RspackPluginInstance {
       compiler.options.mode = process.env.NODE_ENV === "development" ? "development" : "production";
     }
 
-    // Configure devtool
     if (!compiler.options.devtool) {
       compiler.options.devtool = "source-map";
     }
 
-    // Suppress verbose infrastructure logging
     if (!compiler.options.infrastructureLogging) {
       compiler.options.infrastructureLogging = {
-        level: "warn", // Only show warnings and errors
+        level: "warn",
       };
     }
 
-    // Configure module rules - ensure TypeScript loader is present
     this.ensureTypeScriptLoader(compiler);
 
-    // Configure resolve extensions
     if (!compiler.options.resolve) {
       compiler.options.resolve = {};
     }
@@ -102,7 +151,6 @@ export class EveryPluginDevServer implements RspackPluginInstance {
       compiler.options.module.rules = [];
     }
 
-    // Check if TypeScript loader is already configured
     const hasTsLoader = compiler.options.module.rules.some(
       (rule: any) =>
         typeof rule === "object" &&
@@ -112,7 +160,6 @@ export class EveryPluginDevServer implements RspackPluginInstance {
         rule.test.test(".ts"),
     );
 
-    // Add TypeScript loader if not present
     if (!hasTsLoader) {
       compiler.options.module.rules.push({
         test: /\.tsx?$/,
@@ -124,7 +171,7 @@ export class EveryPluginDevServer implements RspackPluginInstance {
 
   private configureDevServer(compiler: Compiler, pluginInfo: any, devConfig: any, port: number) {
     if (!compiler.options.devServer) {
-      return; // Should never happen due to check in apply()
+      return;
     }
 
     const context = compiler.options.context || process.cwd();
@@ -140,12 +187,11 @@ export class EveryPluginDevServer implements RspackPluginInstance {
       "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
     };
 
-    // Suppress verbose logging
     compiler.options.devServer.client = {
-      logging: "warn", // Only show warnings and errors
+      logging: "warn",
       overlay: {
-        warnings: false, // Don't show warning overlay
-        errors: true, // Still show errors
+        warnings: false,
+        errors: true,
       },
     };
 

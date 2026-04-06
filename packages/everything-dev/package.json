@@ -15,6 +15,10 @@
       "types": "./src/config.ts",
       "import": "./src/config.ts"
     },
+    "./contract.meta": {
+      "types": "./src/contract.meta.ts",
+      "import": "./src/contract.meta.ts"
+    },
     "./shared": {
       "types": "./src/shared.ts",
       "import": "./src/shared.ts"
@@ -26,6 +30,10 @@
     "./plugin": {
       "types": "./src/plugin.ts",
       "import": "./src/plugin.ts"
+    },
+    "./sdk": {
+      "types": "./src/sdk.ts",
+      "import": "./src/sdk.ts"
     },
     "./api": {
       "types": "./src/api.ts",
@@ -39,10 +47,6 @@
       "types": "./src/orchestrator.ts",
       "import": "./src/orchestrator.ts"
     },
-    "./app": {
-      "types": "./src/app.ts",
-      "import": "./src/app.ts"
-    },
     "./cli": {
       "types": "./src/cli.ts",
       "import": "./src/cli.ts"
@@ -50,14 +54,6 @@
     "./ui": {
       "types": "./src/ui/index.ts",
       "import": "./src/ui/index.ts"
-    },
-    "./ui/client": {
-      "types": "./src/ui/client.tsx",
-      "import": "./src/ui/client.tsx"
-    },
-    "./ui/server": {
-      "types": "./src/ui/server.tsx",
-      "import": "./src/ui/server.tsx"
     },
     "./ui/types": {
       "types": "./src/ui/types.ts",
@@ -108,14 +104,14 @@
     "every-plugin": "workspace:*",
     "gradient-string": "^3.0.0",
     "hono": "^4.7.11",
-    "ink": "^5.2.1",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "ink": "^6.8.0",
     "zod": "^3.25.0"
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
     "@tanstack/react-router": ">=1.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0",
     "effect": "^3.19.15",
     "zod": "^3.25.0"
   },
@@ -128,12 +124,8 @@
     }
   },
   "devDependencies": {
-    "@tanstack/react-query": "^5.0.0",
-    "@tanstack/react-router": "^1.0.0",
     "@types/gradient-string": "^1.1.6",
     "@types/node": "^22.10.2",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
     "tsdown": "^0.21.7",
     "typescript": "^5.7.2"
   }

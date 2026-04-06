@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,6 @@ import {
 import { organizationsQueryOptions, sessionQueryOptions, signOut } from "@/lib/session";
 
 export function UserNav() {
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data: session } = useQuery(sessionQueryOptions());
@@ -35,8 +34,9 @@ export function UserNav() {
       await queryClient.invalidateQueries({ queryKey: organizationsQueryOptions().queryKey });
     },
     onSuccess: () => {
-      router.invalidate();
-      router.navigate({ to: "/" });
+      if (typeof window !== "undefined") {
+        window.location.assign("/");
+      }
     },
     onError: (error: Error) => {
       console.error("Sign out error:", error);

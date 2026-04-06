@@ -45,5 +45,4 @@ export interface RouterModule {
   };
   getRouteHead: (pathname: string, context?: Partial<RouterContext>) => Promise<HeadData>;
   renderToStream: (request: Request, options: RenderOptions) => Promise<RenderResult>;
-  routeTree: AnyRouter["routeTree"];
 }

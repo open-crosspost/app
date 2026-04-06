@@ -13,8 +13,6 @@ import {
   loadApiPluginsFromRuntimeConfig,
 } from "./api";
 import { loadRouterModule, type RouterModule } from "./federation.server";
-import { registerSharedFromResolved } from "./mf";
-import { loadGeneratedSharedUi } from "./shared";
 import type { ClientRuntimeConfig, RuntimeConfig } from "./types";
 
 export interface HostServerConfig {
@@ -137,9 +135,6 @@ async function runHostServer(opts: {
   port: number;
 }): Promise<{ shutdown: () => Promise<void> }> {
   const { runtimeConfig, configDir, port } = opts;
-
-  const shared = loadGeneratedSharedUi(configDir);
-  registerSharedFromResolved(shared);
 
   let apiPlugins: LoadedPluginResult[] = [];
   let baseApiPlugin: LoadedPluginResult | null = null;

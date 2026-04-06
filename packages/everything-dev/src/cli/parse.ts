@@ -1,0 +1,138 @@
+import type { CommandDescriptor } from "./catalog";
+
+type SchemaLike = {
+  _def?: {
+    type?: string;
+    innerType?: SchemaLike;
+    shape?: Record<string, SchemaLike>;
+    values?: Record<string, string> | string[];
+  };
+  parse: (value: unknown) => unknown;
+};
+
+function unwrap(schema: SchemaLike): SchemaLike {
+  let current = schema;
+  while (true) {
+    const type = current._def?.type;
+    if (type === "default" || type === "optional" || type === "nullable" || type === "nullish") {
+      const inner = current._def?.innerType;
+      if (!inner) break;
+      current = inner;
+      continue;
+    }
+    return current;
+  }
+  return current;
+}
+
+function isBooleanSchema(schema: SchemaLike): boolean {
+  return unwrap(schema)._def?.type === "boolean";
+}
+
+function isNumberSchema(schema: SchemaLike): boolean {
+  return unwrap(schema)._def?.type === "number";
+}
+
+function isEnumSchema(schema: SchemaLike): boolean {
+  return unwrap(schema)._def?.type === "enum";
+}
+
+function coerceValue(raw: string, schema: SchemaLike): unknown {
+  const inner = unwrap(schema);
+  switch (inner._def?.type) {
+    case "boolean":
+      return raw === "true" || raw === "1" || raw === "yes";
+    case "number": {
+      const value = Number(raw);
+      if (Number.isNaN(value)) throw new Error(`Invalid number: ${raw}`);
+      return value;
+    }
+    case "enum":
+      return raw;
+    default:
+      return raw;
+  }
+}
+
+function toFlagName(field: string): string {
+  return `--${field.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()}`;
+}
+
+function getShape(schema: SchemaLike): Record<string, SchemaLike> {
+  const inner = unwrap(schema);
+  const shape = inner._def?.shape;
+  if (!shape) return {};
+  return shape;
+}
+
+export function parseCommandInput(descriptor: CommandDescriptor, argv: string[]): unknown {
+  const schema = (descriptor.procedure as any)["~orpc"]?.inputSchema as SchemaLike | undefined;
+  if (!schema) return {};
+
+  const shape = getShape(schema);
+  const fields = Object.entries(shape);
+  const fieldByFlag = new Map<string, string>();
+  const positionalFields: string[] = [];
+
+  for (const [fieldName, fieldSchema] of fields) {
+    fieldByFlag.set(toFlagName(fieldName), fieldName);
+    if (descriptor.meta.fields?.[fieldName]?.positional) {
+      positionalFields.push(fieldName);
+    }
+  }
+
+  const input: Record<string, unknown> = {};
+  const positionals: string[] = [];
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const token = argv[i];
+    if (!token) continue;
+
+    if (token.startsWith("--no-")) {
+      const flagName = `--${token.slice(5)}`;
+      const fieldName = fieldByFlag.get(flagName);
+      if (!fieldName) throw new Error(`Unknown flag: ${token}`);
+      input[fieldName] = false;
+      continue;
+    }
+
+    if (token.startsWith("--")) {
+      const [flag, inline] = token.split("=", 2);
+      const fieldName = fieldByFlag.get(flag);
+      if (!fieldName) throw new Error(`Unknown flag: ${token}`);
+
+      const fieldSchema = shape[fieldName];
+      if (isBooleanSchema(fieldSchema)) {
+        input[fieldName] = inline ? coerceValue(inline, fieldSchema) : true;
+        continue;
+      }
+
+      const next = inline ?? argv[i + 1];
+      if (next === undefined || next.startsWith("--")) {
+        throw new Error(`Missing value for ${flag}`);
+      }
+      input[fieldName] = coerceValue(next, fieldSchema);
+      if (!inline) i += 1;
+      continue;
+    }
+
+    positionals.push(token);
+  }
+
+  if (positionalFields.length > 0) {
+    positionalFields.forEach((fieldName, index) => {
+      const raw = positionals[index];
+      if (raw !== undefined) {
+        input[fieldName] = coerceValue(raw, shape[fieldName]);
+      }
+    });
+  } else if (positionals.length > 0) {
+    const candidate = fields.find(([, fieldSchema]) => !isBooleanSchema(fieldSchema));
+    if (candidate) {
+      const [fieldName, fieldSchema] = candidate;
+      input[fieldName] = coerceValue(positionals[0], fieldSchema);
+    }
+  }
+
+  return schema.parse(input);
+}

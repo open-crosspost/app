@@ -110,6 +110,14 @@
       "import": "./dist/build/rspack/index.mjs",
       "require": "./dist/build/rspack/index.cjs"
     },
+    "./build/shared-deps": {
+      "types": {
+        "import": "./dist/build/shared-deps.d.mts",
+        "require": "./dist/build/shared-deps.d.cts"
+      },
+      "import": "./dist/build/shared-deps.mjs",
+      "require": "./dist/build/shared-deps.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [

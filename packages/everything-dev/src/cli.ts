@@ -1,46 +1,12 @@
 #!/usr/bin/env bun
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
-import { syncApiContractBridge } from "./api-contract";
-import bosPlugin from "./bos-plugin";
-import { findConfigPath, loadConfig } from "./config";
-import { readDevLatestLog } from "./dev-logs";
-import { createPluginRuntime } from "./plugin";
+import { findCommandDescriptor } from "./cli/catalog";
+import { printHelp } from "./cli/help";
+import { parseCommandInput } from "./cli/parse";
+import { findConfigPath } from "./config";
+import bosPlugin from "./plugin";
+import { createPluginRuntime } from "./sdk";
 import { printBanner } from "./utils/banner";
 import { colors, frames, gradients, icons } from "./utils/theme";
-
-function readFlag(args: string[], name: string, short?: string): string | undefined {
-  const index = args.findIndex((arg) => arg === name || (short ? arg === short : false));
-  return index >= 0 ? args[index + 1] : undefined;
-}
-
-function hasFlag(args: string[], name: string, short?: string): boolean {
-  return args.includes(name) || (short ? args.includes(short) : false);
-}
-
-function parseBosPluginId(bosUrl: string): string {
-  const match = bosUrl.match(/^bos:\/\/[^/]+\/.+\/plugins\/([^/]+)$/);
-  if (match?.[1]) {
-    return decodeURIComponent(match[1]);
-  }
-
-  const fallback = bosUrl.split("/").filter(Boolean).at(-1);
-  if (!fallback) {
-    throw new Error(`Invalid BOS plugin URL: ${bosUrl}`);
-  }
-
-  return decodeURIComponent(fallback);
-}
-
-function updateBosConfig(
-  configPath: string,
-  updater: (config: Record<string, unknown>) => Record<string, unknown>,
-) {
-  const current = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
-  const next = updater(current);
-  writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`);
-  return next;
-}
 
 function printConfigView(result: {
   account: string;
@@ -62,96 +28,26 @@ function printConfigView(result: {
   console.log();
 }
 
-function printHelp() {
-  process.stdout.write(`everything-dev commands\n\n`);
-  process.stdout.write(
-    `  everything-dev dev [--host <mode>] [--ui <mode>] [--api <mode>] [--ssr] [--proxy] [--port <port>] [--no-interactive]\n`,
-  );
-  process.stdout.write(
-    `  everything-dev start [--account <account>] [--domain <domain>] [--port <port>] [--no-interactive]\n`,
-  );
-  process.stdout.write(`  everything-dev config\n`);
-  process.stdout.write(`  everything-dev build [all|host|ui|api] [--force] [--deploy]\n`);
-  process.stdout.write(
-    `  everything-dev publish [--deploy] [--dry-run] [--packages all|host,ui,api] [--network mainnet|testnet] [--private-key <key>]\n`,
-  );
-  process.stdout.write(`  everything-dev key publish [--allowance <amount>]\n`);
-  process.stdout.write(`  everything-dev add plugin <bos://account/gateway/plugins/pluginId>\n`);
-  process.stdout.write(`  everything-dev logs [--tail <count>]\n\n`);
-  process.stdout.write(`  everything-dev types sync\n\n`);
-  process.stdout.write(`'bos' is an alias for 'everything-dev'.\n`);
-}
-
 async function main() {
   const args = process.argv.slice(2);
 
-  if (hasFlag(args, "--help", "-h")) {
+  if (args.includes("--help") || args.includes("-h")) {
     printHelp();
     return;
   }
 
-  const command = args[0] ?? "dev";
+  const invocationArgs = args.length > 0 ? args : ["dev"];
+  const command = invocationArgs[0] ?? "dev";
   const configPath = findConfigPath();
 
-  if (command === "add") {
-    const target = args[1];
-    const bosUrl = args[2];
-
-    if (target !== "plugin" || !bosUrl?.startsWith("bos://")) {
-      console.error("Usage: everything-dev add plugin <bos://account/gateway/plugins/pluginId>");
-      process.exit(1);
-    }
-
-    if (!configPath) {
-      console.error("No bos.config.json found");
-      process.exit(1);
-    }
-
-    const pluginId = parseBosPluginId(bosUrl);
-    updateBosConfig(configPath, (config) => {
-      const plugins = (config.plugins as Record<string, unknown> | undefined) ?? {};
-      plugins[pluginId] = { extends: bosUrl };
-      return { ...config, plugins };
-    });
-
-    process.stdout.write(`Added plugin ${pluginId} -> ${bosUrl}\n`);
-    return;
+  const commandMatch = findCommandDescriptor(invocationArgs);
+  if (!commandMatch) {
+    console.error(`Unknown command: ${command}`);
+    process.exit(1);
   }
 
-  if (command === "types") {
-    const action = args[1] ?? "sync";
-    if (action !== "sync") {
-      console.error(`Unknown types command: ${action}`);
-      process.exit(1);
-    }
-
-    const loaded = await loadConfig({ cwd: process.cwd() });
-    if (!loaded) {
-      console.error("No bos.config.json found");
-      process.exit(1);
-    }
-
-    const result = await syncApiContractBridge({
-      configDir: dirname(loaded.source.path),
-      runtimeConfig: loaded.runtime,
-      apiBaseUrl: loaded.runtime.api.url,
-    });
-
-    process.stdout.write(
-      result.source === "local"
-        ? "Synced UI contract bridge from local api package\n"
-        : `Synced UI contract bridge from ${result.manifest?.plugin.name} manifest\n`,
-    );
-    return;
-  }
-
-  if (command === "logs") {
-    const tail = Number(readFlag(args, "--tail", "-n") ?? "0") || undefined;
-    const configDir = configPath ? configPath.replace(/\/bos\.config\.json$/, "") : process.cwd();
-    const text = await readDevLatestLog(configDir, { tail });
-    process.stdout.write(text || "(no logs found)\n");
-    return;
-  }
+  const { descriptor, consumed } = commandMatch;
+  const commandArgs = invocationArgs.slice(consumed);
 
   printBanner();
 
@@ -173,96 +69,40 @@ async function main() {
 
   const client = plugin.createClient();
 
-  if (command === "config") {
-    const result = await client.config({});
+  try {
+    const input = parseCommandInput(descriptor, commandArgs);
+    const result = await (client as any)[descriptor.key](input);
 
-    if (!result.config) {
-      console.error("No bos.config.json found");
-      process.exit(1);
+    if (descriptor.key === "config") {
+      if (!result.config) {
+        console.error("No bos.config.json found");
+        process.exit(1);
+      }
+
+      printConfigView(result.config);
+      process.stdout.write(`${JSON.stringify(result.config, null, 2)}\n`);
+      return;
     }
 
-    printConfigView(result.config);
-    process.stdout.write(`${JSON.stringify(result.config, null, 2)}\n`);
-    return;
-  }
-
-  if (command === "dev") {
-    const result = await client.dev({
-      host: (readFlag(args, "--host") as "local" | "remote" | undefined) ?? "local",
-      ui: (readFlag(args, "--ui") as "local" | "remote" | undefined) ?? "local",
-      api: (readFlag(args, "--api") as "local" | "remote" | undefined) ?? "local",
-      proxy: hasFlag(args, "--proxy"),
-      ssr: hasFlag(args, "--ssr"),
-      port: readFlag(args, "--port", "-p") ? Number(readFlag(args, "--port", "-p")) : undefined,
-      interactive: hasFlag(args, "--no-interactive") ? false : undefined,
-    });
-    if (result.status === "error") process.exit(1);
-    return;
-  }
-
-  if (command === "start") {
-    const result = await client.start({
-      port: readFlag(args, "--port", "-p") ? Number(readFlag(args, "--port", "-p")) : undefined,
-      account: readFlag(args, "--account"),
-      domain: readFlag(args, "--domain"),
-      interactive: hasFlag(args, "--no-interactive") ? false : undefined,
-    });
-    if (result.status === "error") process.exit(1);
-    return;
-  }
-
-  if (command === "build") {
-    const pkgArg = args[1] && !args[1]?.startsWith("-") ? args[1] : "all";
-    const result = await client.build({
-      packages: pkgArg,
-      force: hasFlag(args, "--force"),
-      deploy: hasFlag(args, "--deploy"),
-    });
-    if (result.status === "error") process.exit(1);
-    return;
-  }
-
-  if (command === "publish") {
-    const result = await client.publish({
-      deploy: hasFlag(args, "--deploy"),
-      dryRun: hasFlag(args, "--dry-run"),
-      packages: readFlag(args, "--packages") ?? "all",
-      network: (readFlag(args, "--network") as "mainnet" | "testnet" | undefined) ?? undefined,
-      privateKey: readFlag(args, "--private-key"),
-    });
-    if (result.status === "error") process.exit(1);
-    return;
-  }
-
-  if (command === "key") {
-    const action = args[1];
-    if (action !== "publish") {
-      console.error(`Unknown key command: ${action ?? ""}`);
-      process.exit(1);
-    }
-
-    const result = await client.keyPublish({
-      allowance: readFlag(args, "--allowance") ?? "0.25NEAR",
-    });
-
-    if (result.status === "error") {
+    if (result?.status === "error") {
       console.error(`[CLI] ${result.error || "Unknown error"}`);
       process.exit(1);
     }
 
-    process.stdout.write(`Generated publish key for ${result.account}\n`);
-    process.stdout.write(`  Network: ${result.network}\n`);
-    process.stdout.write(`  Contract: ${result.contract}\n`);
-    process.stdout.write(`  Allowance: ${result.allowance}\n`);
-    process.stdout.write(`  Functions: ${result.functionNames.join(", ")}\n`);
-    process.stdout.write(`  Public key: ${result.publicKey}\n`);
-    process.stdout.write(`  Private key: ${result.privateKey}\n`);
-    process.stdout.write(`  Copy: NEAR_PRIVATE_KEY=${result.privateKey}\n`);
-    return;
+    if (descriptor.key === "keyPublish") {
+      process.stdout.write(`Generated publish key for ${result.account}\n`);
+      process.stdout.write(`  Network: ${result.network}\n`);
+      process.stdout.write(`  Contract: ${result.contract}\n`);
+      process.stdout.write(`  Allowance: ${result.allowance}\n`);
+      process.stdout.write(`  Functions: ${result.functionNames.join(", ")}\n`);
+      process.stdout.write(`  Public key: ${result.publicKey}\n`);
+      process.stdout.write(`  Private key: ${result.privateKey}\n`);
+      process.stdout.write(`  Copy: NEAR_PRIVATE_KEY=${result.privateKey}\n`);
+    }
+  } catch (error) {
+    console.error(`[CLI] ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
   }
-
-  console.error(`Unknown command: ${command}`);
-  process.exit(1);
 }
 
 main().catch((error) => {

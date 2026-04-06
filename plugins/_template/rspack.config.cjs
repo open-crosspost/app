@@ -7,53 +7,95 @@ const pkg = require("./package.json");
 
 const shouldDeploy = process.env.DEPLOY === "true";
 
-const baseConfig = {
-  plugins: [
-    new EveryPluginDevServer(),
-    {
-      apply(compiler) {
-        compiler.hooks.afterEmit.tapPromise("EmitPluginManifest", async () => {
-          const outDir = compiler.options.output?.path
-            ? compiler.options.output.path
-            : path.resolve(__dirname, "dist");
+function normalizePath(input) {
+  return input.replace(/\\/g, "/").replace(/\/+$/, "");
+}
 
-          const sourceContractPath = path.join(__dirname, "types", "contract.d.ts");
-          const publishedContractPath = path.join(outDir, "types", "contract.d.ts");
-          const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
-          await fs.promises.mkdir(path.dirname(publishedContractPath), { recursive: true });
-          await fs.promises.writeFile(publishedContractPath, contractTypes);
-          const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
+function resolveLocalTarget(value, configRoot) {
+  if (typeof value !== "string" || !value.startsWith("local:")) {
+    return null;
+  }
 
-          const manifest = {
-            schemaVersion: 1,
-            kind: "every-plugin/manifest",
-            plugin: {
-              name: pkg.name,
-              version: pkg.version,
-            },
-            runtime: {
-              remoteEntry: "./remoteEntry.js",
-            },
-            contract: {
-              kind: "orpc",
-              types: {
-                path: "./types/contract.d.ts",
-                exportName: "contract",
-                typeName: "ContractType",
-                sha256: contractSha256,
+  return normalizePath(path.resolve(configRoot, value.slice("local:".length)));
+}
+
+function updateBosConfig(url) {
+  try {
+    const configPath = path.resolve(__dirname, "../../bos.config.json");
+    const configRoot = path.dirname(configPath);
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const pluginDir = normalizePath(__dirname);
+
+    const match = Object.entries(config.plugins ?? {}).find(([, plugin]) => {
+      return resolveLocalTarget(plugin.development, configRoot) === pluginDir;
+    });
+
+    if (!match) {
+      console.warn(`   ⚠️  No matching plugin entry found for ${pluginDir}`);
+      return;
+    }
+
+    const [key] = match;
+    config.plugins[key].production = url;
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    console.log(`   ✅ Updated bos.config.json: plugins.${key}.production`);
+  } catch (err) {
+    console.error("   ❌ Failed to update bos.config.json:", err.message);
+  }
+}
+
+function emitPluginManifest() {
+  return {
+    apply(compiler) {
+      compiler.hooks.thisCompilation.tap("EmitPluginManifest", (compilation) => {
+        const webpack = compiler.webpack;
+        const RawSource = webpack?.sources?.RawSource;
+        const stage = webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ?? 1000;
+
+        compilation.hooks.processAssets.tapPromise(
+          { name: "EmitPluginManifest", stage },
+          async () => {
+            const sourceContractPath = path.join(__dirname, "types", "contract.d.ts");
+            const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
+            const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
+
+            const manifest = {
+              schemaVersion: 1,
+              kind: "every-plugin/manifest",
+              plugin: {
+                name: pkg.name,
+                version: pkg.version,
               },
-            },
-          };
+              runtime: {
+                remoteEntry: "./remoteEntry.js",
+              },
+              contract: {
+                kind: "orpc",
+                types: {
+                  path: "./types/contract.d.ts",
+                  exportName: "contract",
+                  typeName: "ContractType",
+                  sha256: contractSha256,
+                },
+              },
+            };
 
-          await fs.promises.mkdir(outDir, { recursive: true });
-          await fs.promises.writeFile(
-            path.join(outDir, "plugin.manifest.json"),
-            `${JSON.stringify(manifest, null, 2)}\n`,
-          );
-        });
-      },
+            if (RawSource) {
+              compilation.emitAsset(
+                "plugin.manifest.json",
+                new RawSource(`${JSON.stringify(manifest, null, 2)}\n`),
+              );
+              compilation.emitAsset("types/contract.d.ts", new RawSource(contractTypes));
+            }
+          },
+        );
+      });
     },
-  ],
+  };
+}
+
+const baseConfig = {
+  plugins: [new EveryPluginDevServer(), emitPluginManifest()],
   infrastructureLogging: {
     level: "error",
   },
@@ -65,6 +107,7 @@ module.exports = shouldDeploy
       hooks: {
         onDeployComplete: (info) => {
           console.log("🚀 Template Plugin Deployed:", info.url);
+          updateBosConfig(info.url);
         },
       },
     })(baseConfig)
