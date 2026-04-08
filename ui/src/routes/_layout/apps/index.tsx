@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { apiClient } from "@/app";
+import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
+import { registryAppsQueryOptions, registryStatusQueryOptions } from "@/lib/registry";
 
 type SearchParams = {
   q?: string;
@@ -12,6 +12,13 @@ export const Route = createFileRoute("/_layout/apps/")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === "string" && search.q.length > 0 ? search.q : undefined,
   }),
+  loaderDeps: ({ search }) => ({ q: search.q }),
+  loader: async ({ context, deps }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(registryAppsQueryOptions(deps.q)),
+      context.queryClient.ensureQueryData(registryStatusQueryOptions()),
+    ]);
+  },
   head: () => ({
     meta: [
       { title: "Published Apps | everything.dev" },
@@ -28,35 +35,15 @@ function AppsIndex() {
   const search = Route.useSearch() as { q?: string };
   const [query, setQuery] = useState(search.q ?? "");
 
-  type ListRegistryAppsResult = Awaited<ReturnType<typeof apiClient.listRegistryApps>>;
-  type RegistryStatusResult = Awaited<ReturnType<typeof apiClient.getRegistryStatus>>;
+  const appsQuery = useQuery(registryAppsQueryOptions(search.q));
 
-  useEffect(() => {
-    setQuery(search.q ?? "");
-  }, [search.q]);
-
-  const appsQuery = useQuery<ListRegistryAppsResult>({
-    queryKey: ["registry-apps", search.q],
-    queryFn: () => apiClient.listRegistryApps({ q: search.q || undefined, limit: 48 }),
-  });
-
-  const registryStatusQuery = useQuery<RegistryStatusResult>({
-    queryKey: ["registry-status"],
-    queryFn: () => apiClient.getRegistryStatus(),
-    staleTime: 60_000,
-  });
+  const registryStatusQuery = useQuery(registryStatusQueryOptions());
 
   const apps = appsQuery.data?.data ?? [];
   const stats = useMemo(() => {
-    const ready = apps.filter(
-      (app: ListRegistryAppsResult["data"][number]) => app.status === "ready",
-    ).length;
-    const claimed = apps.filter(
-      (app: ListRegistryAppsResult["data"][number]) => app.metadata?.claimedBy,
-    ).length;
-    const direct = apps.filter(
-      (app: ListRegistryAppsResult["data"][number]) => !app.extends,
-    ).length;
+    const ready = apps.filter((app) => app.status === "ready").length;
+    const claimed = apps.filter((app) => app.metadata?.claimedBy).length;
+    const direct = apps.filter((app) => !app.extends).length;
 
     return {
       total: appsQuery.data?.meta.total ?? 0,
@@ -155,7 +142,7 @@ function AppsIndex() {
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {apps.map((app: ListRegistryAppsResult["data"][number]) => (
+          {apps.map((app) => (
             <Card key={`${app.accountId}/${app.gatewayId}`} className="h-full">
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-4">

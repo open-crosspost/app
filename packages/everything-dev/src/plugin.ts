@@ -207,6 +207,14 @@ async function buildEnvVars(
 }
 
 async function buildEveryPluginQuietly(cwd: string) {
+  const distPath = `${cwd}/packages/every-plugin/dist/build/rspack/plugin.mjs`;
+  const distExists = await Bun.file(distPath).exists();
+
+  if (distExists) {
+    console.log("[build:ssr] using existing every-plugin dist");
+    return;
+  }
+
   const proc = Bun.spawn({
     cmd: ["bun", "run", "--cwd", "packages/every-plugin", "build"],
     cwd,

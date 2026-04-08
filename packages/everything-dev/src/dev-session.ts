@@ -37,8 +37,6 @@ export interface AppOrchestrator {
   noLogs?: boolean;
 }
 
-let activeCleanup: (() => Promise<void>) | null = null;
-
 const LOG_NOISE_PATTERNS = [
   /\[ Federation Runtime \] Version .* from (host|ui) of shared singleton module/,
   /Executing an Effect versioned \d+\.\d+\.\d+ with a Runtime of version/,
@@ -89,7 +87,10 @@ function formatLogLine(entry: LogEntry): string {
   return `[${ts}] [${entry.source}] [${prefix}] ${entry.line}`;
 }
 
-export const runDevSession = (orchestrator: AppOrchestrator) =>
+export const runDevSession = (
+  orchestrator: AppOrchestrator,
+  onCleanupReady?: (cleanup: () => Promise<void>) => void,
+) =>
   Effect.gen(function* () {
     const configDir = getProjectRoot();
     const orderedPackages = sortByOrder(orchestrator.packages);
@@ -165,10 +166,9 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
       if (showLogs) {
         await exportLogs();
       }
-      activeCleanup = null;
     };
 
-    activeCleanup = cleanup;
+    onCleanupReady?.(cleanup);
 
     const useInteractive = orchestrator.interactive ?? isInteractiveSupported();
     view = useInteractive
@@ -188,7 +188,13 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
         view?.updateProcess(name, status, message);
       },
       onLog: (name, line, isError) => {
-        const entry: LogEntry = { source: name, line, timestamp: Date.now(), isError };
+        const entry: LogEntry = {
+          id: `${Date.now()}-${allLogs.length + 1}`,
+          source: name,
+          line,
+          timestamp: Date.now(),
+          isError,
+        };
         allLogs.push(entry);
         if (shouldDisplayLog(name, line, isError)) {
           view?.addLog(name, line, isError);
@@ -199,9 +205,9 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
       },
     };
 
-    for (const pkg of orderedPackages) {
+    const startProcess = (pkg: string) => {
       const portOverride = pkg === "host" ? orchestrator.port : undefined;
-      const handle = yield* makeDevProcess(
+      return makeDevProcess(
         pkg,
         orchestrator.env,
         callbacks,
@@ -210,9 +216,13 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
         orchestrator.runtimeConfig,
         registry,
       );
-      handles.push(handle);
+    };
 
-      yield* Effect.race(
+    const startGroup = (packages: string[]) =>
+      Effect.forEach(packages, startProcess, { concurrency: "unbounded" });
+
+    const awaitReady = (pkg: string, handle: ProcessHandle) =>
+      Effect.race(
         handle.waitForReady,
         Effect.sleep("30 seconds").pipe(
           Effect.andThen(
@@ -222,14 +232,43 @@ export const runDevSession = (orchestrator: AppOrchestrator) =>
           ),
         ),
       );
-    }
+
+    const nonHostPackages = orderedPackages.filter((pkg) => pkg !== "host");
+    const hostPackages = orderedPackages.filter((pkg) => pkg === "host");
+
+    const nonHostHandles = yield* startGroup(nonHostPackages);
+    handles.push(...nonHostHandles);
+
+    yield* Effect.forEach(
+      nonHostHandles.map((handle, index) => ({
+        handle,
+        pkg: nonHostPackages[index] ?? handle.name,
+      })),
+      ({ handle, pkg }) => awaitReady(pkg, handle),
+      { concurrency: "unbounded" },
+    );
+
+    const hostHandles = yield* startGroup(hostPackages);
+    handles.push(...hostHandles);
+
+    yield* Effect.forEach(
+      hostHandles.map((handle, index) => ({ handle, pkg: hostPackages[index] ?? handle.name })),
+      ({ handle, pkg }) => awaitReady(pkg, handle),
+      { concurrency: "unbounded" },
+    );
 
     yield* Effect.addFinalizer(() => Effect.promise(() => cleanup(false)));
     yield* Effect.never;
   });
 
 export const startApp = (orchestrator: AppOrchestrator) => {
-  const program = Effect.scoped(runDevSession(orchestrator)).pipe(
+  let activeCleanup: (() => Promise<void>) | null = null;
+
+  const program = Effect.scoped(
+    runDevSession(orchestrator, (cleanup) => {
+      activeCleanup = cleanup;
+    }),
+  ).pipe(
     Effect.catchAll((e) =>
       Effect.sync(() => {
         if (e instanceof Error) {

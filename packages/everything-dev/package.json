@@ -15,6 +15,10 @@
       "types": "./src/config.ts",
       "import": "./src/config.ts"
     },
+    "./fastkv": {
+      "types": "./src/fastkv.ts",
+      "import": "./src/fastkv.ts"
+    },
     "./contract.meta": {
       "types": "./src/contract.meta.ts",
       "import": "./src/contract.meta.ts"
@@ -100,7 +104,7 @@
     "@orpc/openapi": "^1.13.4",
     "@orpc/zod": "^1.13.4",
     "chalk": "^5.6.2",
-    "effect": "^3.19.15",
+    "effect": "^3.21.0",
     "every-plugin": "workspace:*",
     "gradient-string": "^3.0.0",
     "hono": "^4.7.11",
@@ -112,7 +116,7 @@
     "@tanstack/react-router": ">=1.0.0",
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0",
-    "effect": "^3.19.15",
+    "effect": "^3.21.0",
     "zod": "^3.25.0"
   },
   "peerDependenciesMeta": {
@@ -126,6 +130,8 @@
   "devDependencies": {
     "@types/gradient-string": "^1.1.6",
     "@types/node": "^22.10.2",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "tsdown": "^0.21.7",
     "typescript": "^5.7.2"
   }

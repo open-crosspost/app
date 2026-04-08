@@ -1,3 +1,5 @@
+import { Context, Effect, Layer } from "every-plugin/effect";
+
 export type NetworkId = "mainnet" | "testnet";
 
 export interface FastKvEntry {
@@ -20,10 +22,22 @@ interface FastKvListResponse {
 
 const FASTKV_TIMEOUT_MS = 10_000;
 
-export const FASTKV_REGISTRY_NAMESPACE: Record<NetworkId, string> = {
-  mainnet: process.env.REGISTRY_FASTKV_MAINNET_NAMESPACE || "dev.everything.near",
-  testnet: process.env.REGISTRY_FASTKV_TESTNET_NAMESPACE || "dev.everything.near",
-};
+const DEFAULT_REGISTRY_NAMESPACE = "dev.everything.near";
+
+export interface RegistryConfig {
+  namespace: string;
+}
+
+export class RegistryConfigService extends Context.Tag("api/RegistryConfigService")<
+  RegistryConfigService,
+  RegistryConfig
+>() {
+  static Live = (namespace?: string) =>
+    Layer.succeed(RegistryConfigService, {
+      namespace:
+        namespace ?? process.env.REGISTRY_FASTKV_MAINNET_NAMESPACE ?? DEFAULT_REGISTRY_NAMESPACE,
+    });
+}
 
 export function getNetworkIdForAccount(accountId: string): NetworkId {
   return accountId.endsWith(".testnet") ? "testnet" : "mainnet";
@@ -39,12 +53,12 @@ export function getFastKvBaseUrlForAccount(accountId: string): string {
   return getFastKvBaseUrlForNetwork(getNetworkIdForAccount(accountId));
 }
 
-export function getRegistryNamespaceForNetwork(network: NetworkId): string {
-  return FASTKV_REGISTRY_NAMESPACE[network];
+export function getRegistryNamespaceForNetwork(network: NetworkId, config: RegistryConfig): string {
+  return config.namespace;
 }
 
-export function getRegistryNamespaceForAccount(accountId: string): string {
-  return getRegistryNamespaceForNetwork(getNetworkIdForAccount(accountId));
+export function getRegistryNamespaceForAccount(accountId: string, config: RegistryConfig): string {
+  return getRegistryNamespaceForNetwork(getNetworkIdForAccount(accountId), config);
 }
 
 export function getRegistryConfigKey(
@@ -91,18 +105,25 @@ export function parseBosUrl(bosUrl: string): {
   return { accountId, gatewayId, pathSegments: pathSegmentsTail };
 }
 
-export function buildRegistryConfigUrl(accountId: string, gatewayId: string): string {
+export function buildRegistryConfigUrl(
+  accountId: string,
+  gatewayId: string,
+  config: RegistryConfig,
+): string {
   const baseUrl = getFastKvBaseUrlForAccount(accountId);
-  const namespace = getRegistryNamespaceForAccount(accountId);
+  const namespace = getRegistryNamespaceForAccount(accountId, config);
   const key = encodeURIComponent(getRegistryConfigKey(accountId, gatewayId));
   return `${baseUrl}/v0/latest/${encodeURIComponent(namespace)}/${encodeURIComponent(accountId)}/${key}`;
 }
 
-export async function fetchBosConfigFromFastKv<T>(bosUrl: string): Promise<T> {
+export async function fetchBosConfigFromFastKv<T>(
+  bosUrl: string,
+  config: RegistryConfig,
+): Promise<T> {
   const { accountId, gatewayId, pathSegments } = parseBosUrl(bosUrl);
   const value = await readLatestValue({
     baseUrl: getFastKvBaseUrlForAccount(accountId),
-    currentAccountId: getRegistryNamespaceForAccount(accountId),
+    currentAccountId: getRegistryNamespaceForAccount(accountId, config),
     predecessorId: accountId,
     key: getRegistryConfigKey(accountId, gatewayId, pathSegments),
   });

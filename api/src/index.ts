@@ -7,6 +7,7 @@ import type { Auth } from "../../host/src/services/auth";
 import type { Database } from "../../host/src/services/database";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
+import { RegistryConfigService } from "./services/fastkv";
 import { KvService, KvServiceLive } from "./services/kv";
 import { ProjectService, ProjectServiceLive } from "./services/projects";
 import {
@@ -17,6 +18,7 @@ import {
   getRegistryStatus,
   listRegistryApps,
   prepareRegistryMetadataWrite,
+  RegistryService,
   relayRegistryMetadataWrite,
 } from "./services/registry";
 
@@ -47,7 +49,9 @@ export interface AuthContext {
 }
 
 export default createPlugin({
-  variables: z.object({}),
+  variables: z.object({
+    registryNamespace: z.string().optional(),
+  }),
 
   secrets: z.object({
     API_DATABASE_URL: z.string().default("file:./api.db"),
@@ -105,16 +109,17 @@ export default createPlugin({
 
       const KvServices = KvServiceLive.pipe(Layer.provide(Database));
       const ProjectServices = ProjectServiceLive.pipe(Layer.provide(Database));
+      const RegistryConfig = RegistryConfigService.Live(config.variables.registryNamespace);
 
-      const AllServices = Layer.merge(KvServices, ProjectServices);
+      const AllServices = Layer.merge(Layer.merge(KvServices, ProjectServices), RegistryConfig);
 
-      const [kv, project] = yield* Effect.provide(
-        Effect.all([KvService, ProjectService]),
+      const [kv, project, registryConfig] = yield* Effect.provide(
+        Effect.all([KvService, ProjectService, RegistryConfigService]),
         AllServices,
       );
 
       console.log("[API] Services Initialized");
-      return { kv, project };
+      return { kv, project, registryConfig };
     }),
 
   shutdown: () => Effect.log("[API] Shutdown"),
@@ -249,17 +254,21 @@ export default createPlugin({
       })),
 
       listRegistryApps: builder.listRegistryApps.handler(async ({ input }) => {
-        return listRegistryApps(input);
+        return await listRegistryApps(input, services.registryConfig);
       }),
 
       getRegistryAppsByAccount: builder.getRegistryAppsByAccount.handler(async ({ input }) => {
-        const result = await getRegistryAppsByAccount(input.accountId);
+        const result = await getRegistryAppsByAccount(input.accountId, services.registryConfig);
 
         return result;
       }),
 
       getRegistryApp: builder.getRegistryApp.handler(async ({ input, errors }) => {
-        const result = await getRegistryApp(input.accountId, input.gatewayId);
+        const result = await getRegistryApp(
+          input.accountId,
+          input.gatewayId,
+          services.registryConfig,
+        );
         if (!result) {
           throw errors.NOT_FOUND({
             message: "Published app not found",
@@ -274,7 +283,7 @@ export default createPlugin({
       }),
 
       getRegistryAppByHost: builder.getRegistryAppByHost.handler(async ({ input, errors }) => {
-        const result = await getRegistryAppByHost(input.hostUrl);
+        const result = await getRegistryAppByHost(input.hostUrl, services.registryConfig);
         if (!result) {
           throw errors.NOT_FOUND({
             message: "Published app not found for host",
@@ -289,12 +298,12 @@ export default createPlugin({
       }),
 
       getRegistryStatus: builder.getRegistryStatus.handler(async () => {
-        return getRegistryStatus();
+        return getRegistryStatus(services.registryConfig);
       }),
 
       prepareRegistryMetadataWrite: builder.prepareRegistryMetadataWrite.handler(
         async ({ input }) => {
-          return { data: prepareRegistryMetadataWrite(input) };
+          return { data: prepareRegistryMetadataWrite(input, services.registryConfig) };
         },
       ),
 
@@ -311,7 +320,7 @@ export default createPlugin({
               });
             }
 
-            const result = await relayRegistryMetadataWrite(input.payload);
+            const result = await relayRegistryMetadataWrite(input.payload, services.registryConfig);
 
             return { data: result };
           } catch (error) {

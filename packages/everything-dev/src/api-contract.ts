@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import type { RuntimeConfig, RuntimePluginConfig } from "./types";
 
@@ -48,6 +48,17 @@ function toImportPath(fromFile: string, targetFile: string): string {
   return rel.startsWith(".") ? rel : `./${rel}`;
 }
 
+function writeFileIfChanged(filePath: string, content: string) {
+  try {
+    if (readFileSync(filePath, "utf8") === content) return false;
+  } catch {
+    // file does not exist yet
+  }
+
+  writeFileSync(filePath, content);
+  return true;
+}
+
 function getApiPluginManifestUrl(apiBaseUrl: string): string {
   return `${trimTrailingSlash(apiBaseUrl)}/plugin.manifest.json`;
 }
@@ -73,7 +84,7 @@ function localApiContractSource(configDir: string): ContractSource {
   return {
     key: "api",
     importName: "BaseApiContract",
-    importPath: toImportPath(join(configDir, "ui", "src", "api-contract.ts"), sourcePath),
+    importPath: toImportPath(join(configDir, ".bos", "generated", "api-contract.ts"), sourcePath),
   };
 }
 
@@ -111,7 +122,10 @@ async function remoteContractSource(opts: {
   return {
     key: opts.name,
     importName: `${sanitizeIdentifier(opts.name)}Contract`,
-    importPath: toImportPath(join(opts.configDir, "ui", "src", "api-contract.ts"), generatedPath),
+    importPath: toImportPath(
+      join(opts.configDir, ".bos", "generated", "api-contract.ts"),
+      generatedPath,
+    ),
     generatedPath,
   };
 }
@@ -150,7 +164,7 @@ async function resolveContractSource(opts: {
       key: opts.key,
       importName: `${sanitizeIdentifier(opts.key)}Contract`,
       importPath: toImportPath(
-        join(opts.configDir, "ui", "src", "api-contract.ts"),
+        join(opts.configDir, ".bos", "generated", "api-contract.ts"),
         join(opts.source.localPath, "src", "contract.ts"),
       ),
     };
@@ -170,7 +184,7 @@ function writeAggregateContractFile(opts: {
   sources: ContractSource[];
   pluginKeys: string[];
 }) {
-  const bridgePath = join(opts.configDir, "ui", "src", "api-contract.ts");
+  const bridgePath = join(opts.configDir, ".bos", "generated", "api-contract.ts");
   const lines: string[] = [];
 
   for (const source of opts.sources) {
@@ -199,7 +213,8 @@ function writeAggregateContractFile(opts: {
     }
     lines.push("};");
   }
-  writeFileSync(bridgePath, `${lines.join("\n")}\n`);
+  mkdirSync(dirname(bridgePath), { recursive: true });
+  writeFileIfChanged(bridgePath, `${lines.join("\n")}\n`);
   return bridgePath;
 }
 

@@ -116,9 +116,17 @@ export const initializePlugins = Effect.gen(function* () {
 
       const loaded = await Promise.allSettled(
         registryEntries.map(async (entry) => {
+          const variables: Record<string, unknown> = {
+            ...entry.config.variables,
+          };
+
+          if (entry.key === "api") {
+            variables.registryNamespace = config.account;
+          }
+
           const plugin = await runtime.usePlugin(entry.runtimeId as never, {
             // @ts-expect-error dynamic runtime config
-            variables: entry.config.variables ?? {},
+            variables,
             // @ts-expect-error dynamic runtime config
             secrets: collectSecrets(entry.config),
           });

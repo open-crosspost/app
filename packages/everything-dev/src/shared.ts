@@ -50,6 +50,18 @@ function stableDepsObject(
   return out;
 }
 
+function writeFileIfChanged(filePath: string, nextContent: string): boolean {
+  try {
+    const current = readFileSync(filePath, "utf-8");
+    if (current === nextContent) return false;
+  } catch {
+    // ignore
+  }
+
+  writeFileSync(filePath, nextContent);
+  return true;
+}
+
 function fingerprintResolved(deps: Record<string, SharedUiResolvedDep>): string {
   const stable = stableDepsObject(deps);
   return sha256(JSON.stringify(stable));
@@ -117,10 +129,10 @@ export async function syncAndGenerateSharedUi(opts: {
   const catalogChanged = nextPkg !== originalPkg;
 
   if (bosConfigChanged) {
-    writeFileSync(bosConfigPath, `${JSON.stringify(bosConfig, null, 2)}\n`);
+    writeFileIfChanged(bosConfigPath, `${JSON.stringify(bosConfig, null, 2)}\n`);
   }
   if (catalogChanged) {
-    writeFileSync(packageJsonPath, `${JSON.stringify(pkgJson, null, 2)}\n`);
+    writeFileIfChanged(packageJsonPath, `${JSON.stringify(pkgJson, null, 2)}\n`);
   }
 
   const resolvedDeps: Record<string, SharedUiResolvedDep> = {};
@@ -168,7 +180,7 @@ export async function syncAndGenerateSharedUi(opts: {
   }
 
   mkdirSync(dirname(generatedPath), { recursive: true });
-  writeFileSync(generatedPath, `${JSON.stringify(nextGenerated, null, 2)}\n`);
+  writeFileIfChanged(generatedPath, `${JSON.stringify(nextGenerated, null, 2)}\n`);
 
   const generatedChanged = prevFingerprint !== nextGenerated.ui.fingerprintSha256;
 

@@ -55,10 +55,62 @@ export const startDevServers = (
   orchestrator: AppOrchestrator,
   callbacks: ProcessCallbacks,
   registry?: ProcessRegistry,
-) =>
-  Effect.gen(function* () {
+) => {
+  const run = Effect.gen(function* () {
     const orderedPackages = sortByOrder(orchestrator.packages);
     const handles: ProcessHandle[] = [];
+
+    const startProcess = (pkg: string) => {
+      const portOverride = pkg === "host" ? orchestrator.port : undefined;
+      return makeDevProcess(
+        pkg,
+        orchestrator.env,
+        callbacks,
+        portOverride,
+        orchestrator.bosConfig,
+        orchestrator.runtimeConfig,
+        registry,
+      );
+    };
+
+    const startGroup = (packages: string[]) =>
+      Effect.forEach(packages, startProcess, { concurrency: "unbounded" });
+
+    const awaitReady = (pkg: string, handle: ProcessHandle) =>
+      Effect.race(
+        handle.waitForReady,
+        Effect.sleep("30 seconds").pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              callbacks.onLog(pkg, "Timeout waiting for ready, continuing...", true);
+            }),
+          ),
+        ),
+      );
+
+    const nonHostPackages = orderedPackages.filter((pkg) => pkg !== "host");
+    const hostPackages = orderedPackages.filter((pkg) => pkg === "host");
+
+    const nonHostHandles = yield* startGroup(nonHostPackages);
+    handles.push(...nonHostHandles);
+
+    yield* Effect.forEach(
+      nonHostHandles.map((handle, index) => ({
+        handle,
+        pkg: nonHostPackages[index] ?? handle.name,
+      })),
+      ({ handle, pkg }) => awaitReady(pkg, handle),
+      { concurrency: "unbounded" },
+    );
+
+    const hostHandles = yield* startGroup(hostPackages);
+    handles.push(...hostHandles);
+
+    yield* Effect.forEach(
+      hostHandles.map((handle, index) => ({ handle, pkg: hostPackages[index] ?? handle.name })),
+      ({ handle, pkg }) => awaitReady(pkg, handle),
+      { concurrency: "unbounded" },
+    );
 
     const shutdown = Effect.gen(function* () {
       const reversed = [...handles].reverse();
@@ -70,39 +122,11 @@ export const startDevServers = (
       }
     });
 
-    const run = Effect.gen(function* () {
-      for (const pkg of orderedPackages) {
-        const portOverride = pkg === "host" ? orchestrator.port : undefined;
-        const handle = yield* makeDevProcess(
-          pkg,
-          orchestrator.env,
-          callbacks,
-          portOverride,
-          orchestrator.bosConfig,
-          orchestrator.runtimeConfig,
-          registry,
-        );
-        handles.push(handle);
-
-        yield* Effect.race(
-          handle.waitForReady,
-          Effect.sleep("30 seconds").pipe(
-            Effect.andThen(
-              Effect.sync(() => {
-                callbacks.onLog(pkg, "Timeout waiting for ready, continuing...", true);
-              }),
-            ),
-          ),
-        );
-      }
-
-      return { handles, shutdown } satisfies DevServersHandle;
-    });
-
-    return yield* run.pipe(
-      Effect.catchAllCause((cause) => shutdown.pipe(Effect.andThen(Effect.failCause(cause)))),
-    );
+    return { handles, shutdown } satisfies DevServersHandle;
   });
+
+  return run;
+};
 
 export function detectLocalPackages(
   bosConfig?: BosConfig,

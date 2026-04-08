@@ -300,6 +300,7 @@ export function renderDevView(
   let rerender: (() => void) | null = null;
   const proxyTarget = env.API_PROXY;
   let logSeq = 0;
+  let lastLogKey: string | null = null;
 
   const updateProcess = (name: string, status: ProcessStatus, message?: string) => {
     processes = processes.map((p) => (p.name === name ? { ...p, status, message } : p));
@@ -307,6 +308,10 @@ export function renderDevView(
   };
 
   const addLog = (source: string, line: string, isError = false) => {
+    const nextKey = `${source}:${isError ? "1" : "0"}:${line}`;
+    if (nextKey === lastLogKey) return;
+    lastLogKey = nextKey;
+
     logs = [
       ...logs,
       { id: `${Date.now()}-${++logSeq}`, source, line, timestamp: Date.now(), isError },
@@ -319,7 +324,7 @@ export function renderDevView(
     const [, forceUpdate] = useState(0);
 
     useEffect(() => {
-      rerender = () => forceUpdate((n) => n + 1);
+      rerender = () => forceUpdate((n: number) => n + 1);
       return () => {
         rerender = null;
       };

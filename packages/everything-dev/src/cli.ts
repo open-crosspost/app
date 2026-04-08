@@ -99,6 +99,33 @@ async function main() {
       process.stdout.write(`  Private key: ${result.privateKey}\n`);
       process.stdout.write(`  Copy: NEAR_PRIVATE_KEY=${result.privateKey}\n`);
     }
+
+    if (descriptor.key === "publish") {
+      if (result.status === "dry-run") {
+        console.log();
+        console.log(colors.cyan(`${icons.ok} Dry run complete`));
+        console.log(`  ${colors.dim("Registry URL:")} ${result.registryUrl}`);
+        console.log();
+        return;
+      }
+
+      if (result.status === "published") {
+        console.log();
+        console.log(colors.green(`${icons.ok} Published successfully`));
+        console.log(`  ${colors.dim("Registry URL:")} ${result.registryUrl}`);
+        if (result.txHash) {
+          console.log(`  ${colors.dim("Transaction:")} ${result.txHash}`);
+        }
+        if (result.built && result.built.length > 0) {
+          console.log(`  ${colors.dim("Built:")} ${result.built.join(", ")}`);
+        }
+        if (result.skipped && result.skipped.length > 0) {
+          console.log(`  ${colors.dim("Skipped:")} ${result.skipped.join(", ")}`);
+        }
+        console.log();
+        return;
+      }
+    }
   } catch (error) {
     console.error(`[CLI] ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);

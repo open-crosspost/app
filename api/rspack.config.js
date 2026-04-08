@@ -1,44 +1,32 @@
-const fs = require("node:fs");
-const crypto = require("node:crypto");
-const path = require("node:path");
-const { EveryPluginDevServer } = require("every-plugin/build/rspack");
-const { withZephyr } = require("zephyr-rspack-plugin");
+import crypto from "node:crypto";
+import fs from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { EveryPluginDevServer } from "every-plugin/build/rspack";
+import { withZephyr } from "zephyr-rspack-plugin";
+
+const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const shouldDeploy = process.env.DEPLOY === "true";
 
-function normalizePath(input) {
-  return input.replace(/\\/g, "/").replace(/\/+$/, "");
-}
-
-function resolveLocalTarget(value, configRoot) {
-  if (typeof value !== "string" || !value.startsWith("local:")) {
-    return null;
-  }
-
-  return normalizePath(path.resolve(configRoot, value.slice("local:".length)));
-}
-
-function updateBosConfig(url) {
+function updateHostConfig(name, url) {
   try {
-    const configPath = path.resolve(__dirname, "../../bos.config.json");
-    const configRoot = path.dirname(configPath);
+    const configPath = path.resolve(__dirname, "../bos.config.json");
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    const pluginDir = normalizePath(__dirname);
 
-    const match = Object.entries(config.plugins ?? {}).find(([, plugin]) => {
-      return resolveLocalTarget(plugin.development, configRoot) === pluginDir;
-    });
-
-    if (!match) {
-      console.warn(`   ⚠️  No matching plugin entry found for ${pluginDir}`);
+    if (config.app.api.name !== name) {
+      console.error(`   ❌ API "${name}" not found in bos.config.json`);
       return;
     }
 
-    const [key] = match;
-    config.plugins[key].production = url;
+    config.app.api.production = url;
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
-    console.log(`   ✅ Updated bos.config.json: plugins.${key}.production`);
+    console.log(`   ✅ Updated bos.config.json: app.api.production`);
   } catch (err) {
     console.error("   ❌ Failed to update bos.config.json:", err.message);
   }
@@ -55,8 +43,19 @@ function emitPluginManifest() {
         compilation.hooks.processAssets.tapPromise(
           { name: "EmitPluginManifest", stage },
           async () => {
-            const sourceContractPath = path.join(__dirname, "types", "contract.d.ts");
-            const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
+            const sourceContractPath = path.join(__dirname, "types", "api", "src", "contract.d.ts");
+
+            let contractTypes;
+            try {
+              contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
+            } catch (error) {
+              console.error(
+                `[EmitPluginManifest] Failed to read contract file: ${sourceContractPath}`,
+              );
+              console.error(`[EmitPluginManifest] Error: ${error.message}`);
+              return;
+            }
+
             const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
 
             const manifest = {
@@ -72,7 +71,7 @@ function emitPluginManifest() {
               contract: {
                 kind: "orpc",
                 types: {
-                  path: "./types/contract.d.ts",
+                  path: "./types/api/src/contract.d.ts",
                   exportName: "contract",
                   typeName: "ContractType",
                   sha256: contractSha256,
@@ -85,7 +84,7 @@ function emitPluginManifest() {
                 "plugin.manifest.json",
                 new RawSource(`${JSON.stringify(manifest, null, 2)}\n`),
               );
-              compilation.emitAsset("types/contract.d.ts", new RawSource(contractTypes));
+              compilation.emitAsset("types/api/src/contract.d.ts", new RawSource(contractTypes));
             }
           },
         );
@@ -95,6 +94,7 @@ function emitPluginManifest() {
 }
 
 const baseConfig = {
+  externals: [/^@libsql\/.*/],
   plugins: [new EveryPluginDevServer(), emitPluginManifest()],
   infrastructureLogging: {
     level: "error",
@@ -102,12 +102,12 @@ const baseConfig = {
   stats: "errors-warnings",
 };
 
-module.exports = shouldDeploy
+export default shouldDeploy
   ? withZephyr({
       hooks: {
         onDeployComplete: (info) => {
-          console.log("🚀 Template Plugin Deployed:", info.url);
-          updateBosConfig(info.url);
+          console.log("🚀 API Deployed:", info.url);
+          updateHostConfig(pkg.name, info.url);
         },
       },
     })(baseConfig)

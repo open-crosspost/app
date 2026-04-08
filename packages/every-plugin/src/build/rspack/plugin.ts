@@ -36,7 +36,34 @@ export class EmitPluginManifest implements RspackPluginInstance {
         const manifestFileName = this.options.manifestFileName ?? "plugin.manifest.json";
 
         const sourceContractPath = path.join(context, "types", contractFileName);
-        const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
+
+        let contractTypes: string;
+        try {
+          contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
+        } catch (error) {
+          if ((error as any).code === "ENOENT" || (error as any).code === "EISDIR") {
+            const packageDir = context.split("/").pop();
+            const nestedPath = path.join(
+              context,
+              "types",
+              packageDir ?? "",
+              "src",
+              contractFileName,
+            );
+
+            try {
+              contractTypes = await fs.promises.readFile(nestedPath, "utf8");
+            } catch (nestedError) {
+              console.warn(
+                `[EmitPluginManifest] Contract file not found at ${sourceContractPath} or ${nestedPath}. ` +
+                  `Skipping manifest generation.`,
+              );
+              return;
+            }
+          } else {
+            throw error;
+          }
+        }
 
         const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
         const manifest = {

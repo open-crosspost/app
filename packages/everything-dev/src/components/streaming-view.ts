@@ -81,6 +81,7 @@ export function renderStreamingView(
   const proxyTarget = env.API_PROXY;
   const sectionedProcesses = getSectionedProcesses(initialProcesses);
   const columnWidths = getColumnWidths(initialProcesses);
+  const lastLogBySource = new Map<string, string>();
 
   console.log();
   console.log(colors.cyan(`${"─".repeat(52)}`));
@@ -148,6 +149,11 @@ export function renderStreamingView(
   };
 
   const addLog = (source: string, line: string, isError = false) => {
+    const lastLine = lastLogBySource.get(source);
+    const nextLine = `${isError ? "ERR" : "OUT"}:${line}`;
+    if (lastLine === nextLine) return;
+    lastLogBySource.set(source, nextLine);
+
     const color = getServiceColor(source);
     const logColor = isError ? colors.error : colors.dim;
     write(

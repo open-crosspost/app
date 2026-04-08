@@ -1,3 +1,4 @@
+import { Context, Effect, Layer } from "every-plugin/effect";
 import { decodeSignedDelegateAction, Near } from "near-kit";
 import {
   buildRegistryConfigUrl,
@@ -11,6 +12,8 @@ import {
   getRegistryNamespaceForNetwork,
   listLatestValues,
   type NetworkId,
+  type RegistryConfig,
+  RegistryConfigService,
   readLatestValue,
 } from "./fastkv";
 
@@ -114,315 +117,417 @@ const DEFAULT_RELAY_NETWORK =
   (process.env.REGISTRY_RELAY_NETWORK as NetworkId | undefined) ||
   (DEFAULT_RELAY_ACCOUNT_ID ? getNetworkIdForAccount(DEFAULT_RELAY_ACCOUNT_ID) : "mainnet");
 
-export async function listRegistryApps(input: RegistryListInput) {
-  const limit = clamp(input.limit ?? 24, 1, 100);
-  const offset = clamp(parseCursor(input.cursor), 0, Number.MAX_SAFE_INTEGER);
-  const discovered = await discoverPublishedConfigs();
-  const filtered = discovered.filter(({ accountId, gatewayId }) =>
-    matchesQuery(accountId, gatewayId, input.q),
+export class RegistryService extends Context.Tag("api/RegistryService")<
+  RegistryService,
+  {
+    listRegistryApps: (input: RegistryListInput) => Promise<{
+      data: RegistryAppSummary[];
+      meta: { total: number; hasMore: boolean; nextCursor: string | null };
+    }>;
+    getRegistryAppsByAccount: (accountId: string) => Promise<{
+      data: RegistryAppSummary[];
+      meta: { total: number; hasMore: boolean; nextCursor: string | null };
+    }>;
+    getRegistryApp: (accountId: string, gatewayId: string) => Promise<RegistryAppDetail | null>;
+    getRegistryAppByHost: (hostUrl: string) => Promise<RegistryAppDetail | null>;
+    getRegistryStatus: () => Promise<{
+      discoveredApps: number;
+      discoveryKey: string;
+      metadataContractId: string;
+      metadataFastKvUrl: string;
+      relayEnabled: boolean;
+      relayAccountId: string | null;
+      timestamp: string;
+    }>;
+    prepareRegistryMetadataWrite: (
+      input: RegistryMetadataDraftInput,
+    ) => PreparedRegistryMetadataWrite;
+    relayRegistryMetadataWrite: (
+      signedDelegateActionPayload: string,
+    ) => Promise<RegistryRelayResult>;
+    getRegistryRelaySender: (signedDelegateActionPayload: string) => string;
+  }
+>() {
+  static Live = Layer.effect(
+    RegistryService,
+    Effect.gen(function* () {
+      const config = yield* RegistryConfigService;
+      return createRegistryMethods(config);
+    }),
   );
-  const page = filtered.slice(offset, offset + limit);
-  const data = await Promise.all(page.map(resolveAppSummary));
-  const nextOffset = offset + page.length;
+}
+
+function createRegistryMethods(config: RegistryConfig) {
+  const discoverPublishedConfigs = async (): Promise<DiscoveredConfig[]> => {
+    const results = await Promise.all([
+      discoverPublishedConfigsForNetwork("mainnet", config),
+      discoverPublishedConfigsForNetwork("testnet", config),
+    ]);
+    return results.flat().sort(compareDiscovered);
+  };
+
+  const discoverPublishedConfigsForNetwork = async (
+    network: NetworkId,
+    registryConfig: RegistryConfig,
+  ): Promise<DiscoveredConfig[]> => {
+    const baseUrl = getFastKvBaseUrlForNetwork(network);
+    const currentAccountId = getRegistryNamespaceForNetwork(network, registryConfig);
+    const apps: DiscoveredConfig[] = [];
+    let pageToken: string | null = null;
+
+    for (;;) {
+      const page = await listLatestValues({
+        baseUrl,
+        currentAccountId,
+        keyPrefix: DISCOVERY_PREFIX,
+        pageToken: pageToken ?? undefined,
+        limit: 200,
+      });
+
+      for (const entry of page.entries) {
+        if (!entry.key.endsWith("/bos.config.json")) {
+          continue;
+        }
+
+        const parsedKey = parseRegistryConfigKey(entry.key);
+        if (!parsedKey) {
+          continue;
+        }
+
+        const rawConfig = normalizeConfigValue(entry.value);
+        if (!rawConfig) {
+          continue;
+        }
+
+        apps.push({
+          accountId: parsedKey.accountId,
+          gatewayId: parsedKey.gatewayId,
+          rawConfig,
+        });
+      }
+
+      if (!page.pageToken) {
+        break;
+      }
+
+      pageToken = page.pageToken;
+    }
+
+    return apps;
+  };
+
+  const resolveAppSummary = async (item: DiscoveredConfig): Promise<RegistryAppSummary> => {
+    const resolved = await resolvePublishedConfig(item.rawConfig, config);
+    const metadata = await getRegistryMetadata(item.accountId, item.gatewayId, config);
+
+    return {
+      ...normalizeResolvedConfig(item.accountId, item.gatewayId, resolved, config),
+      metadata,
+    };
+  };
+
+  const resolvePublishedConfig = async (
+    configInput: BosConfigInput,
+    registryConfig: RegistryConfig,
+  ): Promise<BosConfigInput> => {
+    if (!configInput.extends?.startsWith("bos://")) {
+      return configInput;
+    }
+
+    return resolveConfigWithExtends(configInput, new Set(), registryConfig);
+  };
+
+  const resolveConfigWithExtends = async (
+    configInput: BosConfigInput,
+    visited: Set<string>,
+    registryConfig: RegistryConfig,
+  ): Promise<BosConfigInput> => {
+    if (!configInput.extends?.startsWith("bos://")) {
+      return configInput;
+    }
+
+    if (visited.has(configInput.extends)) {
+      throw new Error(`Circular extends detected for ${configInput.extends}`);
+    }
+
+    const nextVisited = new Set(visited);
+    nextVisited.add(configInput.extends);
+
+    const parent = await fetchBosConfigFromFastKv<BosConfigInput>(
+      configInput.extends,
+      registryConfig,
+    );
+    const resolvedParent = await resolveConfigWithExtends(parent, nextVisited, registryConfig);
+
+    return mergeConfigs(resolvedParent, configInput);
+  };
+
+  const normalizeResolvedConfig = (
+    accountId: string,
+    gatewayId: string,
+    configInput: BosConfigInput,
+    registryConfig: RegistryConfig,
+  ): RegistryAppSummary => {
+    const hostConfig = getAppConfig(configInput, "host");
+    const uiConfig = getAppConfig(configInput, "ui");
+    const apiConfig = getAppConfig(configInput, "api");
+
+    const hostUrl = readString(hostConfig.production);
+    const uiUrl = readString(uiConfig.production);
+    const apiUrl = readString(apiConfig.production);
+    const uiSsrUrl = readString(uiConfig.ssr);
+    const domain = readString(configInput.domain);
+    const canonicalKey = getRegistryConfigKey(accountId, gatewayId);
+
+    return {
+      accountId,
+      gatewayId,
+      canonicalKey,
+      canonicalConfigUrl: buildRegistryConfigUrl(accountId, gatewayId, registryConfig),
+      startCommand: `bos start --account ${accountId} --domain ${gatewayId}`,
+      domain,
+      openUrl: buildOpenUrl(domain),
+      hostUrl,
+      uiUrl,
+      apiUrl,
+      uiSsrUrl,
+      extends: typeof configInput.extends === "string" ? configInput.extends : null,
+      status: hostUrl && uiUrl ? "ready" : "invalid",
+      metadata: null,
+    };
+  };
+
+  const getRegistryMetadata = async (
+    accountId: string,
+    gatewayId: string,
+    registryConfig: RegistryConfig,
+  ): Promise<RegistryMetadata | null> => {
+    const value = await readLatestValue({
+      baseUrl: getFastKvBaseUrlForAccount(accountId),
+      currentAccountId: getRegistryNamespaceForAccount(accountId, registryConfig),
+      key: getRegistryMetadataKey(accountId, gatewayId),
+    });
+
+    if (!value) {
+      return null;
+    }
+
+    const normalized = normalizeMetadataValue(value);
+
+    return {
+      claimedBy: readString(normalized.claimedBy),
+      title: readString(normalized.title),
+      description: readString(normalized.description),
+      repoUrl: readString(normalized.repoUrl),
+      homepageUrl: readString(normalized.homepageUrl),
+      imageUrl: readString(normalized.imageUrl),
+      updatedAt: readString(normalized.updatedAt),
+    };
+  };
 
   return {
-    data,
-    meta: {
-      total: filtered.length,
-      hasMore: nextOffset < filtered.length,
-      nextCursor: nextOffset < filtered.length ? String(nextOffset) : null,
+    listRegistryApps: async (input: RegistryListInput) => {
+      const limit = clamp(input.limit ?? 24, 1, 100);
+      const offset = clamp(parseCursor(input.cursor), 0, Number.MAX_SAFE_INTEGER);
+      const discovered = await discoverPublishedConfigs();
+      const filtered = discovered.filter(({ accountId, gatewayId }) =>
+        matchesQuery(accountId, gatewayId, input.q),
+      );
+      const page = filtered.slice(offset, offset + limit);
+      const data = await Promise.all(page.map(resolveAppSummary));
+      const nextOffset = offset + page.length;
+
+      return {
+        data,
+        meta: {
+          total: filtered.length,
+          hasMore: nextOffset < filtered.length,
+          nextCursor: nextOffset < filtered.length ? String(nextOffset) : null,
+        },
+      };
+    },
+
+    getRegistryAppsByAccount: async (accountId: string) => {
+      const discovered = await discoverPublishedConfigs();
+      const matches = discovered
+        .filter((item) => item.accountId === accountId)
+        .sort(compareDiscovered);
+      const data = await Promise.all(matches.map(resolveAppSummary));
+
+      return {
+        data,
+        meta: {
+          total: data.length,
+          hasMore: false,
+          nextCursor: null,
+        },
+      };
+    },
+
+    getRegistryApp: async (accountId: string, gatewayId: string) => {
+      const discovered = await discoverPublishedConfigs();
+      const match = discovered.find(
+        (item) => item.accountId === accountId && item.gatewayId === gatewayId,
+      );
+
+      if (!match) {
+        return null;
+      }
+
+      const resolved = await resolvePublishedConfig(match.rawConfig, config);
+      const normalized = normalizeResolvedConfig(accountId, gatewayId, resolved, config);
+      const metadataKey = getRegistryMetadataKey(accountId, gatewayId);
+      const metadata = await getRegistryMetadata(accountId, gatewayId, config);
+
+      return {
+        ...normalized,
+        metadata,
+        metadataKey,
+        metadataContractId: getRegistryNamespaceForAccount(accountId, config),
+        metadataFastKvUrl: getFastKvBaseUrlForAccount(accountId),
+        resolvedConfig: resolved as JsonObject,
+      };
+    },
+
+    getRegistryAppByHost: async (hostUrl: string) => {
+      const discovered = await discoverPublishedConfigs();
+
+      for (const item of discovered) {
+        const resolved = await resolvePublishedConfig(item.rawConfig, config);
+        const normalized = normalizeResolvedConfig(
+          item.accountId,
+          item.gatewayId,
+          resolved,
+          config,
+        );
+
+        if (normalized.hostUrl !== hostUrl) {
+          continue;
+        }
+
+        const metadataKey = getRegistryMetadataKey(item.accountId, item.gatewayId);
+        const metadata = await getRegistryMetadata(item.accountId, item.gatewayId, config);
+
+        return {
+          ...normalized,
+          metadata,
+          metadataKey,
+          metadataContractId: getRegistryNamespaceForAccount(item.accountId, config),
+          metadataFastKvUrl: getFastKvBaseUrlForAccount(item.accountId),
+          resolvedConfig: resolved as JsonObject,
+        };
+      }
+
+      return null;
+    },
+
+    getRegistryStatus: async () => {
+      const discovered = await discoverPublishedConfigs();
+      return {
+        discoveredApps: discovered.length,
+        discoveryKey: `${DISCOVERY_PREFIX}*/bos.config.json`,
+        metadataContractId: `${getRegistryNamespaceForNetwork("mainnet", config)} | ${getRegistryNamespaceForNetwork("testnet", config)}`,
+        metadataFastKvUrl: getFastKvBaseUrlForNetwork("mainnet"),
+        relayEnabled: Boolean(DEFAULT_RELAY_ACCOUNT_ID && DEFAULT_RELAY_PRIVATE_KEY),
+        relayAccountId: DEFAULT_RELAY_ACCOUNT_ID,
+        timestamp: new Date().toISOString(),
+      };
+    },
+
+    prepareRegistryMetadataWrite: (input: RegistryMetadataDraftInput) => {
+      const key = getRegistryMetadataKey(input.accountId, input.gatewayId);
+      const manifest = buildRegistryManifest(input);
+
+      return {
+        contractId: getRegistryNamespaceForAccount(input.accountId, config),
+        methodName: "__fastdata_kv" as const,
+        key,
+        manifest,
+        args: {
+          [key]: JSON.stringify(manifest),
+        },
+        gas: "10 Tgas",
+        attachedDeposit: "0 yocto",
+      };
+    },
+
+    relayRegistryMetadataWrite: async (signedDelegateActionPayload: string) => {
+      if (!DEFAULT_RELAY_ACCOUNT_ID || !DEFAULT_RELAY_PRIVATE_KEY) {
+        throw new Error("Registry relay is not configured on this server.");
+      }
+
+      const signedDelegate = decodeSignedDelegateAction(signedDelegateActionPayload);
+      const senderId = signedDelegate.signedDelegate.delegateAction.senderId;
+
+      const near = new Near({
+        network: DEFAULT_RELAY_NETWORK,
+        defaultSignerId: DEFAULT_RELAY_ACCOUNT_ID,
+        privateKey: DEFAULT_RELAY_PRIVATE_KEY as never,
+      });
+
+      const result = await near
+        .transaction(DEFAULT_RELAY_ACCOUNT_ID)
+        .signedDelegateAction(signedDelegate)
+        .send({ waitUntil: "NONE" });
+
+      return {
+        transactionHash: result?.transaction?.hash ?? null,
+        relayerAccountId: DEFAULT_RELAY_ACCOUNT_ID,
+        senderId,
+      };
+    },
+
+    getRegistryRelaySender: (signedDelegateActionPayload: string) => {
+      const signedDelegate = decodeSignedDelegateAction(signedDelegateActionPayload);
+      return signedDelegate.signedDelegate.delegateAction.senderId;
     },
   };
 }
 
-export async function getRegistryAppsByAccount(accountId: string) {
-  const discovered = await discoverPublishedConfigs();
-  const matches = discovered.filter((item) => item.accountId === accountId).sort(compareDiscovered);
-  const data = await Promise.all(matches.map(resolveAppSummary));
+export async function listRegistryApps(input: RegistryListInput, config: RegistryConfig) {
+  return createRegistryMethods(config).listRegistryApps(input);
+}
 
-  return {
-    data,
-    meta: {
-      total: data.length,
-      hasMore: false,
-      nextCursor: null,
-    },
-  };
+export async function getRegistryAppsByAccount(accountId: string, config: RegistryConfig) {
+  return createRegistryMethods(config).getRegistryAppsByAccount(accountId);
 }
 
 export async function getRegistryApp(
   accountId: string,
   gatewayId: string,
+  config: RegistryConfig,
 ): Promise<RegistryAppDetail | null> {
-  const discovered = await discoverPublishedConfigs();
-  const match = discovered.find(
-    (item) => item.accountId === accountId && item.gatewayId === gatewayId,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const resolved = await resolvePublishedConfig(match.rawConfig);
-  const normalized = normalizeResolvedConfig(accountId, gatewayId, resolved);
-  const metadataKey = getRegistryMetadataKey(accountId, gatewayId);
-  const metadata = await getRegistryMetadata(accountId, gatewayId);
-
-  return {
-    ...normalized,
-    metadata,
-    metadataKey,
-    metadataContractId: getRegistryNamespaceForAccount(accountId),
-    metadataFastKvUrl: getFastKvBaseUrlForAccount(accountId),
-    resolvedConfig: resolved as JsonObject,
-  };
+  return createRegistryMethods(config).getRegistryApp(accountId, gatewayId);
 }
 
-export async function getRegistryAppByHost(hostUrl: string): Promise<RegistryAppDetail | null> {
-  const discovered = await discoverPublishedConfigs();
-
-  for (const item of discovered) {
-    const resolved = await resolvePublishedConfig(item.rawConfig);
-    const normalized = normalizeResolvedConfig(item.accountId, item.gatewayId, resolved);
-
-    if (normalized.hostUrl !== hostUrl) {
-      continue;
-    }
-
-    const metadataKey = getRegistryMetadataKey(item.accountId, item.gatewayId);
-    const metadata = await getRegistryMetadata(item.accountId, item.gatewayId);
-
-    return {
-      ...normalized,
-      metadata,
-      metadataKey,
-      metadataContractId: getRegistryNamespaceForAccount(item.accountId),
-      metadataFastKvUrl: getFastKvBaseUrlForAccount(item.accountId),
-      resolvedConfig: resolved as JsonObject,
-    };
-  }
-
-  return null;
+export async function getRegistryAppByHost(
+  hostUrl: string,
+  config: RegistryConfig,
+): Promise<RegistryAppDetail | null> {
+  return createRegistryMethods(config).getRegistryAppByHost(hostUrl);
 }
 
-export async function getRegistryStatus() {
-  const discovered = await discoverPublishedConfigs();
-  return {
-    discoveredApps: discovered.length,
-    discoveryKey: `${DISCOVERY_PREFIX}*/bos.config.json`,
-    metadataContractId: `${getRegistryNamespaceForNetwork("mainnet")} | ${getRegistryNamespaceForNetwork("testnet")}`,
-    metadataFastKvUrl: getFastKvBaseUrlForNetwork("mainnet"),
-    relayEnabled: Boolean(DEFAULT_RELAY_ACCOUNT_ID && DEFAULT_RELAY_PRIVATE_KEY),
-    relayAccountId: DEFAULT_RELAY_ACCOUNT_ID,
-    timestamp: new Date().toISOString(),
-  };
+export async function getRegistryStatus(config: RegistryConfig) {
+  return createRegistryMethods(config).getRegistryStatus();
 }
 
 export function prepareRegistryMetadataWrite(
   input: RegistryMetadataDraftInput,
+  config: RegistryConfig,
 ): PreparedRegistryMetadataWrite {
-  const key = getRegistryMetadataKey(input.accountId, input.gatewayId);
-  const manifest = buildRegistryManifest(input);
-
-  return {
-    contractId: getRegistryNamespaceForAccount(input.accountId),
-    methodName: "__fastdata_kv",
-    key,
-    manifest,
-    args: {
-      [key]: JSON.stringify(manifest),
-    },
-    gas: "10 Tgas",
-    attachedDeposit: "0 yocto",
-  };
+  return createRegistryMethods(config).prepareRegistryMetadataWrite(input);
 }
 
 export async function relayRegistryMetadataWrite(
   signedDelegateActionPayload: string,
+  config: RegistryConfig,
 ): Promise<RegistryRelayResult> {
-  if (!DEFAULT_RELAY_ACCOUNT_ID || !DEFAULT_RELAY_PRIVATE_KEY) {
-    throw new Error("Registry relay is not configured on this server.");
-  }
-
-  const signedDelegate = decodeSignedDelegateAction(signedDelegateActionPayload);
-  const senderId = signedDelegate.signedDelegate.delegateAction.senderId;
-
-  const near = new Near({
-    network: DEFAULT_RELAY_NETWORK,
-    defaultSignerId: DEFAULT_RELAY_ACCOUNT_ID,
-    privateKey: DEFAULT_RELAY_PRIVATE_KEY as never,
-  });
-
-  const result = await near
-    .transaction(DEFAULT_RELAY_ACCOUNT_ID)
-    .signedDelegateAction(signedDelegate)
-    .send({ waitUntil: "NONE" });
-
-  return {
-    transactionHash: result?.transaction?.hash ?? null,
-    relayerAccountId: DEFAULT_RELAY_ACCOUNT_ID,
-    senderId,
-  };
+  return createRegistryMethods(config).relayRegistryMetadataWrite(signedDelegateActionPayload);
 }
 
 export function getRegistryRelaySender(signedDelegateActionPayload: string) {
   const signedDelegate = decodeSignedDelegateAction(signedDelegateActionPayload);
   return signedDelegate.signedDelegate.delegateAction.senderId;
-}
-
-async function discoverPublishedConfigs(): Promise<DiscoveredConfig[]> {
-  const results = await Promise.all([
-    discoverPublishedConfigsForNetwork("mainnet"),
-    discoverPublishedConfigsForNetwork("testnet"),
-  ]);
-  return results.flat().sort(compareDiscovered);
-}
-
-async function discoverPublishedConfigsForNetwork(network: NetworkId): Promise<DiscoveredConfig[]> {
-  const baseUrl = getFastKvBaseUrlForNetwork(network);
-  const currentAccountId = getRegistryNamespaceForNetwork(network);
-  const apps: DiscoveredConfig[] = [];
-  let pageToken: string | null = null;
-
-  for (;;) {
-    const page = await listLatestValues({
-      baseUrl,
-      currentAccountId,
-      keyPrefix: DISCOVERY_PREFIX,
-      pageToken: pageToken ?? undefined,
-      limit: 200,
-    });
-
-    for (const entry of page.entries) {
-      if (!entry.key.endsWith("/bos.config.json")) {
-        continue;
-      }
-
-      const parsedKey = parseRegistryConfigKey(entry.key);
-      if (!parsedKey) {
-        continue;
-      }
-
-      const rawConfig = normalizeConfigValue(entry.value);
-      if (!rawConfig) {
-        continue;
-      }
-
-      apps.push({
-        accountId: parsedKey.accountId,
-        gatewayId: parsedKey.gatewayId,
-        rawConfig,
-      });
-    }
-
-    if (!page.pageToken) {
-      break;
-    }
-
-    pageToken = page.pageToken;
-  }
-
-  return apps;
-}
-
-async function resolveAppSummary(item: DiscoveredConfig): Promise<RegistryAppSummary> {
-  const resolved = await resolvePublishedConfig(item.rawConfig);
-  const metadata = await getRegistryMetadata(item.accountId, item.gatewayId);
-
-  return {
-    ...normalizeResolvedConfig(item.accountId, item.gatewayId, resolved),
-    metadata,
-  };
-}
-
-async function resolvePublishedConfig(config: BosConfigInput): Promise<BosConfigInput> {
-  if (!config.extends?.startsWith("bos://")) {
-    return config;
-  }
-
-  return resolveConfigWithExtends(config, new Set());
-}
-
-async function resolveConfigWithExtends(
-  config: BosConfigInput,
-  visited: Set<string>,
-): Promise<BosConfigInput> {
-  if (!config.extends?.startsWith("bos://")) {
-    return config;
-  }
-
-  if (visited.has(config.extends)) {
-    throw new Error(`Circular extends detected for ${config.extends}`);
-  }
-
-  const nextVisited = new Set(visited);
-  nextVisited.add(config.extends);
-
-  const parent = await fetchBosConfigFromFastKv<BosConfigInput>(config.extends);
-  const resolvedParent = await resolveConfigWithExtends(parent, nextVisited);
-
-  return mergeConfigs(resolvedParent, config);
-}
-
-function normalizeResolvedConfig(
-  accountId: string,
-  gatewayId: string,
-  config: BosConfigInput,
-): RegistryAppSummary {
-  const hostConfig = getAppConfig(config, "host");
-  const uiConfig = getAppConfig(config, "ui");
-  const apiConfig = getAppConfig(config, "api");
-
-  const hostUrl = readString(hostConfig.production);
-  const uiUrl = readString(uiConfig.production);
-  const apiUrl = readString(apiConfig.production);
-  const uiSsrUrl = readString(uiConfig.ssr);
-  const domain = readString(config.domain);
-  const canonicalKey = getRegistryConfigKey(accountId, gatewayId);
-
-  return {
-    accountId,
-    gatewayId,
-    canonicalKey,
-    canonicalConfigUrl: buildRegistryConfigUrl(accountId, gatewayId),
-    startCommand: `bos start --account ${accountId} --domain ${gatewayId}`,
-    domain,
-    openUrl: buildOpenUrl(domain),
-    hostUrl,
-    uiUrl,
-    apiUrl,
-    uiSsrUrl,
-    extends: typeof config.extends === "string" ? config.extends : null,
-    status: hostUrl && uiUrl ? "ready" : "invalid",
-    metadata: null,
-  };
-}
-
-async function getRegistryMetadata(
-  accountId: string,
-  gatewayId: string,
-): Promise<RegistryMetadata | null> {
-  const value = await readLatestValue({
-    baseUrl: getFastKvBaseUrlForAccount(accountId),
-    currentAccountId: getRegistryNamespaceForAccount(accountId),
-    key: getRegistryMetadataKey(accountId, gatewayId),
-  });
-
-  if (!value) {
-    return null;
-  }
-
-  const normalized = normalizeMetadataValue(value);
-
-  return {
-    claimedBy: readString(normalized.claimedBy),
-    title: readString(normalized.title),
-    description: readString(normalized.description),
-    repoUrl: readString(normalized.repoUrl),
-    homepageUrl: readString(normalized.homepageUrl),
-    imageUrl: readString(normalized.imageUrl),
-    updatedAt: readString(normalized.updatedAt),
-  };
 }
 
 function buildRegistryManifest(input: RegistryMetadataDraftInput): RegistryMetadata {

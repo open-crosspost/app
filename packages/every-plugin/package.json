@@ -136,7 +136,7 @@
   "peerDependencies": {
     "@rspack/core": "1.7.4",
     "typescript": "^5.9.3",
-    "effect": "^3.19.15",
+    "effect": "^3.21.0",
     "zod": "^4.3.6",
     "@orpc/contract": "^1.13.4",
     "@orpc/server": "^1.13.4"
