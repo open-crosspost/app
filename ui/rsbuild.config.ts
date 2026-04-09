@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import { pluginModuleFederation } from "@module-federation/rsbuild-plugin";
 import { defineConfig } from "@rsbuild/core";
+import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { pluginReact } from "@rsbuild/plugin-react";
 import { TanStackRouterRspack } from "@tanstack/router-plugin/rspack";
 import { withZephyr } from "zephyr-rsbuild-plugin";
@@ -41,6 +42,7 @@ function updateBosConfig(field: "production" | "ssr", url: string) {
 function createClientConfig() {
   const plugins = [
     pluginReact(),
+    pluginNodePolyfill(),
     pluginModuleFederation({
       name: normalizedName,
       filename: "remoteEntry.js",
@@ -48,10 +50,6 @@ function createClientConfig() {
       exposes: {
         "./Router": "./src/router.tsx",
         "./Hydrate": "./src/hydrate.tsx",
-        "./components": "./src/components/index.ts",
-        "./providers": "./src/providers/index.tsx",
-        "./hooks": "./src/hooks/index.ts",
-        "./types": "./src/types/index.ts",
       },
       shared: uiSharedDeps,
     }),

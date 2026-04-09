@@ -1,11 +1,3 @@
-import { apiKeyClient } from "@better-auth/api-key/client";
-import { passkeyClient } from "@better-auth/passkey/client";
-import {
-  adminClient,
-  anonymousClient,
-  organizationClient,
-  phoneNumberClient,
-} from "better-auth/client/plugins";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
 import { siwnClient } from "better-near-auth/client";
 import { getAccount, getHostUrl, getNetworkId } from "@/app";
@@ -19,12 +11,6 @@ function createAuthClient() {
         recipient: getAccount(),
         networkId: getNetworkId(),
       }),
-      adminClient(),
-      anonymousClient(),
-      phoneNumberClient(),
-      passkeyClient(),
-      organizationClient(),
-      apiKeyClient(),
     ],
   });
 }

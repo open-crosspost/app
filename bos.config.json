@@ -6,6 +6,18 @@
     "template": {
       "development": "local:plugins/_template",
       "production": "https://elliot-braem-2617-every-plugin-template-everythin-577d3fdfa-ze.zephyrcloud.app"
+    },
+    "crosspost": {
+      "development": "local:plugins/crosspost",
+      "production": ""
+    },
+    "farcaster": {
+      "development": "local:plugins/farcaster",
+      "production": ""
+    },
+    "twitter": {
+      "development": "local:plugins/twitter",
+      "production": ""
     }
   },
   "app": {
