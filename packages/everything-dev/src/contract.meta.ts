@@ -34,6 +34,33 @@ export const cliCommandMeta = {
     summary: "Print the loaded BOS configuration",
     interactive: false,
   },
+  pluginAdd: {
+    commandPath: ["plugin", "add"],
+    summary: "Add a plugin attachment",
+    interactive: false,
+    fields: {
+      source: { positional: true, description: "Plugin source (local:path or URL)" },
+      as: { description: "Plugin alias" },
+      production: { description: "Production URL override" },
+    },
+  },
+  pluginRemove: {
+    commandPath: ["plugin", "remove"],
+    summary: "Remove a plugin attachment",
+    interactive: false,
+    fields: { key: { positional: true, description: "Plugin key" } },
+  },
+  pluginList: {
+    commandPath: ["plugin", "list"],
+    summary: "List configured plugins",
+    interactive: false,
+  },
+  pluginPublish: {
+    commandPath: ["plugin", "publish"],
+    summary: "Publish a single plugin",
+    interactive: false,
+    fields: { key: { positional: true, description: "Plugin key" } },
+  },
   publish: {
     commandPath: ["publish"],
     summary: "Publish the current workspace configuration",

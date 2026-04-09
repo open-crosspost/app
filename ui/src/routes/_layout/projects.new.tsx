@@ -2,9 +2,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 import { sessionQueryOptions } from "@/lib/session";
+import { useApiClient } from "@/lib/use-api-client";
 
 export const Route = createFileRoute("/_layout/projects/new")({
   head: () => ({
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_layout/projects/new")({
 function NewProjectPage() {
   const navigate = useNavigate();
   const sessionQuery = useQuery(sessionQueryOptions());
+  const apiClient = useApiClient();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");

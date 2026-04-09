@@ -1,8 +1,9 @@
-import { getAssetsUrl, getRuntimeConfig } from "./app";
+import { createApiClient, getAssetsUrl, getRuntimeConfig } from "./app";
 
 declare global {
   interface Window {
     __EVERYTHING_DEV_HYDRATE_PROMISE__?: Promise<void>;
+    $_TSR?: unknown;
   }
 }
 
@@ -15,18 +16,33 @@ export async function hydrate() {
     console.log("[Hydrate] Starting...");
 
     const runtimeConfig = getRuntimeConfig();
-    if (!runtimeConfig) {
-      console.error("[Hydrate] No runtime config found");
-      return;
-    }
 
     const { QueryClientProvider } = await import("@tanstack/react-query");
     const { createRouter } = await import("./router");
+    const client = new (await import("@tanstack/react-query")).QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 5 * 60 * 1000,
+          gcTime: 30 * 60 * 1000,
+          refetchOnWindowFocus: false,
+          retry: 1,
+        },
+      },
+    });
 
-    const { router, queryClient } = createRouter({
+    if (!runtimeConfig.hostUrl || !runtimeConfig.rpcBase) {
+      throw new Error("Missing hostUrl or rpcBase in runtime config");
+    }
+
+    const { router } = createRouter({
       context: {
+        queryClient: client,
         assetsUrl: getAssetsUrl(runtimeConfig),
         runtimeConfig,
+        apiClient: createApiClient({
+          hostUrl: runtimeConfig.hostUrl,
+          rpcBase: runtimeConfig.rpcBase,
+        }),
       },
     });
 
@@ -37,7 +53,7 @@ export async function hydrate() {
       console.log("[Hydrate] Calling hydrateRoot...");
       hydrateRoot(
         document,
-        <QueryClientProvider client={queryClient}>
+        <QueryClientProvider client={client}>
           <RouterClient router={router} />
         </QueryClientProvider>,
       );
@@ -47,7 +63,7 @@ export async function hydrate() {
 
       console.log("[Hydrate] Calling createRoot...");
       createRoot(document).render(
-        <QueryClientProvider client={queryClient}>
+        <QueryClientProvider client={client}>
           <RouterProvider router={router} />
         </QueryClientProvider>,
       );

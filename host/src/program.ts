@@ -12,7 +12,6 @@ import { getBaseStyles, getHydrateScript, getThemeInitScript } from "everything-
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
-import { getRegistryApp, getRegistryAppByHost } from "../../api/src/services/registry";
 import { BaseLive, PluginsLive } from "./layers";
 import { type Auth, AuthService } from "./services/auth";
 import { type ClientRuntimeConfig, ConfigService, type RuntimeConfig } from "./services/config";
@@ -21,14 +20,13 @@ import { type Database, DatabaseService } from "./services/database";
 import { loadRouterModule, type RouterModule } from "./services/federation.server";
 import { createAggregateApiClient, type PluginResult, PluginsService } from "./services/plugins";
 import { createRouterMounts } from "./services/router";
-import { installSsrApiClientGlobal, runWithSsrApiClient } from "./services/ssr-api-client";
 import { logger } from "./utils/logger";
 
 type ActiveRuntimeState = NonNullable<ClientRuntimeConfig["runtime"]>;
 
-type RuntimeClientConfig = ClientRuntimeConfig & {
-  runtime?: ActiveRuntimeState;
-};
+type RuntimeClientConfig = ClientRuntimeConfig & { runtime?: ActiveRuntimeState };
+
+type RuntimePlugin = NonNullable<RuntimeConfig["plugins"]>[string];
 
 function normalizeUrl(url?: string | null) {
   if (!url) {
@@ -76,49 +74,18 @@ async function resolveActiveRuntime(config: RuntimeConfig, request: Request) {
   const override = getRuntimeOverride(url.pathname);
 
   if (override) {
-    const runtime = await getRegistryApp(override.accountId, override.gatewayId);
-    if (!runtime) {
-      return null;
-    }
-
     return {
-      accountId: runtime.accountId,
-      gatewayId: runtime.gatewayId,
+      accountId: override.accountId,
+      gatewayId: override.gatewayId,
       runtimeBasePath: override.runtimeBasePath,
-      canonicalConfigUrl: runtime.canonicalConfigUrl,
-      resolvedConfig: runtime.resolvedConfig,
-      title: runtime.metadata?.title ?? runtime.gatewayId,
-      hostUrl: runtime.hostUrl,
-    } satisfies ActiveRuntimeState;
-  }
-
-  const hostRuntime = await getRegistryAppByHost(url.origin).catch(() => null);
-  if (hostRuntime) {
-    return {
-      accountId: hostRuntime.accountId,
-      gatewayId: hostRuntime.gatewayId,
-      runtimeBasePath: "/",
-      canonicalConfigUrl: hostRuntime.canonicalConfigUrl,
-      resolvedConfig: hostRuntime.resolvedConfig,
-      title: hostRuntime.metadata?.title ?? hostRuntime.gatewayId,
-      hostUrl: hostRuntime.hostUrl,
+      canonicalConfigUrl: null,
+      resolvedConfig: null,
+      title: `${override.accountId}/${override.gatewayId}`,
+      hostUrl: url.origin,
     } satisfies ActiveRuntimeState;
   }
 
   const fallbackGatewayId = getFallbackGatewayId(config);
-  const fallbackRuntime = await getRegistryApp(config.account, fallbackGatewayId).catch(() => null);
-  if (fallbackRuntime) {
-    return {
-      accountId: fallbackRuntime.accountId,
-      gatewayId: fallbackRuntime.gatewayId,
-      runtimeBasePath: "/",
-      canonicalConfigUrl: fallbackRuntime.canonicalConfigUrl,
-      resolvedConfig: fallbackRuntime.resolvedConfig,
-      title: fallbackRuntime.metadata?.title ?? fallbackRuntime.gatewayId,
-      hostUrl: fallbackRuntime.hostUrl,
-    } satisfies ActiveRuntimeState;
-  }
-
   return {
     accountId: config.account,
     gatewayId: fallbackGatewayId,
@@ -128,6 +95,16 @@ async function resolveActiveRuntime(config: RuntimeConfig, request: Request) {
     title: config.account,
     hostUrl: url.origin,
   } satisfies ActiveRuntimeState;
+}
+
+function registerAllPaths(
+  app: Hono,
+  paths: string[],
+  handler: (c: Context) => Response | Promise<Response>,
+) {
+  for (const path of paths) {
+    app.all(path, handler);
+  }
 }
 
 function buildRuntimeClientConfig(
@@ -157,14 +134,16 @@ function buildRuntimeClientConfig(
       entry: uiConfig.entry,
     },
     plugins: Object.fromEntries(
-      Object.entries(config.plugins ?? {}).map(([key, plugin]) => [
-        key,
-        {
-          name: plugin.name,
-          url: plugin.url,
-          entry: plugin.entry,
-        },
-      ]),
+      (Object.entries(config.plugins ?? {}) as Array<[string, RuntimePlugin]>).map(
+        ([key, plugin]) => [
+          key,
+          {
+            name: plugin.name,
+            url: plugin.url,
+            entry: plugin.entry,
+          },
+        ],
+      ),
     ),
     runtime: activeRuntime,
   } as RuntimeClientConfig;
@@ -399,10 +378,10 @@ export function setupApiRoutes(
       ],
     });
 
-    app.all(basePath, (c: Context) => handleOrpc(c, apiHandler, basePath));
-    app.all(`${basePath}/*`, (c: Context) => handleOrpc(c, apiHandler, basePath));
     app.all(rpcPath, (c: Context) => handleOrpc(c, rpcHandler, rpcPath));
     app.all(`${rpcPath}/*`, (c: Context) => handleOrpc(c, rpcHandler, rpcPath));
+    app.all(basePath, (c: Context) => handleOrpc(c, apiHandler, basePath));
+    app.all(`${basePath}/*`, (c: Context) => handleOrpc(c, apiHandler, basePath));
   };
 
   app.on(["POST", "GET"], "/api/auth/*", (c: Context) => auth.handler(c.req.raw));
@@ -423,13 +402,9 @@ export const createStartServer = (onReady?: () => void) =>
     const auth = yield* AuthService;
     const plugins = yield* PluginsService;
 
-    // Ensure the UI SSR remote can always resolve `$apiClient` safely.
-    // This uses AsyncLocalStorage to prevent cross-request client leakage.
-    installSsrApiClientGlobal();
-
     const app = new Hono();
 
-    app.onError((err, c) => {
+    app.onError((err: unknown, c: Context) => {
       const details = extractErrorDetails(err);
       logger.error(`[Hono Error] ${c.req.method} ${c.req.path}`);
       logger.error(`[Hono Error] Message: ${details.message}`);
@@ -445,7 +420,7 @@ export const createStartServer = (onReady?: () => void) =>
     app.use(
       "/*",
       cors({
-        origin: process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) ?? [
+        origin: process.env.CORS_ORIGIN?.split(",").map((o: string) => o.trim()) ?? [
           config.hostUrl,
           uiConfig.url,
         ],
@@ -524,30 +499,28 @@ export const createStartServer = (onReady?: () => void) =>
     };
 
     const proxyUiAssetRequest = (c: Context) => proxyRequest(c.req.raw, uiConfig.url);
+    const staticAssetPaths = [
+      "/static/*",
+      "/.well-known/*",
+      "/favicon.ico",
+      "/icon.svg",
+      "/manifest.json",
+      "/robots.txt",
+      "/README.md",
+      "/skill.md",
+      "/llms.txt",
+    ];
 
     setupApiRoutes(app, config, auth, db, plugins, loadingState);
 
     const shouldProxyUiAssets = isDev || uiConfig.source === "remote";
 
     if (!shouldProxyUiAssets) {
-      app.use("/static/*", serveStatic({ root: "./dist" }));
-      app.use("/favicon.ico", serveStatic({ root: "./dist" }));
-      app.use("/icon.svg", serveStatic({ root: "./dist" }));
-      app.use("/manifest.json", serveStatic({ root: "./dist" }));
-      app.use("/robots.txt", serveStatic({ root: "./dist" }));
-      app.use("/README.md", serveStatic({ root: "./dist" }));
-      app.use("/skill.md", serveStatic({ root: "./dist" }));
-      app.use("/llms.txt", serveStatic({ root: "./dist" }));
+      for (const path of staticAssetPaths) {
+        app.use(path, serveStatic({ root: "./dist" }));
+      }
     } else {
-      app.all("/static/*", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/.well-known/*", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/favicon.ico", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/icon.svg", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/manifest.json", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/robots.txt", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/README.md", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/skill.md", (c: Context) => proxyUiAssetRequest(c));
-      app.all("/llms.txt", (c: Context) => proxyUiAssetRequest(c));
+      registerAllPaths(app, staticAssetPaths, proxyUiAssetRequest);
     }
 
     if (uiConfig.ssrUrl) {
@@ -569,23 +542,6 @@ export const createStartServer = (onReady?: () => void) =>
 
     app.get("*", async (c: Context) => {
       const activeRuntime = await resolveActiveRuntime(config, c.req.raw);
-
-      if (!activeRuntime) {
-        return c.html(
-          `<!DOCTYPE html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <title>Runtime Not Found</title>
-            </head>
-            <body>
-              <h1>Runtime Not Found</h1>
-              <p>The requested published runtime could not be resolved.</p>
-            </body>
-          </html>`,
-          404,
-        );
-      }
 
       const runtimeConfig = buildRuntimeClientConfig(config, c.req.raw, activeRuntime);
 
@@ -609,9 +565,10 @@ export const createStartServer = (onReady?: () => void) =>
             session: requestContext.session,
             basepath: runtimeConfig.runtime?.runtimeBasePath,
             runtimeConfig,
+            apiClient: ssrApiClient,
           } as any);
 
-        const result = await runWithSsrApiClient(ssrApiClient, render);
+        const result = await render();
         return new Response(result?.stream, {
           status: result?.statusCode,
           headers: result?.headers,

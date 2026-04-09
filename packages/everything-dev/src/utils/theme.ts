@@ -25,6 +25,7 @@ export const icons = {
   arrow: "→",
   dot: "·",
   app: "◉",
+  config: "⚙",
 };
 
 export const frames = {

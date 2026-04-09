@@ -1,4 +1,3 @@
-import { QueryClient } from "@tanstack/react-query";
 import { createBrowserHistory, createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { getRuntimeBasePath } from "./app";
 import { routeTree } from "./routeTree.gen";
@@ -12,30 +11,20 @@ export type {
   RouterModule,
 } from "./types";
 
-export function createRouter(opts: CreateRouterOptions = {}) {
-  const queryClient =
-    opts.context?.queryClient ??
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: 5 * 60 * 1000,
-          gcTime: 30 * 60 * 1000,
-          refetchOnWindowFocus: false,
-          retry: 1,
-        },
-      },
-    });
+export function createRouter(opts: CreateRouterOptions) {
+  const queryClient = opts.context.queryClient;
   const history = opts.history ?? createBrowserHistory();
 
   const router = createTanStackRouter({
     routeTree,
     history,
-    basepath: opts.basepath ?? getRuntimeBasePath(opts.context?.runtimeConfig),
+    basepath: opts.basepath ?? getRuntimeBasePath(opts.context.runtimeConfig),
     context: {
       queryClient,
-      assetsUrl: opts.context?.assetsUrl ?? "",
-      runtimeConfig: opts.context?.runtimeConfig,
-      session: opts.context?.session,
+      assetsUrl: opts.context.assetsUrl,
+      runtimeConfig: opts.context.runtimeConfig,
+      apiClient: opts.context.apiClient,
+      session: opts.context.session,
     },
     defaultPreload: "intent",
     scrollRestoration: true,

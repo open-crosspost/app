@@ -84,7 +84,10 @@ function localApiContractSource(configDir: string): ContractSource {
   return {
     key: "api",
     importName: "BaseApiContract",
-    importPath: toImportPath(join(configDir, ".bos", "generated", "api-contract.ts"), sourcePath),
+    importPath: toImportPath(
+      join(configDir, ".bos", "generated", "api-contract.gen.ts"),
+      sourcePath,
+    ),
   };
 }
 
@@ -117,13 +120,13 @@ async function remoteContractSource(opts: {
 
   const generatedPath = join(opts.runtimeDir, opts.generatedSubdir, "contract.d.ts");
   mkdirSync(dirname(generatedPath), { recursive: true });
-  writeFileSync(generatedPath, contractTypes);
+  writeFileIfChanged(generatedPath, contractTypes);
 
   return {
     key: opts.name,
     importName: `${sanitizeIdentifier(opts.name)}Contract`,
     importPath: toImportPath(
-      join(opts.configDir, ".bos", "generated", "api-contract.ts"),
+      join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
       generatedPath,
     ),
     generatedPath,
@@ -148,7 +151,7 @@ async function resolveContractSource(opts: {
         key: opts.key,
         importName: "BaseApiContract",
         importPath: toImportPath(
-          join(opts.configDir, "ui", "src", "api-contract.ts"),
+          join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
           join(localPath, "src", "contract.ts"),
         ),
       };
@@ -164,7 +167,7 @@ async function resolveContractSource(opts: {
       key: opts.key,
       importName: `${sanitizeIdentifier(opts.key)}Contract`,
       importPath: toImportPath(
-        join(opts.configDir, ".bos", "generated", "api-contract.ts"),
+        join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
         join(opts.source.localPath, "src", "contract.ts"),
       ),
     };
@@ -184,7 +187,7 @@ function writeAggregateContractFile(opts: {
   sources: ContractSource[];
   pluginKeys: string[];
 }) {
-  const bridgePath = join(opts.configDir, ".bos", "generated", "api-contract.ts");
+  const bridgePath = join(opts.configDir, ".bos", "generated", "api-contract.gen.ts");
   const lines: string[] = [];
 
   for (const source of opts.sources) {
@@ -272,7 +275,7 @@ export async function syncApiContractBridge(opts: {
   }
 
   return {
-    bridgePath: join(opts.configDir, "ui", "src", "api-contract.ts"),
+    bridgePath: join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
     generatedPath,
     manifest,
     source: opts.runtimeConfig.api.source,

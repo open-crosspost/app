@@ -1,9 +1,8 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { EveryPluginDevServer } from "every-plugin/build/rspack";
+import { EmitPluginManifest, EveryPluginDevServer } from "every-plugin/build/rspack";
 import { withZephyr } from "zephyr-rspack-plugin";
 
 const require = createRequire(import.meta.url);
@@ -51,58 +50,8 @@ function updateBosConfig(url) {
   }
 }
 
-function emitPluginManifest() {
-  return {
-    apply(compiler) {
-      compiler.hooks.thisCompilation.tap("EmitPluginManifest", (compilation) => {
-        const webpack = compiler.webpack;
-        const RawSource = webpack?.sources?.RawSource;
-        const stage = webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ?? 1000;
-
-        compilation.hooks.processAssets.tapPromise(
-          { name: "EmitPluginManifest", stage },
-          async () => {
-            const sourceContractPath = path.join(__dirname, "types", "contract.d.ts");
-            const contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
-            const contractSha256 = crypto.createHash("sha256").update(contractTypes).digest("hex");
-
-            const manifest = {
-              schemaVersion: 1,
-              kind: "every-plugin/manifest",
-              plugin: {
-                name: pkg.name,
-                version: pkg.version,
-              },
-              runtime: {
-                remoteEntry: "./remoteEntry.js",
-              },
-              contract: {
-                kind: "orpc",
-                types: {
-                  path: "./types/contract.d.ts",
-                  exportName: "contract",
-                  typeName: "ContractType",
-                  sha256: contractSha256,
-                },
-              },
-            };
-
-            if (RawSource) {
-              compilation.emitAsset(
-                "plugin.manifest.json",
-                new RawSource(`${JSON.stringify(manifest, null, 2)}\n`),
-              );
-              compilation.emitAsset("types/contract.d.ts", new RawSource(contractTypes));
-            }
-          },
-        );
-      });
-    },
-  };
-}
-
 const baseConfig = {
-  plugins: [new EveryPluginDevServer(), emitPluginManifest()],
+  plugins: [new EveryPluginDevServer(), ...(shouldDeploy ? [new EmitPluginManifest()] : [])],
   infrastructureLogging: {
     level: "error",
   },

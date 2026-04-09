@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
-import { registryAppsQueryOptions, registryStatusQueryOptions } from "@/lib/registry";
+import { useApiClient } from "@/lib/use-api-client";
 
 type SearchParams = {
   q?: string;
@@ -14,9 +14,16 @@ export const Route = createFileRoute("/_layout/apps/")({
   }),
   loaderDeps: ({ search }) => ({ q: search.q }),
   loader: async ({ context, deps }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(registryAppsQueryOptions(deps.q)),
-      context.queryClient.ensureQueryData(registryStatusQueryOptions()),
+    await Promise.allSettled([
+      context.queryClient.ensureQueryData({
+        queryKey: ["registry-apps", deps.q],
+        queryFn: () => context.apiClient.listRegistryApps({ q: deps.q || undefined, limit: 48 }),
+      }),
+      context.queryClient.ensureQueryData({
+        queryKey: ["registry-status"],
+        queryFn: () => context.apiClient.getRegistryStatus(),
+        staleTime: 60_000,
+      }),
     ]);
   },
   head: () => ({
@@ -32,24 +39,30 @@ export const Route = createFileRoute("/_layout/apps/")({
 });
 
 function AppsIndex() {
-  const search = Route.useSearch() as { q?: string };
+  const search = Route.useSearch();
+  const apiClient = useApiClient();
   const [query, setQuery] = useState(search.q ?? "");
 
-  const appsQuery = useQuery(registryAppsQueryOptions(search.q));
+  const appsQuery = useQuery({
+    queryKey: ["registry-apps", search.q],
+    queryFn: () => apiClient.listRegistryApps({ q: search.q || undefined, limit: 48 }),
+  });
 
-  const registryStatusQuery = useQuery(registryStatusQueryOptions());
+  const registryStatusQuery = useQuery({
+    queryKey: ["registry-status"],
+    queryFn: () => apiClient.getRegistryStatus(),
+    staleTime: 60_000,
+  });
 
   const apps = appsQuery.data?.data ?? [];
   const stats = useMemo(() => {
     const ready = apps.filter((app) => app.status === "ready").length;
     const claimed = apps.filter((app) => app.metadata?.claimedBy).length;
-    const direct = apps.filter((app) => !app.extends).length;
 
     return {
       total: appsQuery.data?.meta.total ?? 0,
       ready,
       claimed,
-      direct,
     };
   }, [apps, appsQuery.data?.meta.total]);
 
@@ -91,7 +104,8 @@ function AppsIndex() {
                   disabled={!search.q && query.length === 0}
                   onClick={() => {
                     setQuery("");
-                    window.location.assign("/apps");
+                    window.history.pushState({}, "", "/apps");
+                    window.dispatchEvent(new PopStateEvent("popstate"));
                   }}
                 >
                   clear
@@ -106,7 +120,6 @@ function AppsIndex() {
             <StatBox label="apps" value={String(stats.total)} />
             <StatBox label="ready" value={String(stats.ready)} />
             <StatBox label="claimed" value={String(stats.claimed)} />
-            <StatBox label="direct configs" value={String(stats.direct)} />
             {registryStatusQuery.data && (
               <div className="text-xs text-muted-foreground font-mono pt-2 border-t border-border">
                 relay {registryStatusQuery.data.relayEnabled ? "enabled" : "disabled"}
@@ -151,39 +164,25 @@ function AppsIndex() {
                       <Badge variant={app.status === "ready" ? "default" : "destructive"}>
                         {app.status}
                       </Badge>
-                      {app.metadata?.claimedBy ? (
-                        <Badge variant="outline">claimed</Badge>
-                      ) : (
-                        <Badge variant="outline">ready</Badge>
-                      )}
+                      {app.metadata?.claimedBy && <Badge variant="outline">claimed</Badge>}
                     </div>
                     <div className="space-y-1 min-w-0">
-                      <a
-                        href={`/apps/${encodeURIComponent(app.accountId)}/${encodeURIComponent(app.gatewayId)}`}
+                      <Link
+                        to="/apps/$accountId/$gatewayId"
+                        params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
                         className="block font-medium hover:underline break-all"
                       >
                         {app.metadata?.title ?? `${app.accountId} / ${app.gatewayId}`}
-                      </a>
+                      </Link>
                       <div className="text-xs font-mono text-muted-foreground break-all">
                         {app.accountId} / {app.gatewayId}
                       </div>
                     </div>
                   </div>
-
-                  <div className="text-right text-xs font-mono text-muted-foreground">
-                    {app.extends ? "extends" : "direct"}
-                  </div>
                 </div>
-
                 <p className="text-sm text-muted-foreground min-h-10 leading-relaxed">
                   {app.metadata?.description ?? "No public registry metadata published yet."}
                 </p>
-
-                <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                  <TinyStatus label="host" active={Boolean(app.hostUrl)} />
-                  <TinyStatus label="ui" active={Boolean(app.uiUrl)} />
-                  <TinyStatus label="api" active={Boolean(app.apiUrl)} />
-                </div>
 
                 <div className="rounded-sm border border-border bg-muted/10 p-3 text-xs font-mono text-muted-foreground break-all">
                   {app.hostUrl ?? app.uiUrl ?? app.apiUrl ?? app.canonicalKey}
@@ -191,11 +190,12 @@ function AppsIndex() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a
-                      href={`/apps/${encodeURIComponent(app.accountId)}/${encodeURIComponent(app.gatewayId)}`}
+                    <Link
+                      to="/apps/$accountId/$gatewayId"
+                      params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
                     >
                       inspect runtime
-                    </a>
+                    </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link to="/apps/$accountId" params={{ accountId: app.accountId }}>
@@ -224,17 +224,6 @@ function StatBox({ label, value }: { label: string; value: string }) {
     <div className="rounded-sm border border-border bg-muted/10 p-3 space-y-1">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="text-2xl font-semibold tracking-tight">{value}</div>
-    </div>
-  );
-}
-
-function TinyStatus({ label, active }: { label: string; active: boolean }) {
-  return (
-    <div className="rounded-sm border border-border bg-muted/10 px-2 py-2 flex items-center justify-between gap-2">
-      <span>{label}</span>
-      <span className={active ? "text-foreground" : "text-muted-foreground"}>
-        {active ? "yes" : "-"}
-      </span>
     </div>
   );
 }

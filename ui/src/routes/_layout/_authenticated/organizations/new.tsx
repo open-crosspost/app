@@ -34,8 +34,8 @@ function NewOrganization() {
       toast.success(`Organization "${data?.name}" created`);
       if (data?.id) {
         await router.navigate({
-          to: "/organizations/$id" as never,
-          params: { id: data.id } as never,
+          to: "/organizations/$id",
+          params: { id: data.id },
         });
       }
     },

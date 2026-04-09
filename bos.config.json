@@ -5,7 +5,7 @@
   "plugins": {
     "template": {
       "development": "local:plugins/_template",
-      "production": "https://elliot-braem-2608-every-plugin-template-everythin-f122115e8-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2617-every-plugin-template-everythin-577d3fdfa-ze.zephyrcloud.app"
     }
   },
   "app": {
@@ -25,7 +25,7 @@
       "development": "local:api",
       "variables": {},
       "secrets": [],
-      "production": "https://elliot-braem-2607-api-everything-dev-nearbuilders-8955afb16-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2616-api-everything-dev-nearbuilders-9f203cd13-ze.zephyrcloud.app"
     }
   },
   "testnet": "dev.allthethings.testnet",

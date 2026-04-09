@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
+import { useApiClient } from "@/lib/use-api-client";
 
-export const Route = createFileRoute("/_layout/apps/$accountId")({
+export const Route = createFileRoute("/_layout/apps/$accountId/")({
   head: ({ params }) => ({
     meta: [
-      { title: `${(params as { accountId: string }).accountId} | Published Apps | everything.dev` },
+      { title: `${params.accountId} | Published Apps | everything.dev` },
       {
         name: "description",
-        content: `Published BOS runtimes for ${(params as { accountId: string }).accountId}.`,
+        content: `Published BOS runtimes for ${params.accountId}.`,
       },
     ],
   }),
@@ -17,7 +17,8 @@ export const Route = createFileRoute("/_layout/apps/$accountId")({
 });
 
 function AccountAppsPage() {
-  const { accountId } = Route.useParams() as { accountId: string };
+  const { accountId } = Route.useParams();
+  const apiClient = useApiClient();
   type RegistryAppsResult = Awaited<ReturnType<typeof apiClient.getRegistryAppsByAccount>>;
 
   const accountQuery = useQuery<RegistryAppsResult>({
@@ -106,12 +107,13 @@ function AccountAppsPage() {
                       </Badge>
                       {app.metadata?.claimedBy && <Badge variant="outline">claimed</Badge>}
                     </div>
-                    <a
-                      href={`/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(app.gatewayId)}`}
+                    <Link
+                      to="/apps/$accountId/$gatewayId"
+                      params={{ accountId, gatewayId: app.gatewayId }}
                       className="font-medium hover:underline break-all"
                     >
                       {app.metadata?.title ?? app.gatewayId}
-                    </a>
+                    </Link>
                     <div className="text-xs font-mono text-muted-foreground break-all">
                       {app.gatewayId}
                     </div>
@@ -133,11 +135,12 @@ function AccountAppsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <a
-                      href={`/apps/${encodeURIComponent(accountId)}/${encodeURIComponent(app.gatewayId)}`}
+                    <Link
+                      to="/apps/$accountId/$gatewayId"
+                      params={{ accountId, gatewayId: app.gatewayId }}
                     >
                       inspect runtime
-                    </a>
+                    </Link>
                   </Button>
                   {app.openUrl && (
                     <Button asChild variant="outline" size="sm">

@@ -1,5 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createTestApiClient } from "../helpers/api-client";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 interface ORPCErrorResponse {
   code: string;
@@ -55,11 +54,6 @@ describe("Error Propagation & Formatting", () => {
 
   beforeAll(() => {
     mockApiClient = createMockApiClient();
-    globalThis.$apiClient = createTestApiClient(mockApiClient);
-  });
-
-  afterAll(() => {
-    (globalThis as Record<string, unknown>).$apiClient = undefined;
   });
 
   describe("UNAUTHORIZED Error Flow", () => {
@@ -233,11 +227,6 @@ describe("Error Propagation & Formatting", () => {
   });
 
   describe("SSR Client Error Handling", () => {
-    it("uses globalThis.$apiClient during SSR rendering", () => {
-      expect(globalThis.$apiClient).toBeDefined();
-      expect(globalThis.$apiClient).toMatchObject(mockApiClient);
-    });
-
     it("SSR client handles errors without needing absolute URL", async () => {
       mockApiClient.getValue.mockRejectedValueOnce({
         code: "NOT_FOUND",

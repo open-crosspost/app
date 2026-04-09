@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "sonner";
-import { apiClient, authClient } from "@/app";
+import { authClient } from "@/app";
 import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 import {
   getActiveOrganization,
@@ -12,6 +12,7 @@ import {
   sessionQueryOptions,
   setActiveOrganization,
 } from "@/lib/session";
+import { useApiClient } from "@/lib/use-api-client";
 
 export const Route = createFileRoute("/_layout/_authenticated/home")({
   head: () => ({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_layout/_authenticated/home")({
 
 function Home() {
   const queryClient = useQueryClient();
+  const apiClient = useApiClient();
 
   type ProjectsResult = Awaited<ReturnType<typeof apiClient.listProjects>>;
 

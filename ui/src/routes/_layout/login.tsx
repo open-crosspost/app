@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_layout/login")({
 
     if (session?.user) {
       const redirectTo = search.redirect?.startsWith("/") ? search.redirect : "/home";
-      throw redirect({ to: redirectTo as never, search: {} as never });
+      throw redirect({ to: redirectTo, search: {} });
     }
   },
   loader: ({ context }) => {
@@ -69,7 +69,7 @@ function LoginPage() {
     await queryClient.invalidateQueries({ queryKey: organizationsQueryOptions().queryKey });
     router.invalidate();
     const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
-    navigate({ to: redirectTo as never, replace: true, search: {} as never });
+    navigate({ to: redirectTo, replace: true, search: {} });
     toast.success(message);
   };
 
@@ -261,7 +261,7 @@ function LoginPage() {
 
   if (session?.user) {
     const redirectTo = redirect?.startsWith("/") ? redirect : "/home";
-    return <Navigate to={redirectTo as never} replace search={{} as never} />;
+    return <Navigate to={redirectTo} replace search={{}} />;
   }
 
   const renderAuthMethod = () => {

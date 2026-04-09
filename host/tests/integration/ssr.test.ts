@@ -29,7 +29,6 @@ describe("SSR Stream Lifecycle", () => {
   let config: RuntimeConfig;
 
   beforeAll(async () => {
-    globalThis.$apiClient = mockApiClient;
     config = await loadTestRuntimeConfig();
     routerModule = await Effect.runPromise(loadRouterModule(config));
   });
@@ -68,7 +67,10 @@ describe("SSR Stream Lifecycle", () => {
       const request = new Request("http://localhost/");
       const startTime = Date.now();
 
-      const result = await routerModule.renderToStream(request, buildTestRenderOptions(config));
+      const result = await routerModule.renderToStream(
+        request,
+        buildTestRenderOptions(config, mockApiClient),
+      );
 
       const html = await consumeStream(result.stream);
       const elapsed = Date.now() - startTime;
@@ -88,7 +90,10 @@ describe("SSR Stream Lifecycle", () => {
       const request = new Request("http://localhost/");
       const startTime = Date.now();
 
-      const result = await routerModule.renderToStream(request, buildTestRenderOptions(config));
+      const result = await routerModule.renderToStream(
+        request,
+        buildTestRenderOptions(config, mockApiClient),
+      );
 
       const html = await consumeStream(result.stream);
       const elapsed = Date.now() - startTime;

@@ -443,9 +443,12 @@ async function runHostServer(opts: {
     }
 
     try {
+      const apiClient = baseApiPlugin?.client;
+
       const result = await routerModule.renderToStream(c.req.raw, {
         assetsUrl: runtimeConfig.ui.url,
         runtimeConfig: clientRuntimeConfig,
+        apiClient,
       });
 
       return new Response(result.stream, {

@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { Effect } from "effect";
 import { syncApiContractBridge } from "./api-contract";
 import { buildRuntimeConfig, detectLocalPackages, prepareDevelopmentRuntimeConfig } from "./app";
@@ -16,6 +18,10 @@ import {
   bosContract,
   type DevOptions,
   type KeyPublishOptions,
+  type PluginAddOptions,
+  type PluginListResult,
+  type PluginPublishOptions,
+  type PluginRemoveOptions,
   type PublishOptions,
   type StartOptions,
 } from "./contract";
@@ -53,6 +59,8 @@ type BosDeps = {
   runtimeConfig: RuntimeConfig | null;
   configDir: string;
 };
+
+type PluginAttachmentConfig = NonNullable<BosConfig["plugins"]>[string];
 
 function parseSourceMode(value: string | undefined, defaultValue: SourceMode): SourceMode {
   if (value === "local" || value === "remote") return value;
@@ -173,6 +181,85 @@ function resolveProxyUrl(bosConfig: BosConfig | null): string | null {
   return null;
 }
 
+function sanitizePluginKey(value: string): string {
+  return value
+    .replace(/[^A-Za-z0-9/_-]/g, "-")
+    .replace(/\/+/g, "/")
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => segment.replace(/[^A-Za-z0-9_-]/g, "-"))
+    .join("/")
+    .replace(/^\/+|\/+$/g, "");
+}
+
+function defaultPluginKey(source: string): string {
+  const normalized = source.replace(/^local:/, "").replace(/\/$/, "");
+  if (source.startsWith("local:")) {
+    return sanitizePluginKey(basename(normalized)) || "plugin";
+  }
+
+  try {
+    const url = new URL(source);
+    return sanitizePluginKey(basename(url.pathname) || url.hostname) || "plugin";
+  } catch {
+    return sanitizePluginKey(source) || "plugin";
+  }
+}
+
+function pluginLocalPath(configDir: string, attachment: PluginAttachmentConfig): string | null {
+  const source = attachment.development ?? attachment.production;
+  if (!source || !source.startsWith("local:")) {
+    return null;
+  }
+
+  return join(configDir, source.slice("local:".length));
+}
+
+async function saveBosConfig(configDir: string, config: BosConfig): Promise<void> {
+  const filePath = join(configDir, "bos.config.json");
+  const next = `${JSON.stringify(config, null, 2)}\n`;
+  try {
+    if (readFileSync(filePath, "utf8") === next) return;
+  } catch {
+    // file does not exist yet
+  }
+
+  writeFileSync(filePath, next);
+}
+
+function listPluginAttachments(config: BosConfig | null) {
+  return (Object.entries(config?.plugins ?? {}) as Array<[string, PluginAttachmentConfig]>)
+    .map(([key, attachment]) => ({
+      key,
+      development: attachment.development,
+      production: attachment.production,
+      localPath: attachment.development?.startsWith("local:")
+        ? attachment.development.slice("local:".length)
+        : undefined,
+      source: attachment.development?.startsWith("local:")
+        ? ("local" as const)
+        : ("remote" as const),
+    }))
+    .sort((a, b) => a.key.localeCompare(b.key));
+}
+
+async function refreshApiContractBridge(configDir: string): Promise<void> {
+  const refreshed = await loadConfig({ cwd: configDir, env: "development" });
+  if (!refreshed) return;
+
+  await syncApiContractBridge({
+    configDir,
+    runtimeConfig: refreshed.runtime,
+    apiBaseUrl: refreshed.runtime.api.url,
+  });
+}
+
+function extractPublishedUrl(output: string): string | null {
+  const match = output.match(/https?:\/\/[^\s"'<>]+/g);
+  if (!match || match.length === 0) return null;
+  return match[match.length - 1] ?? null;
+}
+
 async function buildEnvVars(
   config: AppConfig,
   bosConfig?: BosConfig | null,
@@ -215,34 +302,27 @@ async function buildEveryPluginQuietly(cwd: string) {
     return;
   }
 
-  const proc = Bun.spawn({
-    cmd: ["bun", "run", "--cwd", "packages/every-plugin", "build"],
+  const result = (await run("bun", ["run", "--cwd", "packages/every-plugin", "build"], {
     cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: process.env,
-  });
+    capture: true,
+  })) as { stdout: string; stderr: string; exitCode: number };
 
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-
-  if (exitCode === 0) {
+  if (result.exitCode === 0) {
     console.log("[build:ssr] build succeeded");
     return;
   }
 
-  if (stdout.trim()) {
-    process.stdout.write(stdout);
+  if (result.stdout.trim()) {
+    process.stdout.write(result.stdout);
   }
 
-  if (stderr.trim()) {
-    process.stderr.write(stderr);
+  if (result.stderr.trim()) {
+    process.stderr.write(result.stderr);
   }
 
-  throw new Error(`bun run --cwd packages/every-plugin build failed with exit code ${exitCode}`);
+  throw new Error(
+    `bun run --cwd packages/every-plugin build failed with exit code ${result.exitCode}`,
+  );
 }
 
 async function fetchPublishedConfig(
@@ -370,6 +450,173 @@ export default createPlugin({
   shutdown: () => Effect.void,
   createRouter: (deps: BosDeps, builder: any) => ({
     config: builder.config.handler(async () => buildConfigResult(deps.bosConfig)),
+
+    pluginAdd: builder.pluginAdd.handler(async ({ input }: { input: PluginAddOptions }) => {
+      if (!deps.bosConfig) {
+        return {
+          status: "error" as const,
+          key: "",
+          error: "No bos.config.json found",
+        };
+      }
+
+      const key = sanitizePluginKey(input.as ?? defaultPluginKey(input.source));
+      const existing = deps.bosConfig.plugins?.[key];
+      const nextPlugins = { ...(deps.bosConfig.plugins ?? {}) };
+
+      nextPlugins[key] = input.source.startsWith("local:")
+        ? {
+            ...(existing ?? {}),
+            development: input.source,
+            production: input.production ?? existing?.production,
+          }
+        : {
+            ...(existing ?? {}),
+            production: input.production ?? input.source,
+          };
+
+      deps.bosConfig = {
+        ...deps.bosConfig,
+        plugins: nextPlugins,
+      };
+
+      await saveBosConfig(deps.configDir, deps.bosConfig);
+      await refreshApiContractBridge(deps.configDir);
+
+      return {
+        status: "added" as const,
+        key,
+        development: deps.bosConfig.plugins?.[key]?.development,
+        production: deps.bosConfig.plugins?.[key]?.production,
+      };
+    }),
+
+    pluginRemove: builder.pluginRemove.handler(
+      async ({ input }: { input: PluginRemoveOptions }) => {
+        if (!deps.bosConfig) {
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: "No bos.config.json found",
+          };
+        }
+
+        if (!deps.bosConfig.plugins?.[input.key]) {
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: `Plugin '${input.key}' is not configured`,
+          };
+        }
+
+        const nextPlugins = { ...(deps.bosConfig.plugins ?? {}) };
+        delete nextPlugins[input.key];
+        deps.bosConfig = {
+          ...deps.bosConfig,
+          plugins: Object.keys(nextPlugins).length > 0 ? nextPlugins : undefined,
+        };
+
+        await saveBosConfig(deps.configDir, deps.bosConfig);
+        await refreshApiContractBridge(deps.configDir);
+
+        return {
+          status: "removed" as const,
+          key: input.key,
+        };
+      },
+    ),
+
+    pluginList: builder.pluginList.handler(async () => {
+      const plugins: PluginListResult["plugins"] = listPluginAttachments(deps.bosConfig);
+      return {
+        status: "listed" as const,
+        plugins,
+      };
+    }),
+
+    pluginPublish: builder.pluginPublish.handler(
+      async ({ input }: { input: PluginPublishOptions }) => {
+        if (!deps.bosConfig) {
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: "No bos.config.json found",
+          };
+        }
+
+        const attachment = deps.bosConfig.plugins?.[input.key];
+        if (!attachment) {
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: `Plugin '${input.key}' is not configured`,
+          };
+        }
+
+        const localPath = pluginLocalPath(deps.configDir, attachment);
+        if (!localPath) {
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: `Plugin '${input.key}' does not have a local development path`,
+          };
+        }
+
+        const pkgPath = join(localPath, "package.json");
+        if (!(await Bun.file(pkgPath).exists())) {
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: `Missing package.json at ${localPath}`,
+          };
+        }
+
+        const pkgJson = (await Bun.file(pkgPath).json()) as { scripts?: Record<string, string> };
+        const script = pkgJson.scripts?.deploy ? "deploy" : "build";
+
+        const { stdout, stderr, exitCode } = (await run("bun", ["run", script], {
+          cwd: localPath,
+          capture: true,
+        })) as { stdout: string; stderr: string; exitCode: number };
+
+        if (exitCode !== 0) {
+          if (stdout.trim()) process.stdout.write(stdout);
+          if (stderr.trim()) process.stderr.write(stderr);
+          return {
+            status: "error" as const,
+            key: input.key,
+            error: `Publish failed with exit code ${exitCode}`,
+          };
+        }
+
+        if (stdout.trim()) process.stdout.write(stdout);
+        if (stderr.trim()) process.stderr.write(stderr);
+
+        const publishedUrl = extractPublishedUrl(`${stdout}\n${stderr}`);
+        if (publishedUrl) {
+          deps.bosConfig = {
+            ...deps.bosConfig,
+            plugins: {
+              ...(deps.bosConfig.plugins ?? {}),
+              [input.key]: {
+                ...(deps.bosConfig.plugins?.[input.key] ?? {}),
+                production: publishedUrl,
+              },
+            },
+          };
+          await saveBosConfig(deps.configDir, deps.bosConfig);
+          await refreshApiContractBridge(deps.configDir);
+        }
+
+        return {
+          status: "published" as const,
+          key: input.key,
+          path: localPath,
+          script,
+          production: publishedUrl ?? attachment.production,
+        };
+      },
+    ),
 
     dev: builder.dev.handler(async ({ input }: { input: DevOptions }) => {
       const localPackages = detectLocalPackages(

@@ -13,5 +13,6 @@ export {
   getRuntimeBasePath,
   getRuntimeConfig,
 } from "everything-dev/ui/runtime";
-export { type ApiClient, type ApiContract, apiClient } from "./lib/api-client";
+export type { ApiClient, ApiContract } from "./lib/api-client";
+export { createApiClient } from "./lib/api-client";
 export { authClient } from "./lib/auth-client";

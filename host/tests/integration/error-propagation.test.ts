@@ -1,5 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createTestApiClient } from "../helpers/api-client";
+import { describe, expect, it, vi } from "vitest";
 
 interface ORPCErrorResponse {
   code: string;
@@ -17,14 +16,6 @@ describe("ORPC Error Propagation to HTTP Response", () => {
     deleteKey: vi.fn(),
     ping: vi.fn().mockResolvedValue({ status: "ok", timestamp: new Date().toISOString() }),
   };
-
-  beforeAll(() => {
-    globalThis.$apiClient = createTestApiClient(mockApiClient);
-  });
-
-  afterAll(() => {
-    delete (globalThis as Record<string, unknown>).$apiClient;
-  });
 
   describe("Error Structure Preservation", () => {
     it("should return error object with complete structure, not empty object", async () => {

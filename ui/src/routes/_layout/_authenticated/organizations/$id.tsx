@@ -1,14 +1,7 @@
-import {
-  type QueryClient,
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
 import {
   inviteMember,
@@ -17,47 +10,44 @@ import {
   sessionQueryOptions,
   setActiveOrganization,
 } from "@/lib/session";
+import { useApiClient } from "@/lib/use-api-client";
 
-type OrgApiKeysResult = Awaited<ReturnType<typeof apiClient.listApiKeys>>;
-type CreatedApiKey = Awaited<ReturnType<typeof apiClient.createApiKey>>;
-type OrgMembersResult = Awaited<ReturnType<typeof apiClient.listOrgMembers>>;
-type OrgInvitationsResult = Awaited<ReturnType<typeof apiClient.listOrgInvitations>>;
+type ApiClient = import("@/app").ApiClient;
+type OrgApiKeysResult = Awaited<ReturnType<ApiClient["listApiKeys"]>>;
+type CreatedApiKey = Awaited<ReturnType<ApiClient["createApiKey"]>>;
+type OrgMembersResult = Awaited<ReturnType<ApiClient["listOrgMembers"]>>;
+type OrgInvitationsResult = Awaited<ReturnType<ApiClient["listOrgInvitations"]>>;
 
-const orgMembersQueryOptions = (orgId: string) =>
-  queryOptions({
-    queryKey: ["org-members", orgId],
-    queryFn: async (): Promise<OrgMembersResult> =>
-      apiClient.listOrgMembers({ organizationId: orgId }),
-  });
-
-const orgInvitationsQueryOptions = (orgId: string) =>
-  queryOptions({
-    queryKey: ["org-invitations", orgId],
-    queryFn: async (): Promise<OrgInvitationsResult> =>
-      apiClient.listOrgInvitations({ organizationId: orgId }),
-  });
-
-const orgApiKeysQueryOptions = (orgId: string) =>
-  queryOptions({
-    queryKey: ["org-api-keys", orgId],
-    queryFn: async (): Promise<OrgApiKeysResult> =>
-      apiClient.listApiKeys({ organizationId: orgId }),
-  });
+const orgMembersQueryKey = (orgId: string) => ["org-members", orgId] as const;
+const orgInvitationsQueryKey = (orgId: string) => ["org-invitations", orgId] as const;
+const orgApiKeysQueryKey = (orgId: string) => ["org-api-keys", orgId] as const;
 
 export const Route = createFileRoute("/_layout/_authenticated/organizations/$id")({
   loader: async ({
     context,
     params,
   }: {
-    context: { queryClient: QueryClient };
+    context: { queryClient: QueryClient; apiClient: ApiClient };
     params: { id: string };
   }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(sessionQueryOptions()),
       context.queryClient.ensureQueryData(organizationsQueryOptions()),
-      context.queryClient.ensureQueryData(orgMembersQueryOptions(params.id)),
-      context.queryClient.ensureQueryData(orgInvitationsQueryOptions(params.id)),
-      context.queryClient.ensureQueryData(orgApiKeysQueryOptions(params.id)),
+      context.queryClient.ensureQueryData({
+        queryKey: orgMembersQueryKey(params.id),
+        queryFn: async (): Promise<OrgMembersResult> =>
+          context.apiClient.listOrgMembers({ organizationId: params.id }),
+      }),
+      context.queryClient.ensureQueryData({
+        queryKey: orgInvitationsQueryKey(params.id),
+        queryFn: async (): Promise<OrgInvitationsResult> =>
+          context.apiClient.listOrgInvitations({ organizationId: params.id }),
+      }),
+      context.queryClient.ensureQueryData({
+        queryKey: orgApiKeysQueryKey(params.id),
+        queryFn: async (): Promise<OrgApiKeysResult> =>
+          context.apiClient.listApiKeys({ organizationId: params.id }),
+      }),
     ]);
   },
   head: () => ({
@@ -71,13 +61,26 @@ export const Route = createFileRoute("/_layout/_authenticated/organizations/$id"
 
 function OrganizationDetail() {
   const queryClient = useQueryClient();
-  const { id: orgId } = Route.useParams() as { id: string };
+  const { id: orgId } = Route.useParams();
+  const apiClient = useApiClient();
 
   const { data: session } = useQuery(sessionQueryOptions());
   const { data: organizations = [] } = useQuery(organizationsQueryOptions());
-  const membersQuery = useQuery(orgMembersQueryOptions(orgId));
-  const invitationsQuery = useQuery(orgInvitationsQueryOptions(orgId));
-  const apiKeysQuery = useQuery(orgApiKeysQueryOptions(orgId));
+  const membersQuery = useQuery({
+    queryKey: orgMembersQueryKey(orgId),
+    queryFn: async (): Promise<OrgMembersResult> =>
+      apiClient.listOrgMembers({ organizationId: orgId }),
+  });
+  const invitationsQuery = useQuery({
+    queryKey: orgInvitationsQueryKey(orgId),
+    queryFn: async (): Promise<OrgInvitationsResult> =>
+      apiClient.listOrgInvitations({ organizationId: orgId }),
+  });
+  const apiKeysQuery = useQuery({
+    queryKey: orgApiKeysQueryKey(orgId),
+    queryFn: async (): Promise<OrgApiKeysResult> =>
+      apiClient.listApiKeys({ organizationId: orgId }),
+  });
 
   const org = organizations.find((o: Organization) => o.id === orgId);
   const activeOrgId = session?.session?.activeOrganizationId;
@@ -142,7 +145,7 @@ function OrganizationDetail() {
     onSuccess: async (data) => {
       setCreatedApiKey(data);
       queryClient.setQueryData<OrgApiKeysResult>(
-        orgApiKeysQueryOptions(orgId).queryKey,
+        orgApiKeysQueryKey(orgId),
         (current: OrgApiKeysResult | undefined) => {
           const nextKey = {
             id: data.id,
@@ -171,7 +174,9 @@ function OrganizationDetail() {
       toast.success("API key created");
       setApiKeyName("");
       setShowApiKeyForm(false);
-      await queryClient.invalidateQueries({ queryKey: orgApiKeysQueryOptions(orgId).queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: orgApiKeysQueryKey(orgId),
+      });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to create API key");
@@ -181,13 +186,13 @@ function OrganizationDetail() {
   const deleteApiKeyMutation = useMutation({
     mutationFn: (keyId: string) => apiClient.deleteApiKey({ keyId }),
     onMutate: async (keyId) => {
-      await queryClient.cancelQueries({ queryKey: orgApiKeysQueryOptions(orgId).queryKey });
-      const previousKeys = queryClient.getQueryData<OrgApiKeysResult>(
-        orgApiKeysQueryOptions(orgId).queryKey,
-      );
+      await queryClient.cancelQueries({
+        queryKey: orgApiKeysQueryKey(orgId),
+      });
+      const previousKeys = queryClient.getQueryData<OrgApiKeysResult>(orgApiKeysQueryKey(orgId));
 
       queryClient.setQueryData<OrgApiKeysResult>(
-        orgApiKeysQueryOptions(orgId).queryKey,
+        orgApiKeysQueryKey(orgId),
         (current: OrgApiKeysResult | undefined) => {
           if (!current) {
             return current;
@@ -204,11 +209,13 @@ function OrganizationDetail() {
     },
     onSuccess: async () => {
       toast.success("API key deleted");
-      await queryClient.invalidateQueries({ queryKey: orgApiKeysQueryOptions(orgId).queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: orgApiKeysQueryKey(orgId),
+      });
     },
     onError: (error: Error, _keyId, context) => {
       if (context?.previousKeys) {
-        queryClient.setQueryData(orgApiKeysQueryOptions(orgId).queryKey, context.previousKeys);
+        queryClient.setQueryData(orgApiKeysQueryKey(orgId), context.previousKeys);
       }
       toast.error(error.message || "Failed to delete API key");
     },

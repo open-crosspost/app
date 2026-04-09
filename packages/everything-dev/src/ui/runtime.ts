@@ -5,12 +5,19 @@ export type { ActiveRuntimeInfo } from "../types";
 
 declare global {
   interface Window {
-    __RUNTIME_CONFIG__?: Partial<ClientRuntimeConfig>;
+    __RUNTIME_CONFIG__?: ClientRuntimeConfig;
   }
 }
 
-export function getRuntimeConfig(): Partial<ClientRuntimeConfig> | undefined {
-  if (typeof window === "undefined") return undefined;
+export function getRuntimeConfig(): ClientRuntimeConfig {
+  if (typeof window === "undefined") {
+    throw new Error("Runtime config is only available in the browser");
+  }
+
+  if (!window.__RUNTIME_CONFIG__) {
+    throw new Error("Missing runtime config");
+  }
+
   return window.__RUNTIME_CONFIG__;
 }
 

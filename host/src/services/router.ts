@@ -1,4 +1,3 @@
-import { os } from "every-plugin/orpc";
 import type { PluginResult } from "./plugins";
 
 export interface RouterMount {
@@ -16,20 +15,13 @@ function encodePathKey(key: string): string {
     .join("/");
 }
 
-function createBaseRouter(plugins: PluginResult) {
-  return {
-    health: os.route({ method: "GET", path: "/health" }).handler(() => "OK"),
-    ...((plugins.api?.router as Record<string, unknown> | null) ?? {}),
-  } as const;
-}
-
 export function createRouterMounts(plugins: PluginResult): RouterMount[] {
   const mounts: RouterMount[] = [
     {
       key: "api",
       title: plugins.api?.name ?? "api",
       suffix: "",
-      router: createBaseRouter(plugins),
+      router: plugins.api?.router ?? {},
     },
   ];
 

@@ -97,10 +97,6 @@ function createClientConfig() {
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       },
-      publicDir: {
-        name: "dist",
-        copyOnBuild: false,
-      },
     },
     tools: {
       rspack: {
@@ -164,10 +160,6 @@ function createServerConfig() {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
-      },
-      publicDir: {
-        name: "dist",
-        copyOnBuild: false,
       },
     },
     tools: {

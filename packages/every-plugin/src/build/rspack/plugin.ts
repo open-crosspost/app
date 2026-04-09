@@ -38,30 +38,36 @@ export class EmitPluginManifest implements RspackPluginInstance {
         const sourceContractPath = path.join(context, "types", contractFileName);
 
         let contractTypes: string;
-        try {
-          contractTypes = await fs.promises.readFile(sourceContractPath, "utf8");
-        } catch (error) {
-          if ((error as any).code === "ENOENT" || (error as any).code === "EISDIR") {
-            const packageDir = context.split("/").pop();
-            const nestedPath = path.join(
-              context,
-              "types",
-              packageDir ?? "",
-              "src",
-              contractFileName,
-            );
 
-            try {
-              contractTypes = await fs.promises.readFile(nestedPath, "utf8");
-            } catch (nestedError) {
-              console.warn(
-                `[EmitPluginManifest] Contract file not found at ${sourceContractPath} or ${nestedPath}. ` +
-                  `Skipping manifest generation.`,
-              );
-              return;
-            }
-          } else {
-            throw error;
+        const tryReadFile = async (filePath: string): Promise<string | null> => {
+          if (!fs.existsSync(filePath)) {
+            return null;
+          }
+          const stats = fs.statSync(filePath);
+          if (!stats.isFile()) {
+            return null;
+          }
+          try {
+            return await fs.promises.readFile(filePath, "utf8");
+          } catch {
+            return null;
+          }
+        };
+
+        contractTypes = (await tryReadFile(sourceContractPath)) ?? "";
+
+        if (!contractTypes) {
+          const packageDir = context.split("/").pop();
+          const nestedPath = path.join(context, "types", packageDir ?? "", "src", contractFileName);
+
+          contractTypes = (await tryReadFile(nestedPath)) ?? "";
+
+          if (!contractTypes) {
+            console.warn(
+              `[EmitPluginManifest] Contract file not found at ${sourceContractPath} or ${nestedPath}. ` +
+                `Skipping manifest generation.`,
+            );
+            return;
           }
         }
 

@@ -1,31 +1,8 @@
 import { Effect } from "every-plugin/effect";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { loadRouterModule } from "@/services/federation.server";
 import type { HeadData, RouterModule, RuntimeConfig } from "@/types";
-import { createTestApiClient } from "../helpers/api-client";
 import { buildTestRouteHeadContext, loadTestRuntimeConfig } from "../helpers/runtime-config";
-
-const mockApiClient = createTestApiClient({
-  getFeaturedProducts: vi.fn().mockResolvedValue({ products: [] }),
-  getProducts: vi.fn().mockResolvedValue({ products: [] }),
-  getCarouselCollections: vi.fn().mockResolvedValue({ collections: [] }),
-  getProductTypes: vi.fn().mockResolvedValue({ productTypes: [] }),
-  getProduct: vi.fn().mockImplementation(({ id }: { id: string }) =>
-    Promise.resolve({
-      product: {
-        id,
-        slug: id,
-        title: `SEO Product ${id}`,
-        description: `SEO description for ${id}`,
-        price: 10,
-        images: [{ url: "https://example.com/seo.png" }],
-        variants: [],
-        options: [],
-        collections: [],
-      },
-    }),
-  ),
-});
 
 function escapeHtml(str: string): string {
   return str
@@ -86,7 +63,6 @@ describe("SEO Head Extraction", () => {
   let config: RuntimeConfig;
 
   beforeAll(async () => {
-    globalThis.$apiClient = mockApiClient;
     config = await loadTestRuntimeConfig();
     routerModule = await Effect.runPromise(loadRouterModule(config));
   });

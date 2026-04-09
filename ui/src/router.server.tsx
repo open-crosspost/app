@@ -6,6 +6,7 @@ import {
   renderRouterToStream,
 } from "@tanstack/react-router/ssr/server";
 import { collectHeadData } from "everything-dev/ui/router";
+import { createApiClient } from "./app";
 import { routeTree } from "./routeTree.gen";
 import type {
   CreateRouterOptions,
@@ -51,19 +52,8 @@ function defaultPendingComponent() {
   );
 }
 
-const createRouter = (opts: CreateRouterOptions = {}) => {
-  const queryClient =
-    opts.context?.queryClient ??
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: 5 * 60 * 1000,
-          gcTime: 30 * 60 * 1000,
-          refetchOnWindowFocus: false,
-          retry: 1,
-        },
-      },
-    });
+const createRouter = (opts: CreateRouterOptions) => {
+  const queryClient = opts.context.queryClient;
 
   const history = opts.history ?? createMemoryHistory();
 
@@ -73,9 +63,10 @@ const createRouter = (opts: CreateRouterOptions = {}) => {
     basepath: opts.basepath,
     context: {
       queryClient,
-      assetsUrl: opts.context?.assetsUrl ?? "",
-      runtimeConfig: opts.context?.runtimeConfig,
-      session: opts.context?.session,
+      assetsUrl: opts.context.assetsUrl,
+      runtimeConfig: opts.context.runtimeConfig,
+      apiClient: opts.context.apiClient,
+      session: opts.context.session,
     },
     defaultPreload: "intent",
     scrollRestoration: true,
@@ -104,13 +95,22 @@ const createRouter = (opts: CreateRouterOptions = {}) => {
 
 const getRouteHead = async (pathname: string, context?: Partial<RouterContext>) => {
   const history = createMemoryHistory({ initialEntries: [pathname] });
+  const queryClient = new QueryClient();
+  const runtimeConfig = context?.runtimeConfig;
+  if (!runtimeConfig?.hostUrl || !runtimeConfig.rpcBase) {
+    throw new Error("Missing runtime config for route head generation");
+  }
+
   const router = createTanStackRouter({
     routeTree,
     history,
     context: {
-      queryClient: undefined as never,
+      queryClient,
       assetsUrl: context?.assetsUrl ?? "",
-      runtimeConfig: context?.runtimeConfig,
+      runtimeConfig,
+      apiClient:
+        context?.apiClient ??
+        createApiClient({ hostUrl: runtimeConfig.hostUrl, rpcBase: runtimeConfig.rpcBase }),
       session: context?.session,
     },
   });
@@ -126,16 +126,30 @@ const renderToStream = async (request: Request, renderOptions: RenderOptions) =>
   const handler = createRequestHandler({
     request,
     createRouter: () => {
-      const { router, queryClient } = createRouter({
+      const localQueryClient =
+        queryClientRef ??
+        new QueryClient({
+          defaultOptions: {
+            queries: {
+              staleTime: 5 * 60 * 1000,
+              gcTime: 30 * 60 * 1000,
+              refetchOnWindowFocus: false,
+              retry: 1,
+            },
+          },
+        });
+      const { router } = createRouter({
         history,
         basepath: renderOptions.basepath,
         context: {
+          queryClient: localQueryClient,
           assetsUrl: renderOptions.assetsUrl,
           runtimeConfig: renderOptions.runtimeConfig,
+          apiClient: renderOptions.apiClient,
           session: renderOptions.session,
         },
       });
-      queryClientRef = queryClient;
+      queryClientRef = localQueryClient;
       return router;
     },
   });

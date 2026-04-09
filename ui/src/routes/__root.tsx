@@ -24,6 +24,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
+      apiClient: context.apiClient,
       session,
     };
   },
@@ -39,6 +40,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
+      apiClient: context.apiClient,
       session,
     };
   },

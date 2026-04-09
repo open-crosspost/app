@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { apiClient } from "@/app";
 import { Badge, Card, CardContent, UnderConstruction } from "@/components";
+import { useApiClient } from "@/lib/use-api-client";
 
 export const Route = createFileRoute("/_layout/about")({
   head: () => ({
@@ -18,13 +18,11 @@ export const Route = createFileRoute("/_layout/about")({
 });
 
 function About() {
+  const apiClient = useApiClient();
   const configQuery = useQuery({
     queryKey: ["registry-app", "every.near", "everything.dev"],
     queryFn: () =>
-      apiClient.getRegistryApp({
-        accountId: "every.near",
-        gatewayId: "everything.dev",
-      }),
+      apiClient.getRegistryApp({ accountId: "every.near", gatewayId: "everything.dev" }),
     staleTime: 5 * 60_000,
   });
 
@@ -295,15 +293,30 @@ function BoxLink({
   onFocus?: () => void;
   onClick?: (e: React.MouseEvent) => void;
 }) {
+  const isStaticFile = /\.(md|txt|json)$/i.test(href);
+
+  if (isStaticFile) {
+    return (
+      <a href={href} onMouseEnter={onMouseEnter} onFocus={onFocus} onClick={onClick}>
+        <Card className="transition-colors hover:bg-muted/20">
+          <CardContent className="p-4 space-y-1">
+            <div className="font-medium">{title}</div>
+            <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+          </CardContent>
+        </Card>
+      </a>
+    );
+  }
+
   return (
-    <a href={href} onMouseEnter={onMouseEnter} onFocus={onFocus} onClick={onClick}>
+    <Link to={href} onMouseEnter={onMouseEnter} onFocus={onFocus} onClick={onClick}>
       <Card className="transition-colors hover:bg-muted/20">
         <CardContent className="p-4 space-y-1">
           <div className="font-medium">{title}</div>
           <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
         </CardContent>
       </Card>
-    </a>
+    </Link>
   );
 }
 

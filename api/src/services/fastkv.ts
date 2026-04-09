@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "every-plugin/effect";
+import { Context, Layer } from "every-plugin/effect";
 
 export type NetworkId = "mainnet" | "testnet";
 
@@ -53,7 +53,10 @@ export function getFastKvBaseUrlForAccount(accountId: string): string {
   return getFastKvBaseUrlForNetwork(getNetworkIdForAccount(accountId));
 }
 
-export function getRegistryNamespaceForNetwork(network: NetworkId, config: RegistryConfig): string {
+export function getRegistryNamespaceForNetwork(
+  _network: NetworkId,
+  config: RegistryConfig,
+): string {
   return config.namespace;
 }
 

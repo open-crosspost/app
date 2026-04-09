@@ -3,20 +3,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { apiClient, authClient } from "@/app";
+import { authClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
 import { Input } from "@/components/ui/input";
 import { sessionQueryOptions } from "@/lib/session";
+import { useApiClient } from "@/lib/use-api-client";
 
 export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId")({
   head: ({ params }) => ({
     meta: [
       {
-        title: `${(params as { accountId: string; gatewayId: string }).accountId}/${(params as { accountId: string; gatewayId: string }).gatewayId} | Published Apps | everything.dev`,
+        title: `${params.accountId}/${params.gatewayId} | Published Apps | everything.dev`,
       },
       {
         name: "description",
-        content: `Runtime details for ${(params as { accountId: string; gatewayId: string }).accountId} on ${(params as { accountId: string; gatewayId: string }).gatewayId}.`,
+        content: `Runtime details for ${params.accountId} on ${params.gatewayId}.`,
       },
     ],
   }),
@@ -24,8 +25,9 @@ export const Route = createFileRoute("/_layout/apps/$accountId/$gatewayId")({
 });
 
 function AppDetailPage() {
-  const { accountId, gatewayId } = Route.useParams() as { accountId: string; gatewayId: string };
+  const { accountId, gatewayId } = Route.useParams();
   const queryClient = useQueryClient();
+  const apiClient = useApiClient();
   const detailQuery = useQuery({
     queryKey: ["registry-app", accountId, gatewayId],
     queryFn: () => apiClient.getRegistryApp({ accountId, gatewayId }),
@@ -242,12 +244,13 @@ function AppDetailPage() {
             apps
           </Link>
           <span>/</span>
-          <a
-            href={`/apps/${encodeURIComponent(accountId)}`}
+          <Link
+            to="/apps/$accountId"
+            params={{ accountId }}
             className="hover:text-foreground transition-colors"
           >
             {accountId}
-          </a>
+          </Link>
           <span>/</span>
           <span>{gatewayId}</span>
         </div>
@@ -367,20 +370,18 @@ function AppDetailPage() {
         </CardContent>
       </Card>
 
-      <Card id="config">
-        <CardContent className="p-6 space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold tracking-tight">Resolved Config</h2>
-            <p className="text-sm text-muted-foreground">
-              The live resolved <code>bos.config.json</code> for this app, fetched from FastKV and
-              merged with any inherited values.
-            </p>
-          </div>
-          <pre className="overflow-x-auto text-xs leading-relaxed text-muted-foreground font-mono whitespace-pre rounded-sm border border-border bg-muted/10 p-4">
-            {JSON.stringify(app.resolvedConfig, null, 2)}
-          </pre>
-        </CardContent>
-      </Card>
+      <section id="config" className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight">Resolved Config</h2>
+          <p className="text-sm text-muted-foreground">
+            The live resolved <code>bos.config.json</code> for this app, fetched from FastKV and
+            merged with any inherited values.
+          </p>
+        </div>
+        <pre className="overflow-x-auto text-xs leading-relaxed text-muted-foreground font-mono whitespace-pre">
+          {JSON.stringify(app.resolvedConfig, null, 2)}
+        </pre>
+      </section>
 
       <Card id="metadata">
         <CardContent className="p-6 space-y-4">

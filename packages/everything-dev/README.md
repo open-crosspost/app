@@ -11,7 +11,14 @@ A consolidated product package for building Module Federation apps with oRPC API
 - `everything-dev/plugin` - Plugin authoring (re-exports from every-plugin)
 - `everything-dev/api` - API plugin loading and router stitching
 - `everything-dev/host` - Host server orchestration
-- `everything-dev/cli` - CLI entry point
+- `everything-dev/cli` - CLI entry point and plugin workspace commands
+
+### Plugin commands
+
+- `bos plugin add <source>` - attach local or remote plugins
+- `bos plugin remove <key>` - detach a plugin
+- `bos plugin list` - list configured plugins
+- `bos plugin publish <key>` - publish one plugin package
 
 ## Demo
 

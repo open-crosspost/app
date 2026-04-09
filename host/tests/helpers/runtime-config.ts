@@ -1,6 +1,8 @@
 import { loadConfig } from "everything-dev/config";
 import type { ClientRuntimeConfig } from "everything-dev/types";
-import type { RenderOptions, RouterContext, RuntimeConfig } from "@/types";
+import type { RenderOptionsWithApi, RouterContext } from "everything-dev/ui/types";
+import type { RuntimeConfig } from "@/types";
+import type { ApiClient } from "../../../ui/src/lib/api-client";
 
 export async function loadTestRuntimeConfig(): Promise<RuntimeConfig> {
   const result = await loadConfig();
@@ -20,6 +22,18 @@ export async function loadTestRuntimeConfig(): Promise<RuntimeConfig> {
 }
 
 export function buildTestClientRuntimeConfig(config: RuntimeConfig): Partial<ClientRuntimeConfig> {
+  const plugins: NonNullable<Partial<ClientRuntimeConfig>["plugins"]> = {};
+
+  for (const [key, plugin] of Object.entries(config.plugins ?? {}) as Array<
+    [string, { name: string; url: string; entry: string }]
+  >) {
+    plugins[key] = {
+      name: plugin.name,
+      url: plugin.url,
+      entry: plugin.entry,
+    };
+  }
+
   return {
     env: config.env,
     account: config.account,
@@ -38,18 +52,7 @@ export function buildTestClientRuntimeConfig(config: RuntimeConfig): Partial<Cli
       url: config.api.url,
       entry: config.api.entry,
     },
-    plugins: config.plugins
-      ? Object.fromEntries(
-          Object.entries(config.plugins).map(([key, plugin]) => [
-            key,
-            {
-              name: plugin.name,
-              url: plugin.url,
-              entry: plugin.entry,
-            },
-          ]),
-        )
-      : undefined,
+    plugins: Object.keys(plugins).length > 0 ? plugins : undefined,
   };
 }
 
@@ -60,9 +63,13 @@ export function buildTestRouteHeadContext(config: RuntimeConfig): Partial<Router
   };
 }
 
-export function buildTestRenderOptions(config: RuntimeConfig): RenderOptions {
+export function buildTestRenderOptions(
+  config: RuntimeConfig,
+  apiClient: ApiClient,
+): RenderOptionsWithApi<ApiClient> {
   return {
     assetsUrl: config.ui.url,
     runtimeConfig: buildTestClientRuntimeConfig(config),
+    apiClient,
   };
 }

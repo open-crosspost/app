@@ -1,35 +1,23 @@
 import { createORPCClient, onError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { ContractRouterClient } from "@orpc/contract";
-import { getRuntimeConfig } from "everything-dev/ui/runtime";
-import { toast } from "sonner";
-import type { ContractType as BaseApiContract } from "../../../api/src/contract";
 import type { ApiContract } from "../api-contract";
 
 export type { ApiContract };
+export type ApiClient = ContractRouterClient<ApiContract>;
 
-type PluginKey = Exclude<keyof ApiContract, keyof BaseApiContract>;
-type PluginClientMap = {
-  [K in PluginKey]: ApiContract[K] extends object ? ContractRouterClient<ApiContract[K]> : never;
-};
+let browserApiClient: ApiClient | null = null;
 
-export type ApiClient = ContractRouterClient<BaseApiContract> & PluginClientMap;
-
-declare global {
-  var $apiClient: ApiClient | undefined;
-}
-
-function createApiLink() {
+function createRpcLink(runtimeConfig: { hostUrl: string; rpcBase: string }) {
   return new RPCLink({
-    url: () => {
-      if (typeof window === "undefined") {
-        throw new Error("RPCLink is not allowed on the server side.");
-      }
-      return `${window.location.origin}/api/rpc`;
-    },
+    url: `${runtimeConfig.hostUrl}${runtimeConfig.rpcBase}`,
     interceptors: [
       onError((error: unknown) => {
         console.error("oRPC API Error:", error);
+
+        if (typeof window === "undefined") {
+          return;
+        }
 
         if (error && typeof error === "object" && "message" in error) {
           const message = String(error.message).toLowerCase();
@@ -38,15 +26,17 @@ function createApiLink() {
             message.includes("network") ||
             message.includes("failed to fetch")
           ) {
-            toast.error("Unable to connect to API", {
-              id: "api-connection-error",
-              description: "The API is currently unavailable. Please try again later.",
+            void import("sonner").then(({ toast }) => {
+              toast.error("Unable to connect to API", {
+                id: "api-connection-error",
+                description: "The API is currently unavailable. Please try again later.",
+              });
             });
           }
         }
       }),
     ],
-    fetch(url, options) {
+    fetch(url: RequestInfo | URL, options?: RequestInit) {
       return fetch(url, {
         ...options,
         credentials: "include",
@@ -55,68 +45,25 @@ function createApiLink() {
   });
 }
 
-function createPluginLink(key: string) {
-  return new RPCLink({
-    url: () => {
-      if (typeof window === "undefined") {
-        throw new Error("RPCLink is not allowed on the server side.");
-      }
-      return `${window.location.origin}/api/rpc/${encodePathKey(key)}`;
-    },
-    interceptors: [
-      onError((error: unknown) => {
-        console.error(`oRPC Plugin Error (${key}):`, error);
-      }),
-    ],
-    fetch(url, options) {
-      return fetch(url, {
-        ...options,
-        credentials: "include",
-      });
-    },
-  });
-}
+export function createApiClient(runtimeConfig: { hostUrl: string; rpcBase: string }): ApiClient {
+  if (!runtimeConfig.hostUrl) {
+    throw new Error("Missing runtime host URL");
+  }
 
-function encodePathKey(key: string): string {
-  return key
-    .split("/")
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-}
+  if (typeof window !== "undefined" && browserApiClient) {
+    return browserApiClient;
+  }
 
-let clientSideApiClient: ApiClient | null = null;
-
-function getClientSideApiClient(): ApiClient {
-  if (clientSideApiClient) return clientSideApiClient;
-  const client = createORPCClient(createApiLink()) as unknown as Record<string, unknown>;
-  const runtimeConfig = getRuntimeConfig();
-  const plugins = Object.fromEntries(
-    Object.keys(runtimeConfig?.plugins ?? {}).map((key) => [
-      key,
-      createORPCClient(createPluginLink(key)) as unknown,
-    ]),
+  const client: ApiClient = createORPCClient(
+    createRpcLink({
+      hostUrl: runtimeConfig.hostUrl,
+      rpcBase: runtimeConfig.rpcBase,
+    }),
   );
 
-  clientSideApiClient = {
-    ...client,
-    ...plugins,
-  } as ApiClient;
-  return clientSideApiClient;
-}
+  if (typeof window !== "undefined") {
+    browserApiClient = client;
+  }
 
-function getActiveApiClient(): ApiClient {
-  return globalThis.$apiClient ?? getClientSideApiClient();
+  return client;
 }
-
-export const apiClient: ApiClient = new Proxy({} as ApiClient, {
-  get(_target, prop) {
-    if (prop === "then") return undefined;
-    const client = getActiveApiClient() as unknown as Record<string, unknown>;
-    const value = client[prop as string];
-    if (typeof value === "function") {
-      return (...args: unknown[]) => (value as (...a: unknown[]) => unknown)(...args);
-    }
-    return value;
-  },
-});

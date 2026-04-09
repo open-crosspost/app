@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input, UnderConstruction } from "@/components";
+import { useApiClient } from "@/lib/use-api-client";
+
+type ApiClient = import("@/app").ApiClient;
 
 export const Route = createFileRoute("/_layout/_authenticated/keys/")({
   head: () => ({
@@ -17,12 +19,13 @@ export const Route = createFileRoute("/_layout/_authenticated/keys/")({
 
 function KeysList() {
   const queryClient = useQueryClient();
+  const apiClient = useApiClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
 
-  type KeysListResult = Awaited<ReturnType<typeof apiClient.listKeys>>;
-  type SetValueResult = Awaited<ReturnType<typeof apiClient.setValue>>;
+  type KeysListResult = Awaited<ReturnType<ApiClient["listKeys"]>>;
+  type SetValueResult = Awaited<ReturnType<ApiClient["setValue"]>>;
 
   const keysQuery = useQuery<KeysListResult>({
     queryKey: ["kv-keys"],

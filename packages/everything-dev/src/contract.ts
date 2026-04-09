@@ -48,6 +48,57 @@ export const ConfigResultSchema = z.object({
   remotes: z.array(z.string()),
 });
 
+export const PluginAddOptionsSchema = z.object({
+  source: z.string(),
+  as: z.string().optional(),
+  production: z.string().optional(),
+});
+
+export const PluginAddResultSchema = z.object({
+  status: z.enum(["added", "error"]),
+  key: z.string(),
+  development: z.string().optional(),
+  production: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export const PluginRemoveOptionsSchema = z.object({
+  key: z.string(),
+});
+
+export const PluginRemoveResultSchema = z.object({
+  status: z.enum(["removed", "error"]),
+  key: z.string(),
+  error: z.string().optional(),
+});
+
+export const PluginListResultSchema = z.object({
+  status: z.enum(["listed", "error"]),
+  plugins: z.array(
+    z.object({
+      key: z.string(),
+      development: z.string().optional(),
+      production: z.string().optional(),
+      localPath: z.string().optional(),
+      source: z.enum(["local", "remote"]),
+    }),
+  ),
+  error: z.string().optional(),
+});
+
+export const PluginPublishOptionsSchema = z.object({
+  key: z.string(),
+});
+
+export const PluginPublishResultSchema = z.object({
+  status: z.enum(["published", "error"]),
+  key: z.string(),
+  path: z.string().optional(),
+  script: z.string().optional(),
+  production: z.string().optional(),
+  error: z.string().optional(),
+});
+
 export const PublishOptionsSchema = z.object({
   deploy: z.boolean().default(false),
   dryRun: z.boolean().default(false),
@@ -92,6 +143,19 @@ export const bosContract = oc.router({
     .input(BuildOptionsSchema)
     .output(BuildResultSchema),
   config: oc.route({ method: "GET", path: "/config" }).output(ConfigResultSchema),
+  pluginAdd: oc
+    .route({ method: "POST", path: "/plugin/add" })
+    .input(PluginAddOptionsSchema)
+    .output(PluginAddResultSchema),
+  pluginRemove: oc
+    .route({ method: "POST", path: "/plugin/remove" })
+    .input(PluginRemoveOptionsSchema)
+    .output(PluginRemoveResultSchema),
+  pluginList: oc.route({ method: "GET", path: "/plugin/list" }).output(PluginListResultSchema),
+  pluginPublish: oc
+    .route({ method: "POST", path: "/plugin/publish" })
+    .input(PluginPublishOptionsSchema)
+    .output(PluginPublishResultSchema),
   publish: oc
     .route({ method: "POST", path: "/publish" })
     .input(PublishOptionsSchema)
@@ -106,6 +170,13 @@ export type DevOptions = z.infer<typeof DevOptionsSchema>;
 export type StartOptions = z.infer<typeof StartOptionsSchema>;
 export type BuildOptions = z.infer<typeof BuildOptionsSchema>;
 export type BosConfigResult = z.infer<typeof ConfigResultSchema>;
+export type PluginAddOptions = z.infer<typeof PluginAddOptionsSchema>;
+export type PluginAddResult = z.infer<typeof PluginAddResultSchema>;
+export type PluginRemoveOptions = z.infer<typeof PluginRemoveOptionsSchema>;
+export type PluginRemoveResult = z.infer<typeof PluginRemoveResultSchema>;
+export type PluginListResult = z.infer<typeof PluginListResultSchema>;
+export type PluginPublishOptions = z.infer<typeof PluginPublishOptionsSchema>;
+export type PluginPublishResult = z.infer<typeof PluginPublishResultSchema>;
 export type PublishOptions = z.infer<typeof PublishOptionsSchema>;
 export type KeyPublishOptions = z.infer<typeof KeyPublishOptionsSchema>;
 export type KeyPublishResult = z.infer<typeof KeyPublishResultSchema>;

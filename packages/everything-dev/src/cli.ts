@@ -100,6 +100,53 @@ async function main() {
       process.stdout.write(`  Copy: NEAR_PRIVATE_KEY=${result.privateKey}\n`);
     }
 
+    if (descriptor.key === "pluginAdd") {
+      console.log();
+      console.log(colors.green(`${icons.ok} Added plugin ${result.key}`));
+      if (result.development) console.log(`  ${colors.dim("Development:")} ${result.development}`);
+      if (result.production) console.log(`  ${colors.dim("Production:")} ${result.production}`);
+      console.log();
+      return;
+    }
+
+    if (descriptor.key === "pluginRemove") {
+      console.log();
+      console.log(colors.green(`${icons.ok} Removed plugin ${result.key}`));
+      console.log();
+      return;
+    }
+
+    if (descriptor.key === "pluginList") {
+      console.log();
+      console.log(colors.cyan(frames.top(52)));
+      console.log(`  ${icons.config} ${gradients.cyber("PLUGINS")}`);
+      console.log(colors.cyan(frames.bottom(52)));
+      console.log();
+      if (result.plugins.length === 0) {
+        console.log(colors.dim("  No plugins configured"));
+      } else {
+        for (const pluginItem of result.plugins) {
+          console.log(`  ${colors.cyan(pluginItem.key)}`);
+          if (pluginItem.development)
+            console.log(`    ${colors.dim("Development:")} ${pluginItem.development}`);
+          if (pluginItem.production)
+            console.log(`    ${colors.dim("Production:")} ${pluginItem.production}`);
+        }
+      }
+      console.log();
+      return;
+    }
+
+    if (descriptor.key === "pluginPublish") {
+      console.log();
+      console.log(colors.green(`${icons.ok} Published plugin ${result.key}`));
+      if (result.path) console.log(`  ${colors.dim("Path:")} ${result.path}`);
+      if (result.script) console.log(`  ${colors.dim("Script:")} bun run ${result.script}`);
+      if (result.production) console.log(`  ${colors.dim("Production:")} ${result.production}`);
+      console.log();
+      return;
+    }
+
     if (descriptor.key === "publish") {
       if (result.status === "dry-run") {
         console.log();

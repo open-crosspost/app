@@ -9,9 +9,13 @@ export interface RouterContext {
   session?: unknown;
 }
 
-export interface CreateRouterOptions {
+export interface RouterContextWithApi<TApiClient = unknown> extends RouterContext {
+  apiClient?: TApiClient;
+}
+
+export interface CreateRouterOptions<TApiClient = unknown> {
   history?: RouterHistory;
-  context?: Partial<RouterContext>;
+  context?: Partial<RouterContextWithApi<TApiClient>>;
   basepath?: string;
 }
 
@@ -32,17 +36,27 @@ export interface RenderOptions {
   session?: unknown;
 }
 
+export interface RenderOptionsWithApi<TApiClient = unknown> extends RenderOptions {
+  apiClient: TApiClient;
+}
+
 export interface RenderResult {
   stream: ReadableStream;
   statusCode: number;
   headers: Headers;
 }
 
-export interface RouterModule {
-  createRouter: (opts?: CreateRouterOptions) => {
+export interface RouterModule<TApiClient = unknown> {
+  createRouter: (opts?: CreateRouterOptions<TApiClient>) => {
     router: AnyRouter;
     queryClient: QueryClient;
   };
-  getRouteHead: (pathname: string, context?: Partial<RouterContext>) => Promise<HeadData>;
-  renderToStream: (request: Request, options: RenderOptions) => Promise<RenderResult>;
+  getRouteHead: (
+    pathname: string,
+    context?: Partial<RouterContextWithApi<TApiClient>>,
+  ) => Promise<HeadData>;
+  renderToStream: (
+    request: Request,
+    options: RenderOptionsWithApi<TApiClient>,
+  ) => Promise<RenderResult>;
 }

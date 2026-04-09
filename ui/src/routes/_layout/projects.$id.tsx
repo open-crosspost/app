@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent, Input } from "@/components";
+import { useApiClient } from "@/lib/use-api-client";
 
 export const Route = createFileRoute("/_layout/projects/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `${(params as { id: string }).id} | Project | everything.dev` },
+      { title: `${params.id} | Project | everything.dev` },
       {
         name: "description",
         content: `Project details and linked apps.`,
@@ -19,8 +19,9 @@ export const Route = createFileRoute("/_layout/projects/$id")({
 });
 
 function ProjectDetailPage() {
-  const { id } = Route.useParams() as { id: string };
+  const { id } = Route.useParams();
   const queryClient = useQueryClient();
+  const apiClient = useApiClient();
   const [accountId, setAccountId] = useState("");
   const [gatewayId, setGatewayId] = useState("");
 
@@ -213,12 +214,13 @@ function ProjectDetailPage() {
                     className="rounded-sm border border-border bg-muted/10 p-4 flex items-start justify-between gap-4"
                   >
                     <div className="space-y-1 min-w-0">
-                      <a
-                        href={`/apps/${encodeURIComponent(app.accountId)}/${encodeURIComponent(app.gatewayId)}`}
+                      <Link
+                        to="/apps/$accountId/$gatewayId"
+                        params={{ accountId: app.accountId, gatewayId: app.gatewayId }}
                         className="font-medium hover:underline break-all"
                       >
                         {app.accountId} / {app.gatewayId}
-                      </a>
+                      </Link>
                       <div className="text-xs text-muted-foreground">
                         Position: {app.position} • Added{" "}
                         {new Date(app.createdAt).toLocaleDateString()}

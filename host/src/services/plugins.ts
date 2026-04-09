@@ -240,8 +240,5 @@ export function createAggregateApiClient(result: PluginResult, context?: unknown
     pluginClients[key] = plugin.createClient(context);
   }
 
-  return {
-    ...baseClient,
-    ...pluginClients,
-  };
+  return { ...baseClient, ...pluginClients };
 }

@@ -9,7 +9,11 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-declare module "virtual:drizzle-migrations.sql" {
-  const migrations: { default: Array<{ sql: string[]; name: string }> };
-  export default migrations;
+export {};
+
+declare global {
+  // Temporary compatibility for legacy tests during apiClient refactor.
+  // Runtime code no longer reads this.
+  // eslint-disable-next-line no-var
+  var $apiClient: unknown;
 }

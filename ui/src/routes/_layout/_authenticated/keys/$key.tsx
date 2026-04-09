@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { apiClient } from "@/app";
 import { Badge, Button, Card, CardContent } from "@/components";
+import { useApiClient } from "@/lib/use-api-client";
 
-export type KvValueResult = Awaited<ReturnType<typeof apiClient.getValue>>;
+export type KvValueResult = Awaited<ReturnType<import("@/app").ApiClient["getValue"]>>;
 
 function generateOgImageSvg(keyId: string): string {
   const escapedKey = keyId.length > 40 ? `${keyId.slice(0, 37)}...` : keyId;
@@ -16,9 +16,9 @@ function generateOgImageSvg(keyId: string): string {
 }
 
 export const Route = createFileRoute("/_layout/_authenticated/keys/$key")({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      const data = await apiClient.getValue({ key: params.key });
+      const data = await context.apiClient.getValue({ key: params.key });
       return { data };
     } catch (error) {
       return { error: error as Error, data: null };
@@ -53,6 +53,7 @@ export const Route = createFileRoute("/_layout/_authenticated/keys/$key")({
 function KeyValue() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const apiClient = useApiClient();
   const { key } = Route.useParams();
   const { data, error } = Route.useLoaderData();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
