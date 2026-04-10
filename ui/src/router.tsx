@@ -1,3 +1,4 @@
+import "./styles.css";
 import { createBrowserHistory, createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { getRuntimeBasePath } from "./app";
 import { routeTree } from "./routeTree.gen";

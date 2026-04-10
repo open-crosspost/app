@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, Layer } from "every-plugin/effect";
+import { Cause, Effect, Exit, Layer } from "effect";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseLive } from "@/db/layer";
 import { kvStore } from "@/db/schema";

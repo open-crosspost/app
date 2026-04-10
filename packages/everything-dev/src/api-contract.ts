@@ -1,14 +1,5 @@
-import { execSync, execSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import type { RuntimeConfig, RuntimePluginConfig } from "./types";
 
@@ -60,10 +51,7 @@ function toImportPath(fromFile: string, targetFile: string): string {
 function writeFileIfChanged(filePath: string, content: string) {
   try {
     if (readFileSync(filePath, "utf8") === content) return false;
-  } catch {
-    // file does not exist yet
-  }
-
+  } catch {}
   writeFileSync(filePath, content);
   return true;
 }
@@ -88,120 +76,23 @@ async function fetchApiPluginManifest(apiBaseUrl: string): Promise<ApiPluginMani
   return manifest;
 }
 
-function localApiContractSource(configDir: string): ContractSource {
-  const sourcePath = join(configDir, "api", "src", "contract.ts");
-  return {
-    key: "api",
-    importName: "BaseApiContract",
-    importPath: toImportPath(
-      join(configDir, ".bos", "generated", "api-contract.gen.ts"),
-      sourcePath,
-    ),
-  };
-}
-
-function findDtsFiles(dir: string): string[] {
-  const files: string[] = [];
-  const entries = readdirSync(dir);
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
-
-    if (stat.isDirectory()) {
-      files.push(...findDtsFiles(fullPath));
-    } else if (entry.endsWith(".d.ts")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
-
-function generateLocalContractTypes(opts: {
+function localContractSource(opts: {
   configDir: string;
-  runtimeDir: string;
   key: string;
   localPath: string;
-}): string {
+}): ContractSource {
   const contractPath = join(opts.localPath, "src", "contract.ts");
   if (!existsSync(contractPath)) {
-    throw new Error(`Contract not found for plugin ${opts.key}: ${contractPath}`);
+    throw new Error(`Contract not found for ${opts.key}: ${contractPath}`);
   }
-
-  const outputDir = join(opts.runtimeDir, "contract-types", opts.key);
-  if (existsSync(outputDir)) {
-    rmSync(outputDir, { recursive: true });
-  }
-  mkdirSync(outputDir, { recursive: true });
-
-  try {
-    execSync(
-      `npx tsc --declaration --emitDeclarationOnly --allowJs --skipLibCheck --esModuleInterop --moduleResolution bundler --target ES2022 --module ESNext --outDir "${outputDir}" "${contractPath}"`,
-      {
-        cwd: opts.configDir,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-
-    const expectedOutput = join(outputDir, "contract.d.ts");
-    if (existsSync(expectedOutput)) {
-      let content = readFileSync(expectedOutput, "utf-8");
-
-      content = content.replace(/from\s+['"]every-plugin\/zod['"]/g, 'from "zod"');
-      content = content.replace(/from\s+['"]every-plugin\/orpc['"]/g, 'from "@orpc/contract"');
-      content = content.replace(/from\s+['"]every-plugin['"]/g, 'from "@orpc/contract"');
-      content = content.replace(
-        /import\s+{\s*CommonPluginErrors\s*}\s+from\s+['"]@orpc\/contract['"]\s*;?\n?/g,
-        "",
-      );
-      content = content.replace(
-        /import\s+\*\s+as\s+\w+\s+from\s+['"]every-plugin\/[^'"]+['"]\s*;?\n?/g,
-        "",
-      );
-      content = content.replace(
-        /import\s+type\s+{\s*[^}]+\s*}\s+from\s+['"]every-plugin\/[^'"]+['"]\s*;?\n?/g,
-        "",
-      );
-
-      const lines = content.split("\n").filter((line) => line.trim() !== "");
-      content = lines.join("\n");
-
-      if (!content.includes("export type ContractType")) {
-        content += "\n\nexport type ContractType = typeof contract;\n";
-      }
-
-      const finalOutput = join(outputDir, "contract.d.ts");
-      writeFileSync(finalOutput, content);
-
-      const typesDir = join(outputDir, "types");
-      if (existsSync(typesDir)) {
-        const typeFiles = findDtsFiles(typesDir);
-        for (const typeFile of typeFiles) {
-          let typeContent = readFileSync(typeFile, "utf-8");
-          typeContent = typeContent.replace(/from\s+['"]every-plugin\/zod['"]/g, 'from "zod"');
-          typeContent = typeContent.replace(
-            /from\s+['"]every-plugin\/orpc['"]/g,
-            'from "@orpc/contract"',
-          );
-          typeContent = typeContent.replace(
-            /from\s+['"]every-plugin['"]/g,
-            'from "@orpc/contract"',
-          );
-          writeFileSync(typeFile, typeContent);
-        }
-      }
-
-      return finalOutput;
-    } else {
-      throw new Error(`TypeScript did not generate expected output: ${expectedOutput}`);
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to generate types for ${opts.key}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
+  return {
+    key: opts.key,
+    importName: opts.key === "api" ? "BaseApiContract" : `${sanitizeIdentifier(opts.key)}Contract`,
+    importPath: toImportPath(
+      join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
+      contractPath,
+    ),
+  };
 }
 
 async function remoteContractSource(opts: {
@@ -240,7 +131,7 @@ async function remoteContractSource(opts: {
     importName: `${sanitizeIdentifier(opts.name)}Contract`,
     importPath: toImportPath(
       join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
-      generatedPath,
+      generatedPath.replace(/\.d\.ts$/, ""),
     ),
     generatedPath,
   };
@@ -254,44 +145,22 @@ async function resolveContractSource(opts: {
   baseUrl: string;
   generatedSubdir: string;
 }): Promise<ContractSource> {
-  if (
-    opts.key === "api" &&
-    (!opts.source || !("localPath" in opts.source) || opts.source.localPath)
-  ) {
-    const localPath = opts.source && "localPath" in opts.source ? opts.source.localPath : undefined;
-    if (localPath) {
-      return {
-        key: opts.key,
-        importName: "BaseApiContract",
-        importPath: toImportPath(
-          join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
-          join(localPath, "src", "contract.ts"),
-        ),
-      };
-    }
+  const localPath = opts.source && "localPath" in opts.source ? opts.source.localPath : undefined;
 
-    if (!opts.baseUrl) {
-      return localApiContractSource(opts.configDir);
-    }
+  if (localPath) {
+    return localContractSource({
+      configDir: opts.configDir,
+      key: opts.key,
+      localPath,
+    });
   }
 
-  if (opts.source && "localPath" in opts.source && opts.source.localPath) {
-    const generatedPath = generateLocalContractTypes({
+  if (opts.key === "api" && !opts.baseUrl) {
+    return localContractSource({
       configDir: opts.configDir,
-      runtimeDir: opts.runtimeDir,
-      key: opts.key,
-      localPath: opts.source.localPath,
+      key: "api",
+      localPath: join(opts.configDir, "api"),
     });
-
-    return {
-      key: opts.key,
-      importName: `${sanitizeIdentifier(opts.key)}Contract`,
-      importPath: toImportPath(
-        join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
-        generatedPath.replace(/\.d\.ts$/, ""),
-      ),
-      generatedPath,
-    };
   }
 
   return remoteContractSource({

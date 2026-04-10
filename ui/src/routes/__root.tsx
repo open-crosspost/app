@@ -1,4 +1,4 @@
-// QueryClient import removed "@tanstack/react-query";
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
   ClientOnly,
   createRootRouteWithContext,
@@ -7,6 +7,7 @@ import {
   Scripts,
   useSearch,
 } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/router-devtools";
 import { getRemoteScripts } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
@@ -16,24 +17,7 @@ import { z } from "zod";
 import { getBaseStyles, getRuntimeBasePath } from "@/app";
 import { type SessionData, sessionQueryOptions } from "@/lib/session";
 import type { RouterContext } from "@/types";
-
-export const TanStackRouterDevtools =
-  process.env.NODE_ENV === "production"
-    ? () => null
-    : React.lazy(() =>
-        import("@tanstack/router-devtools").then((res) => ({
-          default: res.TanStackRouterDevtools,
-        })),
-      );
-
-export const ReactQueryDevtools =
-  process.env.NODE_ENV === "production"
-    ? () => null
-    : React.lazy(() =>
-        import("@tanstack/react-query-devtools").then((d) => ({
-          default: d.ReactQueryDevtools,
-        })),
-      );
+import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 const rootSearchSchema = z.object({
   pretend: z.string().optional(),
@@ -168,10 +152,16 @@ function RootComponent() {
         <Scripts />
         {process.env.NODE_ENV === "development" && (
           <ClientOnly>
-            <React.Suspense>
-              <TanStackRouterDevtools position="bottom-left" />
-              <ReactQueryDevtools buttonPosition="bottom-left" />
-            </React.Suspense>
+            <TanStackDevtools
+              config={{ position: "bottom-right" }}
+              plugins={[
+                {
+                  name: "Router",
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+                TanStackQueryDevtools,
+              ]}
+            />
           </ClientOnly>
         )}
       </body>

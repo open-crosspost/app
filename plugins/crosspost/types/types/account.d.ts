@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const UserProfileSchema: z.ZodObject<{
     userId: z.ZodString;
     username: z.ZodString;

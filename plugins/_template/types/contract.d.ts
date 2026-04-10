@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const ItemSchema: z.ZodObject<{
     id: z.ZodString;
     title: z.ZodString;

@@ -1,7 +1,7 @@
+import { implement } from "@orpc/contract";
+import { Effect } from "effect";
 import { createPlugin } from "every-plugin";
-import { Effect } from "every-plugin/effect";
-import { implement } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 import { contract } from "./contract";
 import { CrosspostService } from "./service";
 import { NearAuthDataSchema } from "./types/auth";

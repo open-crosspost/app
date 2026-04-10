@@ -1,6 +1,6 @@
 // Test actual functionality of the Crosspost plugin
 import { describe, expect, it, vi } from 'vitest';
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { CrosspostService } from '../../service';
 import type { NearAuthData } from '../../types/auth';
 

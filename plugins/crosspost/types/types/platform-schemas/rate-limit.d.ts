@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const CheckRateLimitInputSchema: z.ZodObject<{
     endpoint: z.ZodString;
 }, z.core.$strip>;

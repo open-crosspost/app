@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CrosspostService } from '../../service';
 import type { NearAuthData } from '../../types/auth';

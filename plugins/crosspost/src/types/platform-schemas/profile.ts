@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 import { AuthenticatedRequestSchema } from "./auth";
 
 export const GetProfileInputSchema = AuthenticatedRequestSchema;

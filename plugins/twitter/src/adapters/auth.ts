@@ -1,5 +1,5 @@
 import * as AuthSchemas from '@crosspost/plugin/platform-contract';
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { TwitterApi } from 'twitter-api-v2';
 
 export class AuthAdapter {

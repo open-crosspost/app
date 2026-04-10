@@ -1,6 +1,6 @@
+import { oc } from "@orpc/contract";
 import { CommonPluginErrors } from "every-plugin";
-import { oc } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 import * as Types from "./types";
 
 export const contract = oc.router({

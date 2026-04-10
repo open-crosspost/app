@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare enum ApiErrorCode {
     UNKNOWN_ERROR = "UNKNOWN_ERROR",
     INTERNAL_ERROR = "INTERNAL_ERROR",

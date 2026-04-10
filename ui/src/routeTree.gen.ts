@@ -13,12 +13,14 @@ import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
+import { Route as LayoutAuthenticatedAdminRouteImport } from './routes/_layout/_authenticated/_admin'
 import { Route as LayoutAuthenticatedResultsIndexRouteImport } from './routes/_layout/_authenticated/results/index'
 import { Route as LayoutAuthenticatedProfileIndexRouteImport } from './routes/_layout/_authenticated/profile/index'
 import { Route as LayoutAuthenticatedManageIndexRouteImport } from './routes/_layout/_authenticated/manage/index'
 import { Route as LayoutAuthenticatedLeaderboardIndexRouteImport } from './routes/_layout/_authenticated/leaderboard/index'
 import { Route as LayoutAuthenticatedEditorIndexRouteImport } from './routes/_layout/_authenticated/editor/index'
 import { Route as LayoutAuthenticatedProfileAccountIdRouteImport } from './routes/_layout/_authenticated/profile/$accountId'
+import { Route as LayoutAuthenticatedAdminDashboardRouteImport } from './routes/_layout/_authenticated/_admin/dashboard'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -38,6 +40,11 @@ const LayoutAuthenticatedRoute = LayoutAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAuthenticatedAdminRoute =
+  LayoutAuthenticatedAdminRouteImport.update({
+    id: '/_admin',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
 const LayoutAuthenticatedResultsIndexRoute =
   LayoutAuthenticatedResultsIndexRouteImport.update({
     id: '/results/',
@@ -74,10 +81,17 @@ const LayoutAuthenticatedProfileAccountIdRoute =
     path: '/profile/$accountId',
     getParentRoute: () => LayoutAuthenticatedRoute,
   } as any)
+const LayoutAuthenticatedAdminDashboardRoute =
+  LayoutAuthenticatedAdminDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => LayoutAuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/login': typeof LayoutLoginRoute
+  '/dashboard': typeof LayoutAuthenticatedAdminDashboardRoute
   '/profile/$accountId': typeof LayoutAuthenticatedProfileAccountIdRoute
   '/editor/': typeof LayoutAuthenticatedEditorIndexRoute
   '/leaderboard/': typeof LayoutAuthenticatedLeaderboardIndexRoute
@@ -88,6 +102,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
   '/login': typeof LayoutLoginRoute
+  '/dashboard': typeof LayoutAuthenticatedAdminDashboardRoute
   '/profile/$accountId': typeof LayoutAuthenticatedProfileAccountIdRoute
   '/editor': typeof LayoutAuthenticatedEditorIndexRoute
   '/leaderboard': typeof LayoutAuthenticatedLeaderboardIndexRoute
@@ -101,6 +116,8 @@ export interface FileRoutesById {
   '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
   '/_layout/login': typeof LayoutLoginRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/_authenticated/_admin': typeof LayoutAuthenticatedAdminRouteWithChildren
+  '/_layout/_authenticated/_admin/dashboard': typeof LayoutAuthenticatedAdminDashboardRoute
   '/_layout/_authenticated/profile/$accountId': typeof LayoutAuthenticatedProfileAccountIdRoute
   '/_layout/_authenticated/editor/': typeof LayoutAuthenticatedEditorIndexRoute
   '/_layout/_authenticated/leaderboard/': typeof LayoutAuthenticatedLeaderboardIndexRoute
@@ -113,6 +130,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/dashboard'
     | '/profile/$accountId'
     | '/editor/'
     | '/leaderboard/'
@@ -123,6 +141,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/dashboard'
     | '/profile/$accountId'
     | '/editor'
     | '/leaderboard'
@@ -135,6 +154,8 @@ export interface FileRouteTypes {
     | '/_layout/_authenticated'
     | '/_layout/login'
     | '/_layout/'
+    | '/_layout/_authenticated/_admin'
+    | '/_layout/_authenticated/_admin/dashboard'
     | '/_layout/_authenticated/profile/$accountId'
     | '/_layout/_authenticated/editor/'
     | '/_layout/_authenticated/leaderboard/'
@@ -176,6 +197,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof LayoutAuthenticatedRouteImport
       parentRoute: typeof LayoutRoute
+    }
+    '/_layout/_authenticated/_admin': {
+      id: '/_layout/_authenticated/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutAuthenticatedAdminRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
     }
     '/_layout/_authenticated/results/': {
       id: '/_layout/_authenticated/results/'
@@ -219,10 +247,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthenticatedProfileAccountIdRouteImport
       parentRoute: typeof LayoutAuthenticatedRoute
     }
+    '/_layout/_authenticated/_admin/dashboard': {
+      id: '/_layout/_authenticated/_admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof LayoutAuthenticatedAdminDashboardRouteImport
+      parentRoute: typeof LayoutAuthenticatedAdminRoute
+    }
   }
 }
 
+interface LayoutAuthenticatedAdminRouteChildren {
+  LayoutAuthenticatedAdminDashboardRoute: typeof LayoutAuthenticatedAdminDashboardRoute
+}
+
+const LayoutAuthenticatedAdminRouteChildren: LayoutAuthenticatedAdminRouteChildren =
+  {
+    LayoutAuthenticatedAdminDashboardRoute:
+      LayoutAuthenticatedAdminDashboardRoute,
+  }
+
+const LayoutAuthenticatedAdminRouteWithChildren =
+  LayoutAuthenticatedAdminRoute._addFileChildren(
+    LayoutAuthenticatedAdminRouteChildren,
+  )
+
 interface LayoutAuthenticatedRouteChildren {
+  LayoutAuthenticatedAdminRoute: typeof LayoutAuthenticatedAdminRouteWithChildren
   LayoutAuthenticatedProfileAccountIdRoute: typeof LayoutAuthenticatedProfileAccountIdRoute
   LayoutAuthenticatedEditorIndexRoute: typeof LayoutAuthenticatedEditorIndexRoute
   LayoutAuthenticatedLeaderboardIndexRoute: typeof LayoutAuthenticatedLeaderboardIndexRoute
@@ -232,6 +283,7 @@ interface LayoutAuthenticatedRouteChildren {
 }
 
 const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
+  LayoutAuthenticatedAdminRoute: LayoutAuthenticatedAdminRouteWithChildren,
   LayoutAuthenticatedProfileAccountIdRoute:
     LayoutAuthenticatedProfileAccountIdRoute,
   LayoutAuthenticatedEditorIndexRoute: LayoutAuthenticatedEditorIndexRoute,

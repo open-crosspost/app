@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest";
-import { createRouterClient } from "every-plugin/orpc";
+import { createRouterClient } from "@orpc/client";
 import { createPluginRuntime } from "every-plugin/runtime";
 import { describe } from "vitest";
 import { TEST_REGISTRY } from "../registry";

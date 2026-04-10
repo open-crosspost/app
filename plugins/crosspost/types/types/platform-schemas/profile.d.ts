@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const GetProfileInputSchema: z.ZodObject<{
     userId: z.ZodString;
     accessToken: z.ZodString;

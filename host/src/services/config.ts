@@ -1,4 +1,4 @@
-import { Context } from "every-plugin/effect";
+import { Context } from "effect";
 import type {
   ClientRuntimeConfig,
   RuntimeConfig,

@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { ClientFactory } from '../client-factory';
 import * as RateLimitSchemas from '@crosspost/plugin/platform-contract';

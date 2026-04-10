@@ -6,8 +6,8 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
 import { getClient } from "@/lib/authorization-service";
 import { signMessage } from "@/lib/near";
 
@@ -71,7 +71,9 @@ export function createAuthenticatedMutation<
 }: CreateAuthenticatedMutationProps<TData, TError, TVariables, TContext>) {
   return () => {
     const queryClient = useQueryClient();
-    const { currentAccountId, isSignedIn } = useAuth();
+    const { data: session } = authClient.useSession();
+    const currentAccountId = session?.user?.id ?? null;
+    const isSignedIn = !!session?.user;
 
     return useMutation<TData, TError, TVariables, TContext>({
       mutationKey,

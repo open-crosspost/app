@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const MediaContentSchema: z.ZodObject<{
     data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
     mimeType: z.ZodOptional<z.ZodString>;

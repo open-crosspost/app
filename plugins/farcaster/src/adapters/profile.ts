@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { ClientFactory } from '../client-factory';
 import * as ProfileSchemas from '@crosspost/plugin/platform-contract';
 import { mapNeynarError } from '../utils/error-mapping';

@@ -3,8 +3,8 @@ import { getErrorMessage } from "@crosspost/sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
 import { createAuthenticatedMutation } from "@/lib/authentication-service";
 import { getClient } from "@/lib/authorization-service";
 import { signMessage } from "@/lib/near";
@@ -61,7 +61,9 @@ export const usePlatformAccountsStore = create<PlatformAccountsState>()(
 );
 
 export function useConnectedAccounts() {
-  const { isSignedIn, currentAccountId } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
+  const isSignedIn = !!session?.user;
   const { toast } = useToast();
 
   return useQuery({
@@ -111,7 +113,9 @@ interface ConnectAccountVariables {
 // Connect a platform account
 export const useConnectAccount = () => {
   const queryClient = useQueryClient();
-  const { currentAccountId, isSignedIn } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
+  const isSignedIn = !!session?.user;
   const { toast } = useToast();
 
   return useMutation<void, Error, ConnectAccountVariables>({
@@ -261,7 +265,9 @@ export const useCheckAccountStatus = createAuthenticatedMutation<
 });
 
 export function useNearSocialAccount() {
-  const { currentAccountId, isSignedIn } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
+  const isSignedIn = !!session?.user;
   return useQuery({
     queryKey: ["profile", currentAccountId],
     queryFn: async () => {

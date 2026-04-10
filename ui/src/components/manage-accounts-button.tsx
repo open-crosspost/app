@@ -2,13 +2,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import type * as React from "react";
 import { useCallback } from "react";
-import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 
 export function ManageAccountsButton(): React.ReactElement {
   const navigate = useNavigate();
-  const { currentAccountId } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
 
   const handleClick = useCallback(() => {
     if (!currentAccountId) {

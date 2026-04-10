@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { ClientFactory } from '../client-factory';
 import * as MediaSchemas from '@crosspost/plugin/platform-contract';
 import { PinataSDK } from 'pinata';

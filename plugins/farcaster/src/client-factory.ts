@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
 import { mapNeynarError } from './utils/error-mapping';
 

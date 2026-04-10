@@ -1,5 +1,5 @@
 import * as AuthSchemas from '@crosspost/plugin/platform-contract';
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
 import { mnemonicToAccount } from 'viem/accounts';
 import { ViemLocalEip712Signer } from '@farcaster/hub-nodejs';

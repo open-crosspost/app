@@ -27,7 +27,9 @@
   "dependencies": {
     "@orpc/contract": "^1.13.4",
     "@orpc/server": "^1.13.4",
-    "near-sign-verify": "^0.3.6"
+    "effect": "^3.21.0",
+    "near-sign-verify": "^0.3.6",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@effect/language-service": "^0.84.3",

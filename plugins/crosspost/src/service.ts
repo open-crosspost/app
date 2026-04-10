@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import type * as Types from './types';
 import { createAuthHeaders, isValidNearAuthData } from './utils/auth-helpers';
 import { getStatusErrorMessage, mapToCrosspostError } from './errors/error-mapping';

@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { ClientFactory } from '../client-factory';
 import { MediaAdapter } from './media';
 import * as PostSchemas from '@crosspost/plugin/platform-contract';

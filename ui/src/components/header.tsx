@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-react";
+import { useTheme } from "next-themes";
 import type * as React from "react";
-import { useTheme } from "@/contexts/theme-context";
-import { useAuth } from "@/hooks/use-auth";
+import { authClient } from "@/lib/auth-client";
+import { signOut } from "@/lib/session";
 import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
 import {
@@ -13,8 +14,17 @@ import {
 } from "./ui/dropdown-menu";
 
 export const Header: React.FC = () => {
-  const { isSignedIn, currentAccountId, handleSignOut } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
+  const isSignedIn = !!session?.user;
+  const { theme, setTheme, systemTheme } = useTheme();
+  const isDarkMode = theme === "dark" || (theme === "system" && systemTheme === "dark");
+  const toggleDarkMode = () => setTheme(isDarkMode ? "light" : "dark");
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = "/";
+  };
 
   return (
     <div className="relative border-b-2 border-primary bg-white dark:bg-black p-4 sm:p-6">

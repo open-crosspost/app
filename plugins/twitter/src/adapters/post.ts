@@ -1,4 +1,4 @@
-import { Effect } from 'every-plugin/effect';
+import { Effect } from 'effect';
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { ClientFactory } from '../client-factory';
 import * as PostSchemas from '@crosspost/plugin/platform-contract';

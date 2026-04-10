@@ -1,5 +1,5 @@
-import { oc } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { oc } from "@orpc/contract";
+import { z } from "zod";
 import * as AuthSchemas from "./types/platform-schemas/auth";
 import * as MediaSchemas from "./types/platform-schemas/media";
 import * as PostSchemas from "./types/platform-schemas/post";

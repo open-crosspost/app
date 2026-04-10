@@ -1,7 +1,7 @@
 import { getErrorMessage, isAuthError, isNetworkError, isPlatformError } from "@crosspost/sdk";
 import { Shield } from "lucide-react";
 import { useState } from "react";
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { APP_NAME } from '@/config';
-import { useAuth } from '@/hooks/use-auth';
-import { toast } from '@/hooks/use-toast';
-import { authorize } from '@/lib/authorization-service';
+} from "@/components/ui/dialog";
+import { APP_NAME } from "@/config";
+import { toast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
+import { authorize } from "@/lib/authorization-service";
 
 interface AuthorizationModalProps {
   isOpen: boolean;
@@ -29,7 +29,8 @@ export function AuthorizationModal({
   message,
 }: AuthorizationModalProps) {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
-  const { currentAccountId } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
 
   const handleRequestAuthorization = async () => {
     setIsAuthorizing(true);

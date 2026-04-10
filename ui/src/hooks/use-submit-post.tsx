@@ -8,16 +8,16 @@ import {
 } from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import type { PostType } from "@/components/post-interaction-selector";
 import { ToastAction } from "@/components/ui/toast";
-import { useAuth } from "@/hooks/use-auth";
-import type { PostType } from '@/components/post-interaction-selector';
-import { NearSocialService, transformNearSocialPost } from '@/lib/near-social-service';
-import { parseCrosspostError } from '@/lib/utils/error-utils';
-import { detectPlatformFromUrl, extractPostIdFromUrl } from '@/lib/utils/url-utils';
-import type { EditorContent } from '@/store/drafts-store';
-import { useSubmissionResultsStore } from '@/store/submission-results-store';
-import { useCreatePost, useQuotePost, useReplyPost } from '@/hooks/use-post-mutations';
-import { toast } from '@/hooks/use-toast';
+import { useCreatePost, useQuotePost, useReplyPost } from "@/hooks/use-post-mutations";
+import { toast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
+import { NearSocialService, transformNearSocialPost } from "@/lib/near-social-service";
+import { parseCrosspostError } from "@/lib/utils/error-utils";
+import { detectPlatformFromUrl, extractPostIdFromUrl } from "@/lib/utils/url-utils";
+import type { EditorContent } from "@/store/drafts-store";
+import { useSubmissionResultsStore } from "@/store/submission-results-store";
 
 export type SubmitStatus = "idle" | "posting" | "success" | "partial-success" | "failure";
 
@@ -36,7 +36,8 @@ export interface SubmitResult {
  * Hook to manage the post submission process across platforms
  */
 export function useSubmitPost() {
-  const { isSignedIn } = useAuth();
+  const { data: session } = authClient.useSession();
+  const isSignedIn = !!session?.user;
   const navigate = useNavigate();
   const { setSubmissionOutcome } = useSubmissionResultsStore();
   const [status, setStatus] = useState<SubmitStatus>("idle");

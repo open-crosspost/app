@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 import { PlatformSchema } from "./platform";
 
 export const MediaContentSchema = z.object({

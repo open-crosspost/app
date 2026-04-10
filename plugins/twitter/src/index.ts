@@ -1,30 +1,26 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { z } from 'every-plugin/zod';
-import { contract } from './contract';
-import { TwitterService } from './service';
+import { Effect } from "effect";
+import { createPlugin } from "every-plugin";
+import { z } from "zod";
+import { contract } from "./contract";
+import { TwitterService } from "./service";
 
 /**
  * Twitter Platform Plugin
  * Implements the platform contract for Twitter/X social media operations
  */
 export default createPlugin({
-
   variables: z.object(),
 
   secrets: z.object({
-    clientId: z.string().describe('Twitter OAuth 2.0 Client ID'),
-    clientSecret: z.string().describe('Twitter OAuth 2.0 Client Secret'),
+    clientId: z.string().describe("Twitter OAuth 2.0 Client ID"),
+    clientSecret: z.string().describe("Twitter OAuth 2.0 Client Secret"),
   }),
 
   contract,
 
   initialize: (config) =>
     Effect.gen(function* () {
-      const service = new TwitterService(
-        config.secrets.clientId,
-        config.secrets.clientSecret
-      );
+      const service = new TwitterService(config.secrets.clientId, config.secrets.clientSecret);
 
       return { service };
     }),

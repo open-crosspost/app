@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const RateLimitStatusSchema: z.ZodObject<{
     limit: z.ZodNumber;
     remaining: z.ZodNumber;

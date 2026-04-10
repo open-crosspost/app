@@ -1,17 +1,16 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { z } from 'every-plugin/zod';
-import { contract } from './contract';
-import { FarcasterService } from './service';
+import { Effect } from "effect";
+import { createPlugin } from "every-plugin";
+import { z } from "zod";
+import { contract } from "./contract";
+import { FarcasterService } from "./service";
 
 /**
  * Farcaster Platform Plugin
  * Implements the platform contract for Farcaster/Neynar social media operations
  */
 export default createPlugin({
-
   variables: z.object({
-    ipfsGatewayUrl: z.string().url().default('https://gateway.pinata.cloud/ipfs'),
+    ipfsGatewayUrl: z.string().url().default("https://gateway.pinata.cloud/ipfs"),
     timeout: z.number().default(10000),
   }),
 
@@ -30,7 +29,7 @@ export default createPlugin({
         config.secrets.farcasterDeveloperMnemonic,
         config.secrets.pinataJwt,
         config.variables.ipfsGatewayUrl,
-        config.variables.timeout
+        config.variables.timeout,
       );
 
       return { service };

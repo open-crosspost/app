@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 export declare const UploadMediaInputSchema: z.ZodObject<{
     userId: z.ZodString;
     accessToken: z.ZodString;

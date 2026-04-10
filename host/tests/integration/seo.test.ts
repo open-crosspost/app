@@ -1,4 +1,4 @@
-import { Effect } from "every-plugin/effect";
+import { Effect } from "effect";
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadRouterModule } from "@/services/federation.server";
 import type { HeadData, RouterModule, RuntimeConfig } from "@/types";

@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 
 export enum ApiErrorCode {
   UNKNOWN_ERROR = "UNKNOWN_ERROR",

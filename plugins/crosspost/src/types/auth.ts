@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 
 // Re-export from near-sign-verify for convenience
 export type { NearAuthData } from "near-sign-verify";

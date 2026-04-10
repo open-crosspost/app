@@ -1,4 +1,4 @@
-import { Effect } from "every-plugin/effect";
+import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import { TemplateService } from "@/service";
 

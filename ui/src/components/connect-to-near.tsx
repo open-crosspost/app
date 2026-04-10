@@ -1,10 +1,22 @@
 import { Wallet } from "lucide-react";
 import type { ReactElement } from "react";
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import { signOut } from "@/lib/session";
 
 export function ConnectToNearButton(): ReactElement {
-  const { currentAccountId, isSignedIn, handleSignIn, handleSignOut } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
+  const isSignedIn = !!session?.user;
+
+  const handleSignIn = async () => {
+    await authClient.signIn.near();
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = "/";
+  };
 
   const handleClick = () => {
     console.log("Connect button clicked, isSignedIn:", isSignedIn);

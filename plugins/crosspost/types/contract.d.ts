@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 import * as Types from "./types";
 export declare const contract: {
     auth: {

@@ -1,11 +1,11 @@
 import type { PlatformName } from "@crosspost/plugin/types";
 import { Calendar, Clock } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from '@/hooks/use-auth';
-import { toast } from '@/hooks/use-toast';
-import type { EditorContent } from '@/store/drafts-store';
-import { useScheduledPostsStore } from '@/store/scheduled-posts-store';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
+import { authClient } from "@/lib/auth-client";
+import type { EditorContent } from "@/store/drafts-store";
+import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
 
 interface SchedulePostModalProps {
   isOpen: boolean;
@@ -26,7 +26,9 @@ export function SchedulePostModal({
   const [selectedTime, setSelectedTime] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { saveScheduledPost } = useScheduledPostsStore();
-  const { currentAccountId, isSignedIn } = useAuth();
+  const { data: session } = authClient.useSession();
+  const currentAccountId = session?.user?.id ?? null;
+  const isSignedIn = !!session?.user;
 
   if (!isOpen) return null;
 

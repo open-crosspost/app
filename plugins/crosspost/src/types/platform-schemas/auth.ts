@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 
 export const AuthenticatedRequestSchema = z.object({
   userId: z.string(),
