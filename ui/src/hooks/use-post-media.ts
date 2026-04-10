@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import { useDebounce } from "../lib/utils/debounce";
-import { EditorMedia, EditorContent } from "../store/drafts-store";
-import { toast as toastFunction } from "./use-toast";
+import { useDebounce } from '@/lib/utils/debounce';
+import type { EditorContent, EditorMedia } from '@/store/drafts-store';
+import { toast as toastFunction } from '@/hooks/use-toast';
 
 export function usePostMedia(
   setPosts: React.Dispatch<React.SetStateAction<EditorContent[]>>,
@@ -55,21 +55,17 @@ export function usePostMedia(
         if (file.type.startsWith("video/") && hasMultipleImages) {
           toast({
             title: "Cannot Add Video",
-            description:
-              "Videos cannot be added when multiple images are attached",
+            description: "Videos cannot be added when multiple images are attached",
             variant: "destructive",
           });
           return false;
         }
 
-        const hasVideo = existingmedia.some((item) =>
-          item.mimeType?.startsWith("video/"),
-        );
+        const hasVideo = existingmedia.some((item) => item.mimeType?.startsWith("video/"));
         if (file.type.startsWith("image/") && hasVideo) {
           toast({
             title: "Cannot Add Image",
-            description:
-              "Multiple images cannot be added when a video is attached",
+            description: "Multiple images cannot be added when a video is attached",
             variant: "destructive",
           });
           return false;
@@ -134,10 +130,7 @@ export function usePostMedia(
         }
 
         // Remove the media item
-        const updatedmedia = [
-          ...media.slice(0, mediaIndex),
-          ...media.slice(mediaIndex + 1),
-        ];
+        const updatedmedia = [...media.slice(0, mediaIndex), ...media.slice(mediaIndex + 1)];
 
         newPosts[index] = {
           ...post,

@@ -1,15 +1,15 @@
-import { useAuth } from "@/contexts/auth-context";
+import type { ApiResponse } from "@crosspost/plugin/types";
 import { getErrorMessage } from "@crosspost/sdk";
-import type { ApiResponse } from "@crosspost/types";
 import {
-  QueryClient,
+  type QueryClient,
+  type UseMutationOptions,
   useMutation,
-  UseMutationOptions,
   useQueryClient,
 } from "@tanstack/react-query";
-import { toast } from "../hooks/use-toast";
-import { getClient } from "./authorization-service";
-import { signMessage } from "./near";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "@/hooks/use-toast";
+import { getClient } from "@/lib/authorization-service";
+import { signMessage } from "@/lib/near";
 
 type ClientMethodExecutor<TData, TVariables> = (
   client: any, // Using any for client type to avoid circular dependencies
@@ -79,19 +79,21 @@ export function createAuthenticatedMutation<
         try {
           const client = getClient();
           const authDetails = getAuthDetails(variables);
-          
+
           // Check wallet connection first
           if (!isSignedIn || !currentAccountId) {
-            throw new Error("Wallet not connected or account ID unavailable. Please connect your wallet first.");
+            throw new Error(
+              "Wallet not connected or account ID unavailable. Please connect your wallet first.",
+            );
           }
 
           // Set account header before authentication
-          client.setAccountHeader(currentAccountId);
-          
+          // client.setAccountHeader(currentAccountId);
+
           // Verify wallet instance is available
           const { getWalletInstance } = await import("./near");
           const walletInstance = getWalletInstance();
-          
+
           console.log("Wallet connection verified:", {
             isSignedIn,
             currentAccountId,
@@ -101,7 +103,9 @@ export function createAuthenticatedMutation<
           });
 
           if (!walletInstance || !walletInstance.signMessage) {
-            throw new Error("Wallet signMessage function not available. Please reconnect your wallet and try again.");
+            throw new Error(
+              "Wallet signMessage function not available. Please reconnect your wallet and try again.",
+            );
           }
 
           toast({
@@ -111,30 +115,34 @@ export function createAuthenticatedMutation<
           });
 
           const message = `Authenticating request for NEAR account: ${currentAccountId}${authDetails ? ` (${authDetails})` : ""}`;
-          
+
           console.log("Starting authentication for account:", currentAccountId);
           console.log("Authentication message:", message);
-          
+
           // Use new signMessage helper with retry logic
           let authToken;
           let lastError: Error | null = null;
           const maxRetries = 2;
-          
+
           for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
               if (attempt > 0) {
-                console.log(`Retrying authentication (attempt ${attempt + 1}/${maxRetries + 1})...`);
+                console.log(
+                  `Retrying authentication (attempt ${attempt + 1}/${maxRetries + 1})...`,
+                );
                 // Wait a bit before retrying
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
+                await new Promise((resolve) => setTimeout(resolve, 500));
+
                 // Re-check wallet instance
                 const { getWalletInstance } = await import("./near");
                 const walletInstance = getWalletInstance();
                 if (!walletInstance || !walletInstance.signMessage) {
-                  throw new Error("Wallet not ready. Please ensure your wallet is connected and unlocked.");
+                  throw new Error(
+                    "Wallet not ready. Please ensure your wallet is connected and unlocked.",
+                  );
                 }
               }
-              
+
               authToken = await signMessage(message, "crosspost.near");
               console.log("Auth token received:", {
                 hasSignature: !!authToken?.signature,
@@ -144,32 +152,44 @@ export function createAuthenticatedMutation<
                 signatureType: typeof authToken?.signature,
                 publicKeyType: typeof authToken?.publicKey,
               });
-              
+
               // Success - break out of retry loop
               break;
             } catch (error) {
               lastError = error instanceof Error ? error : new Error(String(error));
               console.error(`Message signing error (attempt ${attempt + 1}):`, error);
-              
+
               const errorMessage = lastError.message;
-              
+
               // Don't retry on user cancellation
-              if (errorMessage.includes("cancelled") || errorMessage.includes("rejected") || errorMessage.includes("denied") || errorMessage.includes("cancelled by user")) {
+              if (
+                errorMessage.includes("cancelled") ||
+                errorMessage.includes("rejected") ||
+                errorMessage.includes("denied") ||
+                errorMessage.includes("cancelled by user")
+              ) {
                 throw new Error("Authentication cancelled by user");
               }
-              
+
               // Don't retry if wallet is not connected
-              if (errorMessage.includes("not connected") || errorMessage.includes("not initialized") || errorMessage.includes("Wallet not connected") || errorMessage.includes("not available")) {
+              if (
+                errorMessage.includes("not connected") ||
+                errorMessage.includes("not initialized") ||
+                errorMessage.includes("Wallet not connected") ||
+                errorMessage.includes("not available")
+              ) {
                 throw new Error("Wallet not connected. Please connect your wallet first.");
               }
-              
+
               // If this was the last attempt, throw the error
               if (attempt === maxRetries) {
-                throw new Error(`NEAR authentication failed after ${maxRetries + 1} attempts: ${errorMessage}`);
+                throw new Error(
+                  `NEAR authentication failed after ${maxRetries + 1} attempts: ${errorMessage}`,
+                );
               }
             }
           }
-          
+
           // This should never happen, but TypeScript needs it
           if (!authToken) {
             throw lastError || new Error("Authentication failed: No token received");
@@ -177,16 +197,20 @@ export function createAuthenticatedMutation<
 
           if (!authToken || !authToken.signature || !authToken.publicKey) {
             console.error("Invalid auth token received:", authToken);
-            throw new Error("NEAR authentication failed: Invalid authentication token (missing signature or publicKey)");
+            throw new Error(
+              "NEAR authentication failed: Invalid authentication token (missing signature or publicKey)",
+            );
           }
 
           // Validate signature and publicKey are strings
-          if (typeof authToken.signature !== 'string' || typeof authToken.publicKey !== 'string') {
+          if (typeof authToken.signature !== "string" || typeof authToken.publicKey !== "string") {
             console.error("Invalid auth token types:", {
               signatureType: typeof authToken.signature,
               publicKeyType: typeof authToken.publicKey,
             });
-            throw new Error("NEAR authentication failed: Invalid authentication token format (signature and publicKey must be strings)");
+            throw new Error(
+              "NEAR authentication failed: Invalid authentication token format (signature and publicKey must be strings)",
+            );
           }
 
           // SDK expects authToken as a string (JSON-encoded)
@@ -207,10 +231,7 @@ export function createAuthenticatedMutation<
           }
         } catch (error) {
           // Standardized error logging
-          console.error(
-            `API Mutation Error [${mutationKey.join("/")}]:`,
-            getErrorMessage(error),
-          );
+          console.error(`API Mutation Error [${mutationKey.join("/")}]:`, getErrorMessage(error));
           throw error;
         }
       },

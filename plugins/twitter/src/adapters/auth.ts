@@ -1,4 +1,4 @@
-import * as AuthSchemas from '@crosspost/platform-contract';
+import * as AuthSchemas from '@crosspost/plugin/platform-contract';
 import { Effect } from 'every-plugin/effect';
 import { TwitterApi } from 'twitter-api-v2';
 

@@ -1,13 +1,7 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { hasNekoCookie } from "../../lib/token";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
-import { BadgeProps } from "./inline-badges";
+import { hasNekoCookie } from '@/lib/token';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { BadgeProps } from '@/components/badges/inline-badges';
 
 export function NekoBadge({ accountId }: BadgeProps) {
   const { data: hasBadge, isLoading } = useQuery({
@@ -23,9 +17,7 @@ export function NekoBadge({ accountId }: BadgeProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>
-          <div
-            className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}
-          >
+          <div className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}>
             <img
               src="/badges/neko-badge.png"
               alt="Neko COOKIE Holder"

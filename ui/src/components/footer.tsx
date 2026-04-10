@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "./ui/button";
 
 export function Footer() {
@@ -15,11 +14,7 @@ export function Footer() {
           </a>
         </Button>
         <Button asChild>
-          <a
-            href="https://meme.cooking/meme/1634"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href="https://meme.cooking/meme/1634" target="_blank" rel="noopener noreferrer">
             buy $XPOST
           </a>
         </Button>
@@ -41,11 +36,7 @@ export function Footer() {
           </a>
         </div>
         <div className="w-28 sm:w-36">
-          <img
-            src="/built-on-near.svg"
-            alt="built on near"
-            className="w-full h-auto dark:invert"
-          />
+          <img src="/built-on-near.svg" alt="built on near" className="w-full h-auto dark:invert" />
         </div>
       </div>
     </footer>

@@ -1,13 +1,7 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { hasShitzuNft } from "../../lib/nft";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
-import { BadgeProps } from "./inline-badges";
+import { hasShitzuNft } from '@/lib/nft';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { BadgeProps } from '@/components/badges/inline-badges';
 
 export function ShitzuBadge({ accountId }: BadgeProps) {
   const { data: hasNft, isLoading } = useQuery({
@@ -25,9 +19,7 @@ export function ShitzuBadge({ accountId }: BadgeProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>
-          <div
-            className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}
-          >
+          <div className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}>
             <img
               src="https://raw.githubusercontent.com/Shitzu-Apes/brand-kit/refs/heads/main/logo/shitzu.webp"
               alt="Shitzu NFT"

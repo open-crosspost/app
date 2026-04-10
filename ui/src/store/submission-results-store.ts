@@ -1,12 +1,12 @@
-import {
+import type {
   ConnectedAccount,
   ErrorDetail,
   MultiStatusSummary,
   SuccessDetail,
-} from "@crosspost/types";
+} from "@crosspost/plugin/types";
 import { create } from "zustand";
-import { PostType } from "../components/post-interaction-selector";
-import { EditorContent } from "./drafts-store";
+import type { PostType } from '@/components/post-interaction-selector';
+import type { EditorContent } from '@/store/drafts-store';
 
 export interface SubmissionRequest {
   posts: EditorContent[];
@@ -39,16 +39,14 @@ const initialState: Omit<
   request: null,
 };
 
-export const useSubmissionResultsStore = create<SubmissionResultsState>(
-  (set) => ({
-    ...initialState,
-    setSubmissionOutcome: (data) =>
-      set({
-        summary: data.summary,
-        results: data.results,
-        errors: data.errors,
-        request: data.request,
-      }),
-    clearSubmissionOutcome: () => set(initialState),
-  }),
-);
+export const useSubmissionResultsStore = create<SubmissionResultsState>((set) => ({
+  ...initialState,
+  setSubmissionOutcome: (data) =>
+    set({
+      summary: data.summary,
+      results: data.results,
+      errors: data.errors,
+      request: data.request,
+    }),
+  clearSubmissionOutcome: () => set(initialState),
+}));

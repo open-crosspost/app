@@ -1,4 +1,5 @@
-import { Platform, PlatformName } from "@crosspost/types";
+import type { PlatformName } from "@crosspost/plugin/types";
+import { Platform } from "@crosspost/plugin/types";
 
 // TODO: Store platform url with platform itself in crosspost SDK
 
@@ -19,10 +20,7 @@ export function detectPlatformFromUrl(url: string): PlatformName | null {
     if (hostname.includes("x.com") || hostname.includes("twitter.com")) {
       return Platform.TWITTER;
     }
-    if (
-      hostname.includes("warpcast.com") ||
-      hostname.includes("farcaster.xyz")
-    ) {
+    if (hostname.includes("warpcast.com") || hostname.includes("farcaster.xyz")) {
       return Platform.FARCASTER;
     }
     // Add more platform detection rules here as needed
@@ -50,10 +48,7 @@ export function detectPlatformFromUrl(url: string): PlatformName | null {
  * @param platform The platform detected from the URL.
  * @returns The extracted post ID or null if extraction fails.
  */
-export function extractPostIdFromUrl(
-  url: string,
-  platform: PlatformName | null,
-): string | null {
+export function extractPostIdFromUrl(url: string, platform: PlatformName | null): string | null {
   if (!url || !platform) {
     return null;
   }
@@ -77,9 +72,7 @@ export function extractPostIdFromUrl(
 
     if (platform === Platform.FARCASTER) {
       // Farcaster URLs typically have format: /posts/{hash}
-      const postsIndex = pathSegments.findIndex(
-        (segment) => segment === "posts",
-      );
+      const postsIndex = pathSegments.findIndex((segment) => segment === "posts");
       if (postsIndex !== -1 && postsIndex + 1 < pathSegments.length) {
         const potentialId = pathSegments[postsIndex + 1];
         // Farcaster post IDs are typically alphanumeric hashes

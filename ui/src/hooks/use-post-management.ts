@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useDebounce } from "../lib/utils/debounce";
-import { EditorContent } from "../store/drafts-store";
+import { useDebounce } from '@/lib/utils/debounce';
+import type { EditorContent } from '@/store/drafts-store';
 
 export function usePostManagement(
   posts: EditorContent[],
@@ -71,9 +71,7 @@ export function usePostManagement(
   const convertToThread = useCallback(
     (text: string) => {
       // Split text by double newlines to create thread parts
-      const parts = text
-        .split(/\n\s*\n/)
-        .filter((part) => part.trim().length > 0);
+      const parts = text.split(/\n\s*\n/).filter((part) => part.trim().length > 0);
 
       if (parts.length === 0) {
         setPosts([{ text: "", media: [] }]);
@@ -97,9 +95,7 @@ export function usePostManagement(
       // Join all post texts with double newlines
       const combinedText = currentPosts.map((post) => post.text).join("\n\n");
 
-      const firstMediaPost = currentPosts.find(
-        (post) => post.media && post.media.length > 0,
-      );
+      const firstMediaPost = currentPosts.find((post) => post.media && post.media.length > 0);
 
       return [
         {

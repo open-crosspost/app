@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import type { PlatformName } from "@crosspost/plugin/types";
 import { Calendar, Clock } from "lucide-react";
-import { Button } from "./ui/button";
-import { EditorContent } from "../store/drafts-store";
-import { PlatformName } from "@crosspost/types";
-import { useScheduledPostsStore } from "../store/scheduled-posts-store";
-import { toast } from "../hooks/use-toast";
-import { useAuth } from "../contexts/auth-context";
+import { useState } from "react";
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from '@/hooks/use-toast';
+import type { EditorContent } from '@/store/drafts-store';
+import { useScheduledPostsStore } from '@/store/scheduled-posts-store';
+import { Button } from '@/components/ui/button';
 
 interface SchedulePostModalProps {
   isOpen: boolean;
@@ -140,8 +140,7 @@ export function SchedulePostModal({
             <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded">
               <p className="text-sm text-blue-800 dark:text-white flex items-center gap-2">
                 <Clock size={16} />
-                Scheduled for:{" "}
-                {new Date(`${selectedDate}T${selectedTime}`).toLocaleString()}
+                Scheduled for: {new Date(`${selectedDate}T${selectedTime}`).toLocaleString()}
               </p>
             </div>
           )}
@@ -155,10 +154,7 @@ export function SchedulePostModal({
             onClick={handleSchedule}
             className="flex-1"
             disabled={
-              !selectedDate ||
-              !selectedTime ||
-              selectedPlatforms.length === 0 ||
-              isAuthenticating
+              !selectedDate || !selectedTime || selectedPlatforms.length === 0 || isAuthenticating
             }
           >
             {isAuthenticating ? "Authenticating..." : "Schedule Post"}

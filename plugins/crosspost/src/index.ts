@@ -1,10 +1,10 @@
-import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
-import { implement } from 'every-plugin/orpc';
-import { z } from 'every-plugin/zod';
-import { contract } from './contract';
-import { CrosspostService } from './service';
-import { NearAuthDataSchema } from './types/auth';
+import { createPlugin } from "every-plugin";
+import { Effect } from "every-plugin/effect";
+import { implement } from "every-plugin/orpc";
+import { z } from "every-plugin/zod";
+import { contract } from "./contract";
+import { CrosspostService } from "./service";
+import { NearAuthDataSchema } from "./types/auth";
 
 /**
  * Crosspost Plugin - Social media cross-posting with NEAR authentication
@@ -13,15 +13,15 @@ import { NearAuthDataSchema } from './types/auth';
  * instead of traditional OAuth tokens.
  */
 export default createPlugin({
-
   variables: z.object({
-    baseUrl: z.string().url().default('https://api.opencrosspost.com'),
+    baseUrl: z.string().url().default("https://api.opencrosspost.com"),
     timeout: z.number().min(1000).max(60000).default(10000),
   }),
 
   secrets: z.object({
     // Store as JSON string, parse into NearAuthData
-    nearAuthData: z.string()
+    nearAuthData: z
+      .string()
       .transform((str) => JSON.parse(str))
       .pipe(NearAuthDataSchema),
   }),
@@ -30,15 +30,18 @@ export default createPlugin({
 
   initialize: (config) =>
     Effect.gen(function* () {
-      // Create service instance with config
       const service = new CrosspostService(
         config.variables.baseUrl,
         config.secrets.nearAuthData,
         config.variables.timeout,
       );
 
-      // Test connection during initialization
-      yield* service.getHealthStatus();
+      yield* service.getHealthStatus().pipe(
+        Effect.catchAll((error) => {
+          console.warn("[Crosspost] Health check failed, continuing anyway:", error.message);
+          return Effect.void;
+        }),
+      );
 
       return { service };
     }),

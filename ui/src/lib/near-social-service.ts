@@ -3,11 +3,11 @@ import Social, {
   type IIsWritePermissionGrantedWithPublicKeyOptions,
   type ISocialDBContractStorageBalance,
 } from "@builddao/near-social-js";
+import type { PostContent } from "@crosspost/plugin/types";
 import { getErrorMessage, isPlatformError } from "@crosspost/sdk";
-import { PostContent } from "@crosspost/types";
-import { NETWORK_ID } from "../config";
-import { getWalletInstance, getAccountId } from "./near";
 import type { Near } from "near-kit";
+import { NETWORK_ID } from "@/config";
+import { getWalletInstance } from "@/lib/near";
 
 export const SOCIAL_CONTRACT = {
   mainnet: "social.near",
@@ -35,11 +35,7 @@ interface IOptions {
  * @returns {boolean} true, if the value is considered an object, false otherwise.
  */
 export function isObject(value: unknown): boolean {
-  return (
-    value === Object(value) &&
-    !Array.isArray(value) &&
-    typeof value !== "function"
-  );
+  return value === Object(value) && !Array.isArray(value) && typeof value !== "function";
 }
 
 /**
@@ -48,13 +44,8 @@ export function isObject(value: unknown): boolean {
  * @returns {BigNumber} the size of the data.
  * @see {@link https://github.com/NearSocial/VM/blob/6047c6a9b96f3de14e600c1d2b96c432bbb76dd4/src/lib/data/utils.js#L193}
  */
-export function calculateSizeOfData(
-  data: Record<string, unknown> | string,
-): bigint {
-  const calculate = (
-    _data: unknown,
-    previousData?: Record<string, unknown> | string,
-  ): bigint => {
+export function calculateSizeOfData(data: Record<string, unknown> | string): bigint {
+  const calculate = (_data: unknown, previousData?: Record<string, unknown> | string): bigint => {
     if (isObject(_data)) {
       return Object.entries(_data as Record<string, unknown>).reduce<bigint>(
         (acc, [key, value]) => {
@@ -68,12 +59,7 @@ export function calculateSizeOfData(
             );
           }
 
-          return (
-            acc +
-            BigInt(key.length * 2) +
-            calculate(value) +
-            BigInt(ESTIMATED_KEY_VALUE_SIZE)
-          );
+          return acc + BigInt(key.length * 2) + calculate(value) + BigInt(ESTIMATED_KEY_VALUE_SIZE);
         },
         BigInt(isObject(previousData) ? 0 : ESTIMATED_NODE_SIZE),
       );
@@ -81,9 +67,7 @@ export function calculateSizeOfData(
 
     return BigInt(
       (typeof _data === "string" ? _data.length : 8) -
-        (previousData && typeof previousData === "string"
-          ? previousData.length
-          : 0),
+        (previousData && typeof previousData === "string" ? previousData.length : 0),
     );
   };
 
@@ -99,25 +83,18 @@ export function calculateSizeOfData(
  * @param {IOptions} options - the data to be stored and the storage balance.
  * @returns {BigNumber} the required deposit.
  */
-export function calculateRequiredDeposit({
-  data,
-  storageBalance,
-}: IOptions): BigNumber {
-  const minimumStorageCost: BigNumber = new BigNumber(
-    MINIMUM_STORAGE_IN_BYTES,
-  ).multipliedBy(new BigNumber(STORAGE_COST_PER_BYTES_IN_ATOMIC_UNITS));
-  const storageCostOfData: BigNumber = new BigNumber(
-    String(calculateSizeOfData(data)),
-  )
+export function calculateRequiredDeposit({ data, storageBalance }: IOptions): BigNumber {
+  const minimumStorageCost: BigNumber = new BigNumber(MINIMUM_STORAGE_IN_BYTES).multipliedBy(
+    new BigNumber(STORAGE_COST_PER_BYTES_IN_ATOMIC_UNITS),
+  );
+  const storageCostOfData: BigNumber = new BigNumber(String(calculateSizeOfData(data)))
     .plus(EXTRA_STORAGE_BALANCE) // https://github.com/NearSocial/VM/blob/6047c6a9b96f3de14e600c1d2b96c432bbb76dd4/src/lib/data/commitData.js#L62
     .multipliedBy(STORAGE_COST_PER_BYTES_IN_ATOMIC_UNITS);
   let storageDepositAvailable: BigNumber;
 
   // if there is no balance, use the minimum storage cost, or the storage cost of the data
   if (!storageBalance) {
-    return storageCostOfData.lt(minimumStorageCost)
-      ? minimumStorageCost
-      : storageCostOfData;
+    return storageCostOfData.lt(minimumStorageCost) ? minimumStorageCost : storageCostOfData;
   }
 
   storageDepositAvailable = new BigNumber(storageBalance.available.toString());
@@ -179,11 +156,9 @@ async function storageBalanceOf(
   }
 
   const near: Near = walletInstance.near;
-  const result = await near.view(
-    SOCIAL_CONTRACT[NETWORK_ID],
-    "storage_balance_of",
-    { account_id: accountID }
-  );
+  const result = await near.view(SOCIAL_CONTRACT[NETWORK_ID], "storage_balance_of", {
+    account_id: accountID,
+  });
 
   if (isStorageBalance(result)) {
     return result;
@@ -194,9 +169,7 @@ async function storageBalanceOf(
   }
 }
 
-function isStorageBalance(
-  data: unknown,
-): data is ISocialDBContractStorageBalance {
+function isStorageBalance(data: unknown): data is ISocialDBContractStorageBalance {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -212,9 +185,7 @@ function isStorageBalance(
  * @param fileOrData The file to upload or a data URL/base64 string
  * @returns Promise resolving to the IPFS CID
  */
-export async function uploadFileToIPFS(
-  fileOrData: File | string,
-): Promise<string> {
+export async function uploadFileToIPFS(fileOrData: File | string): Promise<string> {
   try {
     const formData = new FormData();
 
@@ -230,9 +201,7 @@ export async function uploadFileToIPFS(
       } else {
         // Assume it's base64 data
         const byteString = atob(fileOrData.split(",")[1] || fileOrData);
-        const mimeType =
-          fileOrData.split(",")[0]?.split(":")[1]?.split(";")[0] ||
-          "image/jpeg";
+        const mimeType = fileOrData.split(",")[0]?.split(":")[1]?.split(";")[0] || "image/jpeg";
         const ab = new ArrayBuffer(byteString.length);
         const ia = new Uint8Array(ab);
 
@@ -286,9 +255,7 @@ export function validateAccountId(accountID: string): boolean {
   return (
     accountID.length >= 2 &&
     accountID.length <= 64 &&
-    new RegExp(/^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/).test(
-      accountID,
-    )
+    new RegExp(/^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/).test(accountID)
   );
 }
 
@@ -347,7 +314,7 @@ export class NearSocialService {
       }
     } catch (error) {
       // Handle "No accounts found" error
-      if (error instanceof Error && error.message.includes('No accounts found')) {
+      if (error instanceof Error && error.message.includes("No accounts found")) {
         throw new Error("Wallet not connected. Please connect your wallet first.");
       }
       console.error("Error getting public key:", error);
@@ -413,38 +380,36 @@ export class NearSocialService {
       // Extract actions from transaction and convert to near-kit format
       // Transaction.actions is an array of Action objects
       const builder = near.transaction(accountId);
-      
+
       for (const action of transaction.actions) {
         // Check if it's a FunctionCall action
-        if ('functionCall' in action && action.functionCall) {
+        if ("functionCall" in action && action.functionCall) {
           const fc = action.functionCall;
-          const methodName = typeof fc.methodName === 'string' ? fc.methodName : fc.methodName.toString();
+          const methodName =
+            typeof fc.methodName === "string" ? fc.methodName : fc.methodName.toString();
           const args = fc.args || {};
-          
+
           // Convert gas from u64 to Tgas format for near-kit
           const gasValue = fc.gas ? BigInt(fc.gas.toString()) : BigInt(GAS_FEE_IN_ATOMIC_UNITS);
           const gasAmount = `${gasValue / BigInt(1000000000000)} Tgas`;
-          
+
           // Convert deposit from u128 to yoctoNEAR format
           const depositValue = fc.deposit ? BigInt(fc.deposit.toString()) : BigInt(0);
           const depositAmount = `${depositValue} yoctoNEAR`;
-          
-          builder.functionCall(
-            SOCIAL_CONTRACT[NETWORK_ID],
-            methodName,
-            args,
-            {
-              gas: gasAmount,
-              attachedDeposit: depositAmount,
-            }
-          );
-        } else if ('transfer' in action && action.transfer) {
+
+          builder.functionCall(SOCIAL_CONTRACT[NETWORK_ID], methodName, args, {
+            gas: gasAmount,
+            attachedDeposit: depositAmount,
+          });
+        } else if ("transfer" in action && action.transfer) {
           // Handle transfer action if needed
-          const amount = action.transfer.deposit ? BigInt(action.transfer.deposit.toString()) : BigInt(0);
+          const amount = action.transfer.deposit
+            ? BigInt(action.transfer.deposit.toString())
+            : BigInt(0);
           builder.transfer(SOCIAL_CONTRACT[NETWORK_ID], `${amount} yoctoNEAR`);
         }
       }
-      
+
       // Send the transaction using near-kit
       await builder.send();
     } catch (error) {

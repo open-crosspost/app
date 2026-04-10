@@ -1,27 +1,17 @@
-import { capitalize } from "@/lib/utils/string";
-import { Platform, PlatformName } from "@crosspost/types";
+import type { PlatformName } from "@crosspost/plugin/types";
+import { Platform } from "@crosspost/plugin/types";
 import { Twitter } from "lucide-react";
 import React from "react";
-import { useToast } from "../hooks/use-toast";
-import { useConnectAccount } from "../store/platform-accounts-store";
-import { Button } from "./ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
+import { capitalize } from "@/lib/utils/string";
+import { useToast } from '@/hooks/use-toast';
+import { useConnectAccount } from '@/store/platform-accounts-store';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ConnectPlatformProps {
   platform: PlatformName;
   className?: string;
-  variant?:
-    | "default"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link"
-    | "destructive";
+  variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
   showIcon?: boolean;
 }
@@ -63,9 +53,7 @@ export function ConnectPlatform({
       let errorMessage = `Failed to connect ${capitalize(platform)} account`;
 
       if (error instanceof Error) {
-        if (
-          error.message === "Popup blocked. Please allow popups for this site."
-        ) {
+        if (error.message === "Popup blocked. Please allow popups for this site.") {
           errorMessage = "Please allow popups to connect your account";
         } else if (error.message === "Authentication cancelled by user.") {
           errorMessage = "Connection cancelled";
@@ -134,8 +122,8 @@ export function ConnectPlatform({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          To connect a different social account than the one currently logged
-          in, open this page in an incognito window and try again
+          To connect a different social account than the one currently logged in, open this page in
+          an incognito window and try again
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

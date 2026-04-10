@@ -1,6 +1,6 @@
 import { Effect } from 'every-plugin/effect';
 import { ClientFactory } from '../client-factory';
-import * as MediaSchemas from '@crosspost/platform-contract';
+import * as MediaSchemas from '@crosspost/plugin/platform-contract';
 import { PinataSDK } from 'pinata';
 import { mapNeynarError } from '../utils/error-mapping';
 

@@ -1,14 +1,14 @@
-import { useAuth } from "@/contexts/auth-context";
-import { getImageUrl, getProfile } from "@/lib/utils/near-social-node";
+import type { ConnectedAccount, Platform } from "@crosspost/plugin/types";
 import { getErrorMessage } from "@crosspost/sdk";
-import { ConnectedAccount, Platform } from "@crosspost/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { useToast } from "../hooks/use-toast";
-import { createAuthenticatedMutation } from "../lib/authentication-service";
-import { getClient } from "../lib/authorization-service";
-import { signMessage } from "../lib/near";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { createAuthenticatedMutation } from "@/lib/authentication-service";
+import { getClient } from "@/lib/authorization-service";
+import { signMessage } from "@/lib/near";
+import { getImageUrl, getProfile } from "@/lib/utils/near-social-node";
 
 interface PlatformAccountsState {
   selectedAccountIds: string[];
@@ -32,9 +32,7 @@ export const usePlatformAccountsStore = create<PlatformAccountsState>()(
 
       unselectAccount: (userId) => {
         set((state) => ({
-          selectedAccountIds: state.selectedAccountIds.filter(
-            (id) => id !== userId,
-          ),
+          selectedAccountIds: state.selectedAccountIds.filter((id) => id !== userId),
         }));
       },
 
@@ -75,7 +73,7 @@ export function useConnectedAccounts() {
       try {
         const client = getClient();
 
-        client.setAccountHeader(currentAccountId);
+        // client.setAccountHeader(currentAccountId);
 
         const response = await client.auth.getConnectedAccounts();
 
@@ -118,9 +116,7 @@ export const useConnectAccount = () => {
 
   return useMutation<void, Error, ConnectAccountVariables>({
     mutationKey: ["connectAccount"],
-    mutationFn: async ({
-      platform,
-    }: ConnectAccountVariables): Promise<void> => {
+    mutationFn: async ({ platform }: ConnectAccountVariables): Promise<void> => {
       try {
         const client = getClient();
         const authDetails = `loginToPlatform:${platform}`;
@@ -142,9 +138,7 @@ export const useConnectAccount = () => {
         // The backend expects: { signature: string, publicKey: string }
         client.setAuthentication(JSON.stringify(authToken));
 
-        const response: any = await client.auth.loginToPlatform(
-          platform?.toLowerCase() as any,
-        );
+        const response: any = await client.auth.loginToPlatform(platform?.toLowerCase() as any);
 
         if (
           response &&
@@ -163,19 +157,11 @@ export const useConnectAccount = () => {
             throw new Error(errorMessage);
           }
         } else {
-          console.error(
-            "Unexpected response structure from loginToPlatform:",
-            response,
-          );
-          throw new Error(
-            "Unexpected response from server during platform login.",
-          );
+          console.error("Unexpected response structure from loginToPlatform:", response);
+          throw new Error("Unexpected response from server during platform login.");
         }
       } catch (error) {
-        console.error(
-          `API Mutation Error [connectAccount/${platform}]:`,
-          getErrorMessage(error),
-        );
+        console.error(`API Mutation Error [connectAccount/${platform}]:`, getErrorMessage(error));
         if (error instanceof Error) {
           throw error; // Re-throw original error if it's already an Error instance
         }
@@ -196,16 +182,11 @@ export const useDisconnectAccount = createAuthenticatedMutation<
 >({
   mutationKey: ["disconnectAccount"],
   clientMethod: async (client, { platform, userId }) => {
-    const response = await client.auth.revokeAuth(
-      platform?.toLowerCase() as any,
-      userId,
-    );
+    const response = await client.auth.revokeAuth(platform?.toLowerCase() as any, userId);
     if (response.success) {
       return response;
     } else {
-      throw new Error(
-        response.errors?.[0]?.message || "Failed to disconnect account",
-      );
+      throw new Error(response.errors?.[0]?.message || "Failed to disconnect account");
     }
   },
   getAuthDetails: ({ platform, userId }) => `revokeAuth:${platform}:${userId}`,
@@ -215,10 +196,7 @@ export const useDisconnectAccount = createAuthenticatedMutation<
 
     // Also remove from selected accounts if it was selected
     const store = usePlatformAccountsStore.getState();
-    if (
-      typeof userId === "string" &&
-      store.selectedAccountIds.includes(userId)
-    ) {
+    if (typeof userId === "string" && store.selectedAccountIds.includes(userId)) {
       store.unselectAccount(userId);
     }
   },
@@ -232,20 +210,14 @@ export const useRefreshAccount = createAuthenticatedMutation<
 >({
   mutationKey: ["refreshAccount"],
   clientMethod: async (client, { platform, userId }) => {
-    const response = await client.auth.refreshProfile(
-      platform?.toLowerCase() as any,
-      userId,
-    );
+    const response = await client.auth.refreshProfile(platform?.toLowerCase() as any, userId);
     if (response.success) {
       return response;
     } else {
-      throw new Error(
-        response.errors?.[0]?.message || "Failed to refresh account",
-      );
+      throw new Error(response.errors?.[0]?.message || "Failed to refresh account");
     }
   },
-  getAuthDetails: ({ platform, userId }) =>
-    `refreshProfile:${platform}:${userId}`,
+  getAuthDetails: ({ platform, userId }) => `refreshProfile:${platform}:${userId}`,
   onSuccess: (_, __, ___, queryClient) => {
     // Invalidate the connected accounts query to trigger a refetch
     queryClient.invalidateQueries({ queryKey: ["connectedAccounts"] });
@@ -260,42 +232,31 @@ export const useCheckAccountStatus = createAuthenticatedMutation<
 >({
   mutationKey: ["checkAccountStatus"],
   clientMethod: async (client, { platform, userId }) => {
-    const response = await client.auth.getAuthStatus(
-      platform?.toLowerCase() as any,
-      userId,
-    );
+    const response = await client.auth.getAuthStatus(platform?.toLowerCase() as any, userId);
 
     if (response.success) {
       const { authenticated, tokenStatus } = response.data;
       const isConnected = authenticated && tokenStatus.valid;
       return response;
     } else {
-      throw new Error(
-        response.errors?.[0]?.message || "Failed to check account status",
-      );
+      throw new Error(response.errors?.[0]?.message || "Failed to check account status");
     }
   },
-  getAuthDetails: ({ platform, userId }) =>
-    `getAuthStatus:${platform}:${userId}`,
+  getAuthDetails: ({ platform, userId }) => `getAuthStatus:${platform}:${userId}`,
   onSuccess: (data, _, __, queryClient) => {
     // Update the account in the cache
-    queryClient.setQueryData(
-      ["connectedAccounts"],
-      (oldData: ConnectedAccount[] | undefined) => {
-        if (!oldData) return oldData;
+    queryClient.setQueryData(["connectedAccounts"], (oldData: ConnectedAccount[] | undefined) => {
+      if (!oldData) return oldData;
 
-        return oldData.map((account: ConnectedAccount) =>
-          account.userId === data.userId
-            ? {
-                ...account,
-                profile: account.profile
-                  ? { ...account.profile, lastUpdated: Date.now() }
-                  : null,
-              }
-            : account,
-        );
-      },
-    );
+      return oldData.map((account: ConnectedAccount) =>
+        account.userId === data.userId
+          ? {
+              ...account,
+              profile: account.profile ? { ...account.profile, lastUpdated: Date.now() } : null,
+            }
+          : account,
+      );
+    });
   },
 });
 
@@ -309,9 +270,7 @@ export function useNearSocialAccount() {
         const profile = await getProfile(currentAccountId!);
 
         // Get profile image URL or use a fallback
-        const profileImageUrl = profile?.image
-          ? getImageUrl(profile.image)
-          : "";
+        const profileImageUrl = profile?.image ? getImageUrl(profile.image) : "";
 
         return {
           platform: "Near Social" as Platform,
@@ -326,10 +285,7 @@ export function useNearSocialAccount() {
           },
         } as ConnectedAccount;
       } catch (error) {
-        console.error(
-          "Error getting NEAR Social account profile:",
-          getErrorMessage(error),
-        );
+        console.error("Error getting NEAR Social account profile:", getErrorMessage(error));
       }
     },
   });
@@ -347,9 +303,7 @@ export function useAllAccounts() {
 // Hook to get selected accounts
 export function useSelectedAccounts() {
   const allAccounts = useAllAccounts();
-  const selectedAccountIds = usePlatformAccountsStore(
-    (state) => state.selectedAccountIds,
-  );
+  const selectedAccountIds = usePlatformAccountsStore((state) => state.selectedAccountIds);
 
   // Filter accounts to only include selected ones
   return allAccounts.filter((account: ConnectedAccount) =>

@@ -1,12 +1,12 @@
+import type { ConnectedAccount } from "@crosspost/plugin/types";
 import { useEffect, useRef } from "react";
-import { useScheduledPostsStore } from "../store/scheduled-posts-store";
-import { useSubmitPost } from "./use-submit-post";
-import { useAllAccounts } from "../store/platform-accounts-store";
-import { toast } from "./use-toast";
-import { PlatformName, ConnectedAccount } from "@crosspost/types";
-import { getClient } from "../lib/authorization-service";
-import { useAuth } from "../contexts/auth-context";
-import { signMessage } from "../lib/near";
+import { useAuth } from "@/hooks/use-auth";
+import { useSubmitPost } from "@/hooks/use-submit-post";
+import { toast } from "@/hooks/use-toast";
+import { getClient } from "@/lib/authorization-service";
+import { signMessage } from "@/lib/near";
+import { useAllAccounts } from "@/store/platform-accounts-store";
+import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
 
 export function useScheduledPostExecutor() {
   const { getPendingPosts, markAsExecuting, markAsCompleted, markAsFailed } =
@@ -37,12 +37,10 @@ export function useScheduledPostExecutor() {
 
       // Find connected accounts that match the scheduled platforms
       // Use case-insensitive matching to handle platform name variations
-      const selectedAccounts = connectedAccounts.filter(
-        (account: ConnectedAccount) =>
-          scheduledPost.platforms.some(
-            (platform: string) =>
-              platform?.toLowerCase() === account.platform?.toLowerCase(),
-          ),
+      const selectedAccounts = connectedAccounts.filter((account: ConnectedAccount) =>
+        scheduledPost.platforms.some(
+          (platform: string) => platform?.toLowerCase() === account.platform?.toLowerCase(),
+        ),
       );
 
       console.log(
@@ -54,15 +52,10 @@ export function useScheduledPostExecutor() {
       );
 
       if (selectedAccounts.length === 0) {
-        throw new Error(
-          "No connected accounts found for the scheduled platforms",
-        );
+        throw new Error("No connected accounts found for the scheduled platforms");
       }
 
-      console.log(
-        "Executing scheduled post with content:",
-        scheduledPost.posts,
-      );
+      console.log("Executing scheduled post with content:", scheduledPost.posts);
 
       // Execute the post
       console.log("About to call submitPost with:", {
@@ -74,9 +67,7 @@ export function useScheduledPostExecutor() {
 
       // Ensure fresh authentication before executing scheduled post
       if (!isSignedIn || !currentAccountId) {
-        throw new Error(
-          "NEAR wallet not connected. Please reconnect your wallet.",
-        );
+        throw new Error("NEAR wallet not connected. Please reconnect your wallet.");
       }
 
       try {
@@ -89,9 +80,7 @@ export function useScheduledPostExecutor() {
         const client = getClient();
         client.setAuthentication(JSON.stringify(authToken));
 
-        console.log(
-          "Fresh authentication token generated for scheduled post execution",
-        );
+        console.log("Fresh authentication token generated for scheduled post execution");
       } catch (authError) {
         throw new Error(
           `Authentication failed: ${authError instanceof Error ? authError.message : "Unknown auth error"}`,
@@ -125,8 +114,7 @@ export function useScheduledPostExecutor() {
         throw new Error(`Post submission failed with status: ${result}`);
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
       // Check if error is related to authentication/signature
       if (

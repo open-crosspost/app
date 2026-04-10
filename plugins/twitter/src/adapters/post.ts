@@ -1,7 +1,7 @@
 import { Effect } from 'every-plugin/effect';
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { ClientFactory } from '../client-factory';
-import * as PostSchemas from '@crosspost/platform-contract';
+import * as PostSchemas from '@crosspost/plugin/platform-contract';
 
 export class PostAdapter {
   constructor(

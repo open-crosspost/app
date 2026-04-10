@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
 import { DndContext, useDraggable } from "@dnd-kit/core";
+import { useEffect, useState } from "react";
 import { ProfileHighlight } from "./social/profile-highlight";
 
 interface Position {
@@ -43,11 +43,7 @@ function DraggableProfileHighlight({ position }: { position: Position }) {
       {...listeners}
       {...attributes}
     >
-      <ProfileHighlight
-        accountId={helperAccount}
-        tooltipContent={helperContent}
-        size={64}
-      />
+      <ProfileHighlight accountId={helperAccount} tooltipContent={helperContent} size={64} />
     </div>
   );
 }

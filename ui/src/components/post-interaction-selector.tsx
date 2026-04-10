@@ -1,8 +1,8 @@
 import React from "react";
-import { cn } from "../lib/utils";
-import { detectPlatformFromUrl } from "../lib/utils/url-utils";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { cn } from '@/lib/utils';
+import { detectPlatformFromUrl } from '@/lib/utils/url-utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export type PostType = "post" | "quote" | "reply";
 

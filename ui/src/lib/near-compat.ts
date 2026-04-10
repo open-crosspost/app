@@ -1,7 +1,6 @@
 // Compatibility layer for old near.ts API using new wallet provider
 // This file provides backward compatibility for code that uses the old near.ts API
 
-import { NETWORK_ID } from "../config";
 import { Buffer } from "buffer";
 
 // Wallet instance type
@@ -12,7 +11,10 @@ interface WalletInstance {
   connector: any;
   connect: () => void;
   disconnect: () => void;
-  signMessage: (message: string, recipient?: string) => Promise<{
+  signMessage: (
+    message: string,
+    recipient?: string,
+  ) => Promise<{
     signature: Uint8Array;
     publicKey: string;
   } | null>;
@@ -68,14 +70,14 @@ export async function getWallet() {
 // Helper to sign a message using the wallet
 export async function signMessage(
   message: string,
-  recipient: string
+  recipient: string,
 ): Promise<{ signature: string; publicKey: string }> {
   if (!walletInstance) {
     throw new Error("Wallet not initialized. Make sure WalletProvider is set up.");
   }
 
   const result = await walletInstance.signMessage(message, recipient);
-  
+
   if (!result) {
     throw new Error("Message signing failed or was cancelled");
   }
@@ -108,7 +110,7 @@ export const near = {
       }
     } catch (error) {
       // Handle "No accounts found" error gracefully
-      if (error instanceof Error && error.message.includes('No accounts found')) {
+      if (error instanceof Error && error.message.includes("No accounts found")) {
         // Wallet is not connected, return null
         return null;
       }
@@ -125,13 +127,9 @@ export const near = {
     if (!nearInstance) {
       throw new Error("NEAR instance not initialized. Make sure WalletProvider is set up.");
     }
-    
+
     // near-kit has a view method: view(contractId, methodName, args)
-    return await nearInstance.view(
-      params.contractId,
-      params.methodName,
-      params.args || {}
-    );
+    return await nearInstance.view(params.contractId, params.methodName, params.args || {});
   },
   actions: {
     functionCall: (params: {
@@ -151,10 +149,7 @@ export const near = {
       };
     },
   },
-  sendTx: async (params: {
-    receiverId: string;
-    actions: unknown[];
-  }) => {
+  sendTx: async (params: { receiverId: string; actions: unknown[] }) => {
     if (!walletInstance || !nearInstance) {
       throw new Error("Wallet not initialized");
     }
@@ -218,4 +213,3 @@ export const near = {
     await signIn();
   },
 };
-

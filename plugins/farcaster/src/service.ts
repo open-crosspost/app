@@ -4,7 +4,7 @@ import { MediaAdapter } from './adapters/media';
 import { ProfileAdapter } from './adapters/profile';
 import { RateLimitAdapter } from './adapters/rate-limit';
 import { ClientFactory } from './client-factory';
-import * as PlatformContract from '@crosspost/platform-contract';
+import * as PlatformContract from '@crosspost/plugin/platform-contract';
 
 export class FarcasterService {
   private clientFactory: ClientFactory;

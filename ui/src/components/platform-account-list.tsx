@@ -1,9 +1,8 @@
+import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
+import { Platform } from "@crosspost/plugin/types";
 import { RefreshCw, Twitter } from "lucide-react";
-import React from "react";
-import { PlatformAccountItem } from "./platform-account";
-import { ConnectPlatform } from "./connect-platform";
-import { ConnectedAccount, Platform, PlatformName } from "@crosspost/types";
-import { usePlatformAccountsStore } from "../store/platform-accounts-store";
+import { ConnectPlatform } from "@/components/connect-platform";
+import { PlatformAccountItem } from "@/components/platform-account";
 
 interface PlatformAccountListProps {
   platform: PlatformName;
@@ -11,12 +10,8 @@ interface PlatformAccountListProps {
   isLoading: boolean;
 }
 
-export function PlatformAccountList({
-  platform,
-  accounts,
-  isLoading,
-}: PlatformAccountListProps) {
-  const { isAccountSelected } = usePlatformAccountsStore();
+export function PlatformAccountList({ platform, accounts, isLoading }: PlatformAccountListProps) {
+  // isAccountSelected removed = usePlatformAccountsStore();
   const filteredAccounts = accounts.filter(
     (account) => account?.platform === platform?.toLowerCase(),
   );
@@ -24,9 +19,7 @@ export function PlatformAccountList({
   return (
     <div className="space-y-4 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h2 className="text-xl font-semibold capitalize">
-          {platform} Accounts
-        </h2>
+        <h2 className="text-xl font-semibold capitalize">{platform} Accounts</h2>
         <ConnectPlatform platform={platform} />
       </div>
 
@@ -55,11 +48,7 @@ export function PlatformAccountList({
                 Connect your {platform} accounts to start crossposting
               </p>
               <div className="mt-6">
-                <ConnectPlatform
-                  platform={platform}
-                  size="default"
-                  showIcon={true}
-                />
+                <ConnectPlatform platform={platform} size="default" showIcon={true} />
               </div>
             </div>
           ) : (

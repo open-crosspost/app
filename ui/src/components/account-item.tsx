@@ -1,7 +1,7 @@
-import { ConnectedAccount } from "@crosspost/types";
-import React from "react";
-import { Button } from "./ui/button";
+import type { ConnectedAccount } from "@crosspost/plugin/types";
+import type React from "react";
 import { ProfileCard } from "./profile-card";
+import { Button } from "./ui/button";
 
 export interface AccountItemProps {
   account: ConnectedAccount;
@@ -50,17 +50,10 @@ export function AccountItem({
         <div className="flex-grow overflow-hidden">
           {hasError ? (
             <div>
-              <p className="font-medium text-sm text-red-700 truncate">
-                {account.platform}
-              </p>
-              <p className="text-xs text-red-600 truncate">
-                ID: {account.userId}
-              </p>
+              <p className="font-medium text-sm text-red-700 truncate">{account.platform}</p>
+              <p className="text-xs text-red-600 truncate">ID: {account.userId}</p>
               {account.error && (
-                <p
-                  className="text-xs text-red-500 truncate"
-                  title={account.error}
-                >
+                <p className="text-xs text-red-500 truncate" title={account.error}>
                   {account.error}
                 </p>
               )}
@@ -69,11 +62,9 @@ export function AccountItem({
             <div className="flex items-center gap-2">
               <div className="flex-grow min-w-0">
                 <p className="font-medium text-sm text-gray-700 dark:text-gray-300 truncate">
-                  @{account.userId || 'Unknown'}
+                  @{account.userId || "Unknown"}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {account.platform}
-                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{account.platform}</p>
               </div>
             </div>
           ) : (
@@ -127,17 +118,10 @@ export function AccountItem({
       <div className="flex items-center space-x-4 overflow-hidden">
         {hasError ? (
           <div>
-            <p className="font-medium text-red-700 truncate">
-              {account.platform}
-            </p>
-            <p className="text-sm text-red-600 truncate">
-              ID: {account.userId}
-            </p>
+            <p className="font-medium text-red-700 truncate">{account.platform}</p>
+            <p className="text-sm text-red-600 truncate">ID: {account.userId}</p>
             {account.error && (
-              <p
-                className="text-xs text-red-500 truncate"
-                title={account.error}
-              >
+              <p className="text-xs text-red-500 truncate" title={account.error}>
                 {account.error}
               </p>
             )}
@@ -145,11 +129,9 @@ export function AccountItem({
         ) : !account.profile ? (
           <div>
             <p className="font-medium text-gray-700 dark:text-gray-300 truncate">
-              @{account.userId || 'Unknown'}
+              @{account.userId || "Unknown"}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {account.platform}
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{account.platform}</p>
           </div>
         ) : (
           <ProfileCard account={account} size="md" />

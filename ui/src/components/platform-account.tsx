@@ -1,40 +1,32 @@
-import { capitalize } from "@/lib/utils/string";
-import { ConnectedAccount, PlatformName } from "@crosspost/types";
+import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { ClipboardCopy, RefreshCw, Trash2 } from "lucide-react";
-import React, { useState } from "react";
-import { toast } from "../hooks/use-toast";
+import { useState } from "react";
+import { AccountItem } from "@/components/account-item";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
+import { capitalize } from "@/lib/utils/string";
 import {
-  useCheckAccountStatus,
   useDisconnectAccount,
   usePlatformAccountsStore,
   useRefreshAccount,
-} from "../store/platform-accounts-store";
-import { Button } from "./ui/button";
-import { AccountItem } from "./account-item";
+} from "@/store/platform-accounts-store";
 
 interface PlatformAccountProps {
   account: ConnectedAccount;
   showActions?: boolean;
-  showSelect?: boolean;
 }
 
-export function PlatformAccountItem({
-  account,
-  showActions = true,
-  showSelect = true,
-}: PlatformAccountProps) {
+export function PlatformAccountItem({ account, showActions = true }: PlatformAccountProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
 
   const disconnectAccount = useDisconnectAccount();
   const refreshAccount = useRefreshAccount();
-  const checkAccountStatus = useCheckAccountStatus();
-  const { toggleAccountSelection, isAccountSelected } =
-    usePlatformAccountsStore();
+  // checkAccountStatus removed = useCheckAccountStatus();
+  const { toggleAccountSelection, isAccountSelected } = usePlatformAccountsStore();
 
-  const isNearSocial =
-    account.platform?.toLowerCase() === ("near social" as PlatformName);
+  const isNearSocial = account.platform?.toLowerCase() === ("near social" as PlatformName);
   const isSelected = isAccountSelected(account.userId);
 
   const handleRefresh = async () => {
@@ -79,22 +71,33 @@ export function PlatformAccountItem({
         variant: "default",
       });
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : `Failed to disconnect ${capitalize(account.platform)} account`;
-      
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : `Failed to disconnect ${capitalize(account.platform)} account`;
+
       // Provide more helpful error messages
       let displayMessage = errorMessage;
-      if (errorMessage.includes("cancelled") || errorMessage.includes("rejected") || errorMessage.includes("cancelled by user")) {
-        displayMessage = "Authentication was cancelled. Please try again and approve the request in your wallet.";
-      } else if (errorMessage.includes("not connected") || errorMessage.includes("not initialized") || errorMessage.includes("Wallet not connected")) {
+      if (
+        errorMessage.includes("cancelled") ||
+        errorMessage.includes("rejected") ||
+        errorMessage.includes("cancelled by user")
+      ) {
+        displayMessage =
+          "Authentication was cancelled. Please try again and approve the request in your wallet.";
+      } else if (
+        errorMessage.includes("not connected") ||
+        errorMessage.includes("not initialized") ||
+        errorMessage.includes("Wallet not connected")
+      ) {
         displayMessage = "Wallet is not connected. Please connect your wallet first and try again.";
       } else if (errorMessage.includes("authentication failed")) {
-        displayMessage = "Authentication failed. Please ensure your wallet is connected and unlocked, then try again.";
+        displayMessage =
+          "Authentication failed. Please ensure your wallet is connected and unlocked, then try again.";
       } else if (errorMessage.includes("Invalid")) {
         displayMessage = "Authentication failed due to invalid token. Please try again.";
       }
-      
+
       toast({
         title: "Disconnection Error",
         description: displayMessage,
@@ -128,23 +131,10 @@ export function PlatformAccountItem({
   const actionButtons =
     !isNearSocial && showActions ? (
       <>
-        <Button
-          size="sm"
-          onClick={handleCopyUserId}
-          title="Copy user ID"
-          disabled={isCopying}
-        >
-          <ClipboardCopy
-            size={16}
-            className={isCopying ? "animate-spin" : ""}
-          />
+        <Button size="sm" onClick={handleCopyUserId} title="Copy user ID" disabled={isCopying}>
+          <ClipboardCopy size={16} className={isCopying ? "animate-spin" : ""} />
         </Button>
-        <Button
-          size="sm"
-          onClick={handleRefresh}
-          title="Refresh token"
-          disabled={isRefreshing}
-        >
+        <Button size="sm" onClick={handleRefresh} title="Refresh token" disabled={isRefreshing}>
           <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
         </Button>
         <Button

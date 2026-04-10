@@ -1,5 +1,5 @@
-import { createAuthToken } from 'near-sign-verify';
-import type { NearAuthData } from './types/auth';
+import { createAuthToken } from "near-sign-verify";
+import type { NearAuthData } from "../types/auth";
 
 /**
  * Generates a fresh authentication token for API requests
@@ -21,16 +21,16 @@ export function createAuthHeaders(
   nearAuthData: NearAuthData,
 ): Record<string, string> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
 
-  if (method === 'GET') {
+  if (method === "GET") {
     // For GET requests, use X-Near-Account header
-    headers['X-Near-Account'] = nearAuthData.account_id;
+    headers["X-Near-Account"] = nearAuthData.account_id;
   } else {
     // For POST/PUT/DELETE requests, use Bearer token
-    headers['Authorization'] = `Bearer ${generateAuthToken(nearAuthData)}`;
+    headers["Authorization"] = `Bearer ${generateAuthToken(nearAuthData)}`;
   }
 
   return headers;

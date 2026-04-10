@@ -1,12 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import React from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
-import { Avatar } from "./avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar } from '@/components/social/avatar';
 
 interface ProfileHighlightProps {
   accountId: string;
@@ -14,11 +8,7 @@ interface ProfileHighlightProps {
   size?: number;
 }
 
-export function ProfileHighlight({
-  accountId,
-  tooltipContent,
-  size = 64,
-}: ProfileHighlightProps) {
+export function ProfileHighlight({ accountId, tooltipContent, size = 64 }: ProfileHighlightProps) {
   const navigate = useNavigate();
 
   return (

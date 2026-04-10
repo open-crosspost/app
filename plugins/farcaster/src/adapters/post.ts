@@ -1,7 +1,7 @@
 import { Effect } from 'every-plugin/effect';
 import { ClientFactory } from '../client-factory';
 import { MediaAdapter } from './media';
-import * as PostSchemas from '@crosspost/platform-contract';
+import * as PostSchemas from '@crosspost/plugin/platform-contract';
 import { FarcasterCastParams, FarcasterEmbed, cidEmbeds } from '../types';
 import { mapNeynarError } from '../utils/error-mapping';
 

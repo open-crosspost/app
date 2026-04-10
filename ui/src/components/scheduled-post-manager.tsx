@@ -1,6 +1,7 @@
-import React, { useEffect } from "react";
-import { useScheduledPostExecutor } from "../hooks/use-scheduled-post-executor";
-import { useAuth } from "../contexts/auth-context";
+import type React from "react";
+import { useEffect } from "react";
+import { useAuth } from '@/hooks/use-auth';
+import { useScheduledPostExecutor } from '@/hooks/use-scheduled-post-executor';
 
 /**
  * This component runs in the background to automatically execute scheduled posts

@@ -1,13 +1,7 @@
-import {
-  getErrorMessage,
-  isAuthError,
-  isNetworkError,
-  isPlatformError,
-} from "@crosspost/sdk";
+import { getErrorMessage, isAuthError, isNetworkError, isPlatformError } from "@crosspost/sdk";
 import { Shield } from "lucide-react";
-import * as React from "react";
 import { useState } from "react";
-import { Button } from "../components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -15,11 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../components/ui/dialog";
-import { APP_NAME } from "../config";
-import { toast } from "../hooks/use-toast";
-import { authorize } from "../lib/authorization-service";
-import { useWallet } from "../integrations/near-wallet";
+} from '@/components/ui/dialog';
+import { APP_NAME } from '@/config';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from '@/hooks/use-toast';
+import { authorize } from '@/lib/authorization-service';
 
 interface AuthorizationModalProps {
   isOpen: boolean;
@@ -35,7 +29,7 @@ export function AuthorizationModal({
   message,
 }: AuthorizationModalProps) {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
-  const { accountId } = useWallet();
+  const { currentAccountId } = useAuth();
 
   const handleRequestAuthorization = async () => {
     setIsAuthorizing(true);
@@ -56,19 +50,13 @@ export function AuthorizationModal({
       if (isAuthError(error)) {
         toast({
           title: "Authentication error",
-          description: getErrorMessage(
-            error,
-            "Unable to authenticate with NEAR wallet",
-          ),
+          description: getErrorMessage(error, "Unable to authenticate with NEAR wallet"),
           variant: "destructive",
         });
       } else if (isNetworkError(error)) {
         toast({
           title: "Network error",
-          description: getErrorMessage(
-            error,
-            "Unable to connect to the server",
-          ),
+          description: getErrorMessage(error, "Unable to connect to the server"),
           variant: "destructive",
         });
       } else if (isPlatformError(error)) {
@@ -80,10 +68,7 @@ export function AuthorizationModal({
       } else {
         toast({
           title: "Authorization Failed",
-          description: getErrorMessage(
-            error,
-            "An unexpected error occurred during authorization",
-          ),
+          description: getErrorMessage(error, "An unexpected error occurred during authorization"),
           variant: "destructive",
         });
       }
@@ -103,8 +88,7 @@ export function AuthorizationModal({
             Authorize {APP_NAME}
           </DialogTitle>
           <DialogDescription>
-            {message ||
-              "Before proceeding, you need to authorize this app to post on your behalf."}
+            {message || "Before proceeding, you need to authorize this app to post on your behalf."}
           </DialogDescription>
         </DialogHeader>
 
@@ -121,21 +105,16 @@ export function AuthorizationModal({
           <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 p-3 sm:p-4 text-sm border border-amber-200 dark:border-amber-800">
             <p className="font-medium text-amber-800 dark:text-amber-300">Important:</p>
             <p className="mt-1 text-amber-700 dark:text-amber-200">
-              Your NEAR account{" "}
-              <span className="font-bold">{accountId || "..."}</span> will be used
-              to sign all requests. You can revoke access at any time by
-              disconnecting your accounts.
+              Your NEAR account <span className="font-bold">{currentAccountId || "..."}</span> will
+              be used to sign all requests. You can revoke access at any time by disconnecting your
+              accounts.
             </p>
           </div>
         </div>
 
         <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:justify-between">
           <Button onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={handleRequestAuthorization}
-            disabled={isAuthorizing}
-            className="gap-2"
-          >
+          <Button onClick={handleRequestAuthorization} disabled={isAuthorizing} className="gap-2">
             {isAuthorizing ? "Authorizing..." : "Authorize App"}
           </Button>
         </DialogFooter>

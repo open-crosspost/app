@@ -1,7 +1,7 @@
+import type { PlatformName } from "@crosspost/plugin/types";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { PlatformName } from "@crosspost/types";
-import { EditorContent } from "./drafts-store";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type { EditorContent } from "./drafts-store";
 
 export interface ScheduledPost {
   id: string;
@@ -71,21 +71,15 @@ export const useScheduledPostsStore = create<ScheduledPostsState>()(
         const now = new Date();
         return get()
           .scheduledPosts.filter(
-            (post) =>
-              new Date(post.scheduledFor) > now && post.status === "pending",
+            (post) => new Date(post.scheduledFor) > now && post.status === "pending",
           )
-          .sort(
-            (a, b) =>
-              new Date(a.scheduledFor).getTime() -
-              new Date(b.scheduledFor).getTime(),
-          );
+          .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
       },
 
       getPendingPosts: () => {
         const now = new Date();
         return get().scheduledPosts.filter(
-          (post) =>
-            new Date(post.scheduledFor) <= now && post.status === "pending",
+          (post) => new Date(post.scheduledFor) <= now && post.status === "pending",
         );
       },
 

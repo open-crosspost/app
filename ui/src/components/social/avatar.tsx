@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { getProfile, getImageUrl } from "../../lib/utils/near-social-node";
+import { useEffect, useState } from "react";
+import { getImageUrl, getProfile } from '@/lib/utils/near-social-node';
 
 const fallbackUrl =
   "https://ipfs.near.social/ipfs/bafkreibmiy4ozblcgv3fm3gc6q62s55em33vconbavfd2ekkuliznaq3zm";
@@ -11,12 +11,7 @@ interface AvatarProps {
   className?: string;
 }
 
-export const Avatar = ({
-  url,
-  accountId,
-  size = 48,
-  className = "",
-}: AvatarProps) => {
+export const Avatar = ({ url, accountId, size = 48, className = "" }: AvatarProps) => {
   const [profileUrl, setProfileUrl] = useState(url);
   const [profileName, setProfileName] = useState(accountId);
 

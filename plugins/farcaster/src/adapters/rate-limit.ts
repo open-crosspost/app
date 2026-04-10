@@ -1,5 +1,5 @@
 import { Effect } from 'every-plugin/effect';
-import * as RateLimitSchemas from '@crosspost/platform-contract';
+import * as RateLimitSchemas from '@crosspost/plugin/platform-contract';
 
 export class RateLimitAdapter {
   /**

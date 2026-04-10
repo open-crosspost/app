@@ -1,17 +1,17 @@
-import { toast } from "@/hooks/use-toast";
-import { useWallet } from "@/integrations/near-wallet";
 import { useNavigate } from "@tanstack/react-router";
 import { Users } from "lucide-react";
-import * as React from "react";
+import type * as React from "react";
 import { useCallback } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 
 export function ManageAccountsButton(): React.ReactElement {
   const navigate = useNavigate();
-  const { accountId } = useWallet();
+  const { currentAccountId } = useAuth();
 
   const handleClick = useCallback(() => {
-    if (!accountId) {
+    if (!currentAccountId) {
       toast({
         title: "Connect Wallet",
         description: "Please connect your NEAR wallet first.",
@@ -20,7 +20,7 @@ export function ManageAccountsButton(): React.ReactElement {
       return;
     }
     navigate({ to: "/manage" });
-  }, [navigate, accountId]);
+  }, [navigate, currentAccountId]);
 
   return (
     <Button onClick={handleClick} className="text-sm sm:text-base">

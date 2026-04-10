@@ -14,6 +14,7 @@
     }
   },
   "dependencies": {
+    "@crosspost/plugin": "workspace:*",
     "twitter-api-v2": "^1.27.0",
     "@twitter-api-v2/plugin-rate-limit": "^1.1.0",
     "@orpc/contract": "^1.13.4",

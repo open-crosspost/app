@@ -1,9 +1,8 @@
-import React from "react";
-import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import type { ConnectedAccount } from "@crosspost/plugin/types";
+import { Platform } from "@crosspost/plugin/types";
 import { Twitter } from "lucide-react";
-
-import { ConnectedAccount, Platform } from "@crosspost/types";
 import { capitalize } from "@/lib/utils/string";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 interface ProfileCardProps {
   account: ConnectedAccount;
@@ -11,11 +10,7 @@ interface ProfileCardProps {
   size?: "sm" | "md" | "lg";
 }
 
-export function ProfileCard({
-  account,
-  className = "",
-  size = "md",
-}: ProfileCardProps) {
+export function ProfileCard({ account, className = "", size = "md" }: ProfileCardProps) {
   const { platform, profile, userId } = account;
   const username = profile?.username ?? userId;
   const profileImageUrl = profile?.profileImageUrl;
@@ -42,9 +37,7 @@ export function ProfileCard({
   };
 
   return (
-    <div
-      className={`flex items-center ${sizeClasses[size].container} ${className}`}
-    >
+    <div className={`flex items-center ${sizeClasses[size].container} ${className}`}>
       <Avatar className={sizeClasses[size].avatar}>
         {profileImageUrl ? (
           <AvatarImage src={profileImageUrl} alt={username} />
@@ -70,9 +63,7 @@ export function ProfileCard({
       </Avatar>
 
       <div className="flex flex-col">
-        <span className={`font-medium ${sizeClasses[size].username}`}>
-          @{username}
-        </span>
+        <span className={`font-medium ${sizeClasses[size].username}`}>@{username}</span>
         <span className={`text-gray-500 ${sizeClasses[size].platform}`}>
           {capitalize(platform)}
         </span>

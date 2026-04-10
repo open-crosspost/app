@@ -1,13 +1,12 @@
+import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
-import React from "react";
-import { PlatformName, UserProfile, ConnectedAccount } from "@crosspost/types";
+import { AccountItem } from "@/components/account-item";
+import { Button } from "@/components/ui/button";
 import {
   useAllAccounts,
   useConnectedAccounts,
   usePlatformAccountsStore,
-} from "../store/platform-accounts-store";
-import { AccountItem } from "./account-item";
-import { Button } from "./ui/button";
+} from "@/store/platform-accounts-store";
 
 interface PlatformAccountsSelectorProps {
   disabledPlatforms?: PlatformName[];
@@ -18,8 +17,7 @@ export function PlatformAccountsSelector({
 }: PlatformAccountsSelectorProps) {
   const navigate = useNavigate();
   const allAccounts = useAllAccounts();
-  const { toggleAccountSelection, isAccountSelected } =
-    usePlatformAccountsStore();
+  const { toggleAccountSelection, isAccountSelected } = usePlatformAccountsStore();
 
   const { isLoading, error: globalError } = useConnectedAccounts();
 
@@ -53,9 +51,7 @@ export function PlatformAccountsSelector({
           </Button>
         </div>
         <p className="text-sm text-red-600">
-          {globalError instanceof Error
-            ? globalError.message
-            : "Failed to load connected accounts"}
+          {globalError instanceof Error ? globalError.message : "Failed to load connected accounts"}
         </p>
       </div>
     );
@@ -86,12 +82,10 @@ export function PlatformAccountsSelector({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 w-full">
         {allAccounts.map((account: ConnectedAccount) => {
-          const isPlatformDisabled = disabledPlatforms.includes(
-            account.platform,
-          );
+          const isPlatformDisabled = disabledPlatforms.includes(account.platform);
           const accountHasError = !!account.error;
 
-          let itemTitle: string | undefined = undefined;
+          let itemTitle: string | undefined;
           let itemDisabled = isPlatformDisabled;
 
           if (accountHasError) {

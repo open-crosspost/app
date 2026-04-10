@@ -1,6 +1,5 @@
-import { EditorContent } from "@/store/drafts-store";
-import { ConnectedAccount } from "@crosspost/types";
-import React from "react";
+import type { ConnectedAccount } from "@crosspost/plugin/types";
+import type { EditorContent } from "@/store/drafts-store";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -11,12 +10,7 @@ interface PreviewModalProps {
   selectedAccounts: ConnectedAccount[];
 }
 
-export function PreviewModal({
-  isOpen,
-  onClose,
-  posts,
-  selectedAccounts,
-}: PreviewModalProps) {
+export function PreviewModal({ isOpen, onClose, posts, selectedAccounts }: PreviewModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -49,22 +43,18 @@ export function PreviewModal({
                     <div className="font-bold text-black dark:text-white">
                       @{account.profile?.username || account.userId}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Just now
-                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Just now</div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {posts.map((post, index) => (
                     <div key={index}>
-                      {post.text &&
-                        post.text.trim() !== "ㅤ" &&
-                        post.text.trim() !== "" && (
-                          <p className="text-black dark:text-white text-lg font-bold whitespace-pre-wrap">
-                            {post.text}
-                          </p>
-                        )}
+                      {post.text && post.text.trim() !== "ㅤ" && post.text.trim() !== "" && (
+                        <p className="text-black dark:text-white text-lg font-bold whitespace-pre-wrap">
+                          {post.text}
+                        </p>
+                      )}
                       {post.media && post.media.length > 0 && (
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           {post.media.map((media, mediaIndex) => (
@@ -98,8 +88,7 @@ export function PreviewModal({
             <div className="text-center py-8 text-gray-400">
               <div className="mb-2">No accounts selected</div>
               <div className="text-sm">
-                Please select at least one platform account above to see the
-                preview.
+                Please select at least one platform account above to see the preview.
               </div>
             </div>
           )}
@@ -115,9 +104,7 @@ export function PreviewModal({
             )}
 
           <div className="text-xs text-gray-400 space-y-1">
-            <div>
-              • Preview shows how posts will appear on connected platforms
-            </div>
+            <div>• Preview shows how posts will appear on connected platforms</div>
             <div>• Media files are displayed as they would appear</div>
             <div>• Thread posts are shown in sequence</div>
           </div>

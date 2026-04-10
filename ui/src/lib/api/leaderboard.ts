@@ -1,6 +1,7 @@
+import type { AccountActivityEntry } from "@crosspost/plugin/types";
+import { TimePeriod } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { getClient } from "@/lib/authorization-service";
-import { TimePeriod, AccountActivityEntry } from "@crosspost/types";
 
 export const fetchLeaderboard = async ({
   limit,
@@ -42,10 +43,7 @@ export const fetchLeaderboard = async ({
       meta = responseData.meta || meta;
     }
     // Check if entries is an object with nested entries
-    else if (
-      responseData.entries &&
-      Array.isArray(responseData.entries.entries)
-    ) {
+    else if (responseData.entries && Array.isArray(responseData.entries.entries)) {
       entries = responseData.entries.entries;
       meta = responseData.entries.meta || meta;
     }

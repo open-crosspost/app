@@ -1,7 +1,6 @@
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { motion } from "framer-motion";
-import React from "react";
 import ReactPlayer from "react-player";
 import { ModalWindowControls } from "./modal-window-controls";
 import { Dialog, DialogContent } from "./ui/dialog";

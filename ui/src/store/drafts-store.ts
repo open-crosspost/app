@@ -1,6 +1,6 @@
+import type { MediaContent, PostContent } from "@crosspost/plugin/types";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { MediaContent, PostContent } from "@crosspost/types";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface EditorMedia extends MediaContent {
   // Additional fields for UI handling

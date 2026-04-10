@@ -12,10 +12,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import React from "react";
+import type { EditorContent } from "@/store/drafts-store";
 import { SortablePost } from "./sortable-post";
 import { Button } from "./ui/button";
-import { EditorContent } from "@/store/drafts-store";
 
 interface PostEditorCoreProps {
   posts: EditorContent[];
@@ -68,11 +67,7 @@ export function PostEditorCore({
 
   return (
     <div className="space-y-4 w-full">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
           items={posts.map((_, i) => `post-${i}`)}
           strategy={verticalListSortingStrategy}

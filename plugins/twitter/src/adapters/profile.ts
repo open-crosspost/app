@@ -1,6 +1,6 @@
 import { Effect } from 'every-plugin/effect';
 import { ClientFactory } from '../client-factory';
-import * as ProfileSchemas from '@crosspost/platform-contract';
+import * as ProfileSchemas from '@crosspost/plugin/platform-contract';
 
 export class ProfileAdapter {
   constructor(

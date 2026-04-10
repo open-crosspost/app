@@ -1,7 +1,7 @@
-import { z } from 'every-plugin/zod';
+import { z } from "every-plugin/zod";
 
 // Re-export from near-sign-verify for convenience
-export type { NearAuthData } from 'near-sign-verify';
+export type { NearAuthData } from "near-sign-verify";
 
 // Zod schema for validation
 export const NearAuthDataSchema = z.object({
@@ -13,5 +13,3 @@ export const NearAuthDataSchema = z.object({
   recipient: z.string(),
   callback_url: z.string().optional(),
 });
-
-export type NearAuthData = z.infer<typeof NearAuthDataSchema>;

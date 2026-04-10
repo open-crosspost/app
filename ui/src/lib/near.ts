@@ -1,7 +1,6 @@
 // Compatibility layer for old near.ts API using new wallet provider
 // This file provides backward compatibility for code that uses the old near.ts API
 
-import { NETWORK_ID } from "../config";
 import { Buffer } from "buffer";
 
 // Wallet instance type
@@ -12,7 +11,10 @@ interface WalletInstance {
   connector: any;
   connect: () => void;
   disconnect: () => void;
-  signMessage: (message: string, recipient?: string) => Promise<{
+  signMessage: (
+    message: string,
+    recipient?: string,
+  ) => Promise<{
     signature: string;
     publicKey: string;
   }>;
@@ -73,7 +75,7 @@ export function getWalletInstance(): WalletInstance | null {
 // Helper to sign a message using the wallet
 export async function signMessage(
   message: string,
-  recipient: string
+  recipient: string,
 ): Promise<{ signature: string; publicKey: string }> {
   console.log("signMessage called:", {
     hasWalletInstance: !!walletInstance,
@@ -84,11 +86,15 @@ export async function signMessage(
   });
 
   if (!walletInstance) {
-    throw new Error("Wallet not initialized. Make sure WalletProvider is set up and wallet is connected.");
+    throw new Error(
+      "Wallet not initialized. Make sure WalletProvider is set up and wallet is connected.",
+    );
   }
 
   if (!walletInstance.signMessage) {
-    throw new Error("Wallet signMessage function not available. Please ensure your wallet supports message signing.");
+    throw new Error(
+      "Wallet signMessage function not available. Please ensure your wallet supports message signing.",
+    );
   }
 
   if (!walletInstance.accountId) {
@@ -98,7 +104,7 @@ export async function signMessage(
   try {
     console.log("Calling walletInstance.signMessage...");
     const result = await walletInstance.signMessage(message, recipient);
-    
+
     console.log("signMessage result received:", {
       hasResult: !!result,
       hasSignature: !!result?.signature,
@@ -106,7 +112,7 @@ export async function signMessage(
       signatureType: typeof result?.signature,
       publicKeyType: typeof result?.publicKey,
     });
-    
+
     if (!result) {
       throw new Error("Message signing failed or was cancelled by user");
     }
@@ -142,7 +148,7 @@ export async function signMessage(
         isConnecting: walletInstance?.isConnecting,
       },
     });
-    
+
     if (error instanceof Error) {
       // Preserve the original error message for better debugging
       throw error;
@@ -170,7 +176,7 @@ export const near = {
       }
     } catch (error) {
       // Handle "No accounts found" error gracefully
-      if (error instanceof Error && error.message.includes('No accounts found')) {
+      if (error instanceof Error && error.message.includes("No accounts found")) {
         // Wallet is not connected, return null
         return null;
       }
@@ -187,13 +193,9 @@ export const near = {
     if (!nearInstance) {
       throw new Error("NEAR instance not initialized");
     }
-    
+
     // near-kit has a view method: view(contractId, methodName, args)
-    return await nearInstance.view(
-      params.contractId,
-      params.methodName,
-      params.args || {}
-    );
+    return await nearInstance.view(params.contractId, params.methodName, params.args || {});
   },
   actions: {
     functionCall: (params: {
@@ -213,10 +215,7 @@ export const near = {
       };
     },
   },
-  sendTx: async (params: {
-    receiverId: string;
-    actions: unknown[];
-  }) => {
+  sendTx: async (params: { receiverId: string; actions: unknown[] }) => {
     if (!walletInstance || !nearInstance) {
       throw new Error("Wallet not initialized");
     }
@@ -229,32 +228,27 @@ export const near = {
     // Use near-kit's transaction builder
     // Convert actions to near-kit format and use transaction builder
     const builder = nearInstance.transaction(accountId);
-    
+
     // Process each action
     for (const action of params.actions) {
       const actionObj = action as any;
-      
+
       if (actionObj.type === "FunctionCall" && actionObj.params) {
         const { method_name, args, gas, deposit } = actionObj.params;
-        
+
         // Convert gas from atomic units to Tgas format for near-kit
         // near-kit expects gas as "30 Tgas" format or number
         const gasAmount = gas ? `${BigInt(gas) / BigInt(1000000000000)} Tgas` : undefined;
-        
+
         // Convert deposit from yoctoNEAR to NEAR format
         // near-kit expects deposit as "1 NEAR" format or yoctoNEAR string
         const depositAmount = deposit ? `${deposit} yoctoNEAR` : undefined;
-        
+
         // Use near-kit's functionCall method
-        builder.functionCall(
-          params.receiverId,
-          method_name,
-          args || {},
-          {
-            gas: gasAmount,
-            attachedDeposit: depositAmount,
-          }
-        );
+        builder.functionCall(params.receiverId, method_name, args || {}, {
+          gas: gasAmount,
+          attachedDeposit: depositAmount,
+        });
       } else if (actionObj.type === "Transfer" && actionObj.params) {
         // Handle transfer action
         const amount = actionObj.params.deposit || "0";
@@ -263,7 +257,7 @@ export const near = {
       }
       // Add other action types as needed
     }
-    
+
     // Send the transaction
     return await builder.send();
   },
@@ -275,24 +269,24 @@ export const near = {
     }
 
     const connector = walletInstance.connector;
-    
+
     // Listen to wallet events
     const handleSignIn = (data: any) => {
       const accountId = data.accounts?.[0]?.accountId || null;
       callback({ accountId });
     };
-    
+
     const handleSignOut = () => {
       callback({ accountId: null });
     };
 
-    connector.on('wallet:signIn', handleSignIn);
-    connector.on('wallet:signOut', handleSignOut);
+    connector.on("wallet:signIn", handleSignIn);
+    connector.on("wallet:signOut", handleSignOut);
 
     // Return unsubscribe function
     return () => {
-      connector.off('wallet:signIn', handleSignIn);
-      connector.off('wallet:signOut', handleSignOut);
+      connector.off("wallet:signIn", handleSignIn);
+      connector.off("wallet:signOut", handleSignOut);
     };
   },
   onTx: (callback: (tx: unknown) => void) => {
@@ -303,4 +297,3 @@ export const near = {
     await signIn();
   },
 };
-

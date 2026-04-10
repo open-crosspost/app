@@ -1,8 +1,7 @@
-import React from "react";
-import { ShitzuBadge } from "./shitzu-badge";
 import { BlackdragonBadge } from "./blackdragon-badge";
-import { NekoBadge } from "./neko-badge";
 import { LeaderboardBadge } from "./leaderboard-badge";
+import { NekoBadge } from "./neko-badge";
+import { ShitzuBadge } from "./shitzu-badge";
 
 export interface BadgeProps {
   accountId: string;

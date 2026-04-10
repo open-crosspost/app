@@ -1,12 +1,6 @@
-import React from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
 import { useLeaderboardQuery } from "@/lib/api/leaderboard";
-import { BadgeProps } from "./inline-badges";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { BadgeProps } from '@/components/badges/inline-badges';
 
 export function LeaderboardBadge({ accountId }: BadgeProps) {
   const { data: leaderboard } = useLeaderboardQuery(3);
@@ -15,9 +9,7 @@ export function LeaderboardBadge({ accountId }: BadgeProps) {
     return null;
   }
 
-  const userRankInfo = leaderboard.find(
-    (entry) => entry.signerId === accountId,
-  );
+  const userRankInfo = leaderboard.find((entry) => entry.signerId === accountId);
 
   if (!userRankInfo) {
     return null;
@@ -48,14 +40,8 @@ export function LeaderboardBadge({ accountId }: BadgeProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>
-          <div
-            className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}
-          >
-            <img
-              src={badgeImage}
-              alt={tooltipText}
-              className="w-5 h-5 rounded-full"
-            />
+          <div className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}>
+            <img src={badgeImage} alt={tooltipText} className="w-5 h-5 rounded-full" />
           </div>
         </TooltipTrigger>
         <TooltipContent className="rounded-none">

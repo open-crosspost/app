@@ -1,40 +1,25 @@
-import { ToastAction } from "@/components/ui/toast";
-import { useAuth } from "@/contexts/auth-context";
 import {
   ApiErrorCode,
-  ConnectedAccount,
-  ErrorDetail,
-  MultiStatusData,
-  PlatformName,
-  SuccessDetail,
-} from "@crosspost/types";
+  type ConnectedAccount,
+  type ErrorDetail,
+  type MultiStatusData,
+  type PlatformName,
+  type SuccessDetail,
+} from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
-import React, { useState } from "react";
-import { PostType } from "../components/post-interaction-selector";
-import {
-  NearSocialService,
-  transformNearSocialPost,
-} from "../lib/near-social-service";
-import { parseCrosspostError } from "../lib/utils/error-utils";
-import {
-  detectPlatformFromUrl,
-  extractPostIdFromUrl,
-} from "../lib/utils/url-utils";
-import { EditorContent } from "../store/drafts-store";
-import { useSubmissionResultsStore } from "../store/submission-results-store";
-import {
-  useCreatePost,
-  useQuotePost,
-  useReplyPost,
-} from "./use-post-mutations";
-import { toast } from "./use-toast";
+import { useState } from "react";
+import { ToastAction } from "@/components/ui/toast";
+import { useAuth } from "@/hooks/use-auth";
+import type { PostType } from '@/components/post-interaction-selector';
+import { NearSocialService, transformNearSocialPost } from '@/lib/near-social-service';
+import { parseCrosspostError } from '@/lib/utils/error-utils';
+import { detectPlatformFromUrl, extractPostIdFromUrl } from '@/lib/utils/url-utils';
+import type { EditorContent } from '@/store/drafts-store';
+import { useSubmissionResultsStore } from '@/store/submission-results-store';
+import { useCreatePost, useQuotePost, useReplyPost } from '@/hooks/use-post-mutations';
+import { toast } from '@/hooks/use-toast';
 
-export type SubmitStatus =
-  | "idle"
-  | "posting"
-  | "success"
-  | "partial-success"
-  | "failure";
+export type SubmitStatus = "idle" | "posting" | "success" | "partial-success" | "failure";
 
 export interface SubmitResult {
   status: SubmitStatus;
@@ -269,11 +254,7 @@ export function useSubmitPost() {
 
       // If no specific errors from parseCrosspostError but we have a general message,
       // create a generic error for each account that was part of this API call.
-      if (
-        finalErrors.length === 0 &&
-        errorData.message &&
-        otherAccounts.length > 0
-      ) {
+      if (finalErrors.length === 0 && errorData.message && otherAccounts.length > 0) {
         finalErrors = otherAccounts.map((acc) => ({
           message: errorData.message || "Posting failed for this account.",
           code: (errorData.code as ApiErrorCode) || ApiErrorCode.PLATFORM_ERROR,
@@ -295,10 +276,8 @@ export function useSubmitPost() {
     }
 
     // Combine NEAR Social results
-    const totalSucceeded =
-      finalSummary.succeeded + (nearSocialSuccess ? nearSocialResultCount : 0);
-    const totalFailed =
-      finalSummary.failed + (!nearSocialSuccess ? nearSocialResultCount : 0);
+    const totalSucceeded = finalSummary.succeeded + (nearSocialSuccess ? nearSocialResultCount : 0);
+    const totalFailed = finalSummary.failed + (!nearSocialSuccess ? nearSocialResultCount : 0);
     const totalAttempted = totalSucceeded + totalFailed;
 
     const combinedSummary = {
@@ -380,10 +359,7 @@ export function useSubmitPost() {
         description: `Posted to ${combinedSummary.succeeded} of ${combinedSummary.total} accounts.`,
         variant: "default",
         action: (
-          <ToastAction
-            altText="See Results"
-            onClick={() => navigate({ to: "/results" })}
-          >
+          <ToastAction altText="See Results" onClick={() => navigate({ to: "/results" })}>
             See Results
           </ToastAction>
         ),
@@ -394,10 +370,7 @@ export function useSubmitPost() {
         description: `Failed to publish post to any of the ${combinedSummary.total} selected account${combinedSummary.total > 1 ? "s" : ""}.`,
         variant: "destructive",
         action: (
-          <ToastAction
-            altText="See Details"
-            onClick={() => navigate({ to: "/results" })}
-          >
+          <ToastAction altText="See Details" onClick={() => navigate({ to: "/results" })}>
             See Details
           </ToastAction>
         ),
@@ -412,8 +385,7 @@ export function useSubmitPost() {
       // This case means all initially selected accounts were filtered out (e.g. for quote/reply)
       toast({
         title: "No Compatible Accounts",
-        description:
-          "None of your selected accounts are compatible with this action.",
+        description: "None of your selected accounts are compatible with this action.",
         variant: "default",
       });
     }

@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+// QueryClient import removed "@tanstack/react-query";
 import {
   ClientOnly,
   createRootRouteWithContext,
@@ -14,7 +14,6 @@ import React from "react";
 import { Toaster } from "sonner";
 import { z } from "zod";
 import { getBaseStyles, getRuntimeBasePath } from "@/app";
-import { AuthProvider } from "@/contexts/auth-context";
 import { type SessionData, sessionQueryOptions } from "@/lib/session";
 import type { RouterContext } from "@/types";
 
@@ -161,12 +160,10 @@ function RootComponent() {
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AuthProvider pretendAccountId={pretend}>
-            <div id="root">
-              <Outlet />
-            </div>
-            <Toaster position="bottom-right" richColors closeButton />
-          </AuthProvider>
+          <div id="root">
+            <Outlet />
+          </div>
+          <Toaster position="bottom-right" richColors closeButton />
         </ThemeProvider>
         <Scripts />
         {process.env.NODE_ENV === "development" && (

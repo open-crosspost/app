@@ -1,8 +1,5 @@
-import {
-  ApiErrorCode,
-  ErrorDetail,
-  MultiStatusDataSchema,
-} from "@crosspost/types";
+import type { ErrorDetail } from "@crosspost/plugin/types";
+import { ApiErrorCode, MultiStatusDataSchema } from "@crosspost/plugin/types";
 
 export interface ErrorResponse {
   summary?: {

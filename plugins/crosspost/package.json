@@ -11,13 +11,20 @@
     "./contract": {
       "types": "./src/contract.ts",
       "default": "./src/contract.ts"
+    },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "default": "./src/types/index.ts"
+    },
+    "./platform-contract": {
+      "types": "./src/platform-contract.ts",
+      "default": "./src/platform-contract.ts"
     }
   },
   "peerDependencies": {
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@crosspost/types": "^0.2.8",
     "@orpc/contract": "^1.13.4",
     "@orpc/server": "^1.13.4",
     "near-sign-verify": "^0.3.6"

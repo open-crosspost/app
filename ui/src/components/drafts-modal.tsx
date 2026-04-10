@@ -1,25 +1,18 @@
-import * as React from "react";
-import { motion } from "framer-motion";
-import { useDraftsStore, EditorContent } from "../store/drafts-store";
-import { formatDistanceToNow } from "date-fns";
-import { Button } from "./ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "./ui/dialog";
-import { ModalWindowControls } from "./modal-window-controls";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
+import type * as React from "react";
+import type { EditorContent } from '@/store/drafts-store';
+import { useDraftsStore } from '@/store/drafts-store';
+import { ModalWindowControls } from '@/components/modal-window-controls';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface DraftsModalProps {
   onSelect: (posts: EditorContent[]) => void;
 }
 
-export function DraftsModal({
-  onSelect,
-}: DraftsModalProps): React.ReactElement {
+export function DraftsModal({ onSelect }: DraftsModalProps): React.ReactElement {
   const { drafts, isModalOpen, setModalOpen, deleteDraft } = useDraftsStore();
 
   return (
@@ -35,9 +28,7 @@ export function DraftsModal({
           <div className="p-3 sm:p-6">
             <DialogHeader>
               <VisuallyHidden.Root>
-                <DialogTitle className="font-mono text-2xl font-bold">
-                  Drafts
-                </DialogTitle>
+                <DialogTitle className="font-mono text-2xl font-bold">Drafts</DialogTitle>
                 <DialogDescription className="text-gray-600">
                   View and manage your saved draft posts
                 </DialogDescription>
@@ -45,9 +36,7 @@ export function DraftsModal({
             </DialogHeader>
 
             {drafts.length === 0 ? (
-              <p className="text-gray-600 text-center py-8">
-                No drafts saved yet
-              </p>
+              <p className="text-gray-600 text-center py-8">No drafts saved yet</p>
             ) : (
               <>
                 <p className="text-gray-600 dark:text-white mb-2">

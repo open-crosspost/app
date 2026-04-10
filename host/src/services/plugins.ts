@@ -40,6 +40,17 @@ function secretsFromEnv(keys: string[]): Record<string, string> {
   return out;
 }
 
+function validatePluginConfig(key: string, config: RuntimePluginInput): void {
+  if (config.secrets && config.secrets.length > 0) {
+    for (const secret of config.secrets) {
+      if (!process.env[secret] || process.env[secret] === "") {
+        console.warn(`[Plugins] ⚠️  ${key}: Missing secret '${secret}'`);
+        console.warn(`[Plugins]    Plugin may fail to initialize`);
+      }
+    }
+  }
+}
+
 const unavailableResult = (
   pluginName: string | null,
   error: string | null,
@@ -116,6 +127,8 @@ export const initializePlugins = Effect.gen(function* () {
 
       const loaded = await Promise.allSettled(
         registryEntries.map(async (entry) => {
+          validatePluginConfig(entry.key, entry.config);
+
           const variables: Record<string, unknown> = {
             ...entry.config.variables,
           };
@@ -160,9 +173,29 @@ export const initializePlugins = Effect.gen(function* () {
             baseApi = result.value;
           }
         } else {
-          errors.push(
-            result.reason instanceof Error ? result.reason.message : String(result.reason),
-          );
+          const error = result.reason;
+          const errorMessage = error instanceof Error ? error.message : String(error);
+
+          if (errorMessage.includes("fetch failed") || errorMessage.includes("ENOTFOUND")) {
+            console.error(`[Plugins] ❌ ${key}: Cannot reach plugin server`);
+            console.error(`[Plugins]    URL: ${entry?.config?.url}`);
+            console.error(`[Plugins]    Ensure plugin dev server is running`);
+          } else if (errorMessage.includes("is required")) {
+            console.error(`[Plugins] ❌ ${key}: Missing required configuration`);
+            console.error(`[Plugins]    ${errorMessage}`);
+            console.error(`[Plugins]    Check plugin.dev.ts for required secrets`);
+          } else if (errorMessage.includes("timeout")) {
+            console.error(`[Plugins] ❌ ${key}: Plugin initialization timed out`);
+            console.error(`[Plugins]    This might indicate a slow external API`);
+          } else {
+            console.error(`[Plugins] ❌ ${key}: ${errorMessage}`);
+            if (error instanceof Error && error.stack) {
+              const stackLines = error.stack.split("\n").slice(0, 3);
+              console.error(`[Plugins]    ${stackLines.join("\n    ")}`);
+            }
+          }
+
+          errors.push(errorMessage);
         }
       });
 

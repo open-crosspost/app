@@ -1,5 +1,5 @@
 import { Effect } from 'every-plugin/effect';
-import type * as Types from '@crosspost/types';
+import type * as Types from './types';
 import { createAuthHeaders, isValidNearAuthData } from './utils/auth-helpers';
 import { getStatusErrorMessage, mapToCrosspostError } from './errors/error-mapping';
 import type { NearAuthData } from './types/auth';

@@ -1,9 +1,8 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import React from "react";
-import { Header } from "../components/header";
-import { Footer } from "../components/footer";
-// import { HelperBuddy } from "../components/helper-buddy";
+import { Footer } from '@/components/footer';
+import { Header } from '@/components/header';
+// import { HelperBuddy } from '@/components/helper-buddy';
 
 export const Route = createFileRoute("/_layout")({
   component: LayoutComponent,

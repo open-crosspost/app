@@ -1,14 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import {
-  PenSquare,
-  Trophy,
-  User,
-  LogOut,
-  ChevronDown,
-  Moon,
-  Sun,
-} from "lucide-react";
-import * as React from "react";
+import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-react";
+import type * as React from "react";
+import { useTheme } from "@/contexts/theme-context";
+import { useAuth } from "@/hooks/use-auth";
 import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
 import {
@@ -17,8 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useAuth } from "@/contexts/auth-context";
-import { useTheme } from "@/contexts/theme-context";
 
 export const Header: React.FC = () => {
   const { isSignedIn, currentAccountId, handleSignOut } = useAuth();

@@ -14,6 +14,7 @@
     }
   },
   "dependencies": {
+    "@crosspost/plugin": "workspace:*",
     "@neynar/nodejs-sdk": "^2.0.0",
     "@farcaster/hub-nodejs": "^0.15.5",
     "viem": "^2.33.3",

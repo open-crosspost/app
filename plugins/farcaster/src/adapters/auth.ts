@@ -1,4 +1,4 @@
-import * as AuthSchemas from '@crosspost/platform-contract';
+import * as AuthSchemas from '@crosspost/plugin/platform-contract';
 import { Effect } from 'every-plugin/effect';
 import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
 import { mnemonicToAccount } from 'viem/accounts';

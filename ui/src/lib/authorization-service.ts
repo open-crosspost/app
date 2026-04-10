@@ -1,7 +1,7 @@
 import { CrosspostClient } from "@crosspost/sdk";
-import { OPEN_CROSSPOST_PROXY_API } from "../config";
-import { toast } from "../hooks/use-toast";
-import { getAccountId, signMessage } from "./near";
+import { OPEN_CROSSPOST_PROXY_API } from '@/config';
+import { toast } from '@/hooks/use-toast';
+import { getAccountId, signMessage } from '@/lib/near';
 
 let clientInstance: CrosspostClient | null = null;
 
