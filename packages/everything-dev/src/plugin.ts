@@ -208,7 +208,7 @@ function defaultPluginKey(source: string): string {
 
 function pluginLocalPath(configDir: string, attachment: PluginAttachmentConfig): string | null {
   const source = attachment.development ?? attachment.production;
-  if (!source || !source.startsWith("local:")) {
+  if (!source?.startsWith("local:")) {
     return null;
   }
 
@@ -298,7 +298,6 @@ async function buildEveryPluginQuietly(cwd: string) {
   const distExists = await Bun.file(distPath).exists();
 
   if (distExists) {
-    console.log("[build:ssr] using existing every-plugin dist");
     return;
   }
 

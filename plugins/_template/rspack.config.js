@@ -1,12 +1,8 @@
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { EmitPluginManifest, EveryPluginDevServer } from "every-plugin/build/rspack";
+import { EveryPluginDevServer, FixMfDataUriPlugin } from "every-plugin/build/rspack";
 import { withZephyr } from "zephyr-rspack-plugin";
-
-const require = createRequire(import.meta.url);
-const pkg = require("./package.json");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,7 +47,7 @@ function updateBosConfig(url) {
 }
 
 const baseConfig = {
-  plugins: [new EveryPluginDevServer(), ...(shouldDeploy ? [new EmitPluginManifest()] : [])],
+  plugins: [new EveryPluginDevServer({ dts: false }), new FixMfDataUriPlugin()],
   infrastructureLogging: {
     level: "error",
   },
@@ -63,7 +59,7 @@ export default shouldDeploy
       hooks: {
         onDeployComplete: (info) => {
           console.log("🚀 Template Plugin Deployed:", info.url);
-          updateBosConfig(info.url);
+          updateBosConfig(`${info.url}/mf-manifest.json`);
         },
       },
     })(baseConfig)
