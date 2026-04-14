@@ -17,6 +17,11 @@ const shouldDeploy = process.env.DEPLOY === "true";
 const buildTarget = process.env.BUILD_TARGET as "client" | "server" | undefined;
 const isServerBuild = buildTarget === "server";
 
+function resolveDevServerPort(fallback: number): number {
+  const n = Number(process.env.PORT);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 const bosConfigPath = path.resolve(__dirname, "../bos.config.json");
 const bosConfig = JSON.parse(fs.readFileSync(bosConfigPath, "utf8"));
 const uiSharedDeps = bosConfig.shared?.ui ?? {};
@@ -38,6 +43,8 @@ function updateBosConfig(field: "production" | "ssr", url: string) {
     console.error("   ❌ Failed to update bos.config.json:", (err as Error).message);
   }
 }
+
+const isDevClient = process.env.NODE_ENV !== "production";
 
 function createClientConfig() {
   const plugins = [
@@ -72,7 +79,10 @@ function createClientConfig() {
     plugins,
     source: {
       entry: {
-        index: "./src/hydrate.tsx",
+        index: "./src/dev-entry.tsx",
+      },
+      define: {
+        "import.meta.env.PUBLIC_DEV_HOST_URL": JSON.stringify(process.env.PUBLIC_DEV_HOST_URL ?? ""),
       },
     },
     resolve: {
@@ -88,7 +98,9 @@ function createClientConfig() {
       },
     },
     server: {
-      port: isServerBuild ? 3003 : 3002,
+      port: resolveDevServerPort(3002),
+      strictPort: true,
+      host: "0.0.0.0",
       printUrls: ({ urls }) => urls.filter((url) => url.includes("localhost")),
       headers: {
         "Access-Control-Allow-Origin": "*",
@@ -104,10 +116,17 @@ function createClientConfig() {
         },
         infrastructureLogging: { level: "error" },
         stats: "errors-warnings",
+        ...(isDevClient
+          ? {
+              optimization: {
+                splitChunks: false,
+              },
+            }
+          : {}),
         plugins: [
           TanStackRouterRspack({
             target: "react",
-            autoCodeSplitting: true,
+            autoCodeSplitting: false,
           }),
         ],
       },
@@ -152,7 +171,7 @@ function createServerConfig() {
       },
     },
     server: {
-      port: 3003,
+      port: resolveDevServerPort(3003),
       printUrls: ({ urls }) => urls.filter((url) => url.includes("localhost")),
       headers: {
         "Access-Control-Allow-Origin": "*",

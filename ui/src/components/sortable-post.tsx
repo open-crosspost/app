@@ -39,12 +39,17 @@ function SortablePostComponent({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex gap-2 w-full">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="w-full rounded-lg bg-background p-2"
+    >
+      <div className="flex gap-2 w-full">
       <div className="flex-none w-8">
         <div
           {...attributes}
           {...listeners}
-          className="sticky top-0 h-[150px] w-8 flex items-center justify-center cursor-grab bg-gray-50 rounded-lg base-component touch-manipulation"
+          className="sticky top-0 h-[150px] w-8 flex items-center justify-center cursor-grab bg-muted rounded-lg base-component touch-manipulation"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +78,7 @@ function SortablePostComponent({
           onFocus={() => onTextFocus?.(index)}
           onBlur={() => onTextBlur?.(index)}
           placeholder={`Thread part ${index + 1}`}
-          className={`min-h-[150px] w-full rounded-lg resize-none focus:ring-2 focus:ring-blue-500 ${
+          className={`min-h-[150px] w-full rounded-lg border-2 border-primary resize-none focus:ring-2 focus:ring-blue-500 ${
             post.text && post.text.length > 280 ? "border-destructive" : ""
           }`}
           acceptImages={true}
@@ -175,6 +180,7 @@ function SortablePostComponent({
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

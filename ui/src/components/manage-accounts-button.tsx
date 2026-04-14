@@ -9,10 +9,9 @@ import { Button } from "./ui/button";
 export function ManageAccountsButton(): React.ReactElement {
   const navigate = useNavigate();
   const { data: session } = authClient.useSession();
-  const currentAccountId = session?.user?.id ?? null;
 
   const handleClick = useCallback(() => {
-    if (!currentAccountId) {
+    if (!session?.user) {
       toast({
         title: "Connect Wallet",
         description: "Please connect your NEAR wallet first.",
@@ -21,7 +20,7 @@ export function ManageAccountsButton(): React.ReactElement {
       return;
     }
     navigate({ to: "/manage" });
-  }, [navigate, currentAccountId]);
+  }, [navigate, session?.user]);
 
   return (
     <Button onClick={handleClick} className="text-sm sm:text-base">

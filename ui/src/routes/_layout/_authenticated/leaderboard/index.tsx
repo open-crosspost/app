@@ -1,5 +1,4 @@
-import type { AccountActivityEntry, ActivityLeaderboardQuerySchema } from "@crosspost/plugin/types";
-import { type Platform, TimePeriod } from "@crosspost/plugin/types";
+import { ActivityLeaderboardQuerySchema, type Platform, TimePeriod } from "@crosspost/plugin/types";
 import { getErrorMessage } from "@crosspost/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
@@ -41,8 +40,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchLeaderboard } from "@/lib/api/leaderboard";
-import { getClient } from "@/lib/authorization-service";
 import { type ExportField, type ExportFormat, exportData } from "@/lib/utils/export-utils";
+
+type LeaderboardEntry = {
+  rank?: number;
+  signerId: string;
+  totalScore?: number;
+  totalPosts?: number;
+  totalReplies?: number;
+  totalQuotes?: number;
+  firstPostTimestamp?: string | number;
+  lastActive?: string | number;
+  postCount?: number;
+  lastPostTimestamp?: string | number;
+};
 
 export const Route = createFileRoute("/_layout/_authenticated/leaderboard/")({
   component: LeaderboardPage,
@@ -60,14 +71,13 @@ const fetchAllLeaderboardData = async ({
   startDate?: string;
   endDate?: string;
 }) => {
-  const client = getClient();
-  const allEntries: AccountActivityEntry[] = [];
+  const allEntries: LeaderboardEntry[] = [];
   let offset = 0;
   const limit = 100;
   let hasMore = true;
 
   while (hasMore) {
-    const response = await client.activity.getLeaderboard({
+    const normalized = await fetchLeaderboard({
       limit,
       offset,
       timeframe,
@@ -75,8 +85,7 @@ const fetchAllLeaderboardData = async ({
       endDate,
       platforms: platform ? [platform as Platform] : undefined,
     });
-
-    const entries = Array.isArray(response.data?.entries) ? response.data.entries : [];
+    const entries = normalized.entries as unknown as LeaderboardEntry[];
     allEntries.push(...entries);
 
     hasMore = entries.length === limit;
@@ -142,7 +151,7 @@ function LeaderboardPage() {
   const totalEntries = queryResult?.meta?.pagination?.total || 0;
 
   // Export fields configuration
-  const exportFields: ExportField<AccountActivityEntry>[] = [
+  const exportFields: ExportField<LeaderboardEntry>[] = [
     { key: "rank", header: "Rank" },
     { key: "signerId", header: "NEAR Account" },
     { key: "totalScore", header: "Score" },
@@ -201,7 +210,7 @@ function LeaderboardPage() {
     }
   };
 
-  const columnHelper = createColumnHelper<AccountActivityEntry>();
+  const columnHelper = createColumnHelper<LeaderboardEntry>();
   const columns = [
     columnHelper.accessor("rank", {
       header: "Rank",

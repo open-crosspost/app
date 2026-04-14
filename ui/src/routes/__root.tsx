@@ -15,6 +15,7 @@ import React from "react";
 import { Toaster } from "sonner";
 import { z } from "zod";
 import { getBaseStyles, getRuntimeBasePath } from "@/app";
+import { APP_DESCRIPTION, APP_NAME, METADATA_IMAGE_ALT } from "@/lib/branding";
 import { type SessionData, sessionQueryOptions } from "@/lib/session";
 import type { RouterContext } from "@/types";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
@@ -22,10 +23,6 @@ import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 const rootSearchSchema = z.object({
   pretend: z.string().optional(),
 });
-
-const APP_NAME = "Crosspost";
-const APP_DESCRIPTION = "Share your content everywhere at once";
-const METADATA_IMAGE_ALT = "Crosspost - Multi-platform posting";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   validateSearch: (search) => rootSearchSchema.parse(search),

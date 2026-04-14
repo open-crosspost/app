@@ -1,19 +1,22 @@
 import { CrosspostClient } from "@crosspost/sdk";
-import { OPEN_CROSSPOST_PROXY_API } from '@/config';
+import { getCrosspostApiBaseUrl } from "@/config";
 import { toast } from '@/hooks/use-toast';
 import { getAccountId, signMessage } from '@/lib/near';
 
 let clientInstance: CrosspostClient | null = null;
+let clientBaseUrl: string | null = null;
 
 /**
  * Gets or creates a CrosspostClient instance
  * @returns The CrosspostClient instance
  */
 export function getClient(): CrosspostClient {
-  if (!clientInstance) {
+  const baseUrl = getCrosspostApiBaseUrl();
+  if (!clientInstance || clientBaseUrl !== baseUrl) {
     clientInstance = new CrosspostClient({
-      baseUrl: OPEN_CROSSPOST_PROXY_API,
+      baseUrl,
     });
+    clientBaseUrl = baseUrl;
   }
   return clientInstance;
 }
@@ -56,9 +59,17 @@ export async function authorize(): Promise<boolean> {
       publicKeyLength: authToken.publicKey.length,
     });
     
-    // SDK expects authToken as a string (JSON-encoded)
-    // The backend expects: { signature: string, publicKey: string }
-    client.setAuthentication(JSON.stringify(authToken));
+    // Some SDK versions expect object auth payload while older ones accepted a JSON string.
+    // Try object first, then fallback to string for compatibility.
+    try {
+      (
+        client as unknown as { setAuthentication: (payload: Record<string, unknown>) => void }
+      ).setAuthentication(authToken as unknown as Record<string, unknown>);
+    } catch {
+      (client as unknown as { setAuthentication: (payload: string) => void }).setAuthentication(
+        JSON.stringify(authToken),
+      );
+    }
 
     // Call the SDK method to verify with the backend
     console.log("Calling authorizeNearAccount...");

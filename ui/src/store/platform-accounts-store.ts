@@ -26,7 +26,9 @@ export const usePlatformAccountsStore = create<PlatformAccountsState>()(
 
       selectAccount: (userId) => {
         set((state) => ({
-          selectedAccountIds: [...state.selectedAccountIds, userId],
+          selectedAccountIds: state.selectedAccountIds.includes(userId)
+            ? state.selectedAccountIds
+            : [...state.selectedAccountIds, userId],
         }));
       },
 
@@ -74,8 +76,9 @@ export function useConnectedAccounts() {
       }
       try {
         const client = getClient();
-
-        // client.setAccountHeader(currentAccountId);
+        (client as { setAccountHeader?: (accountId: string) => void }).setAccountHeader?.(
+          currentAccountId,
+        );
 
         const response = await client.auth.getConnectedAccounts();
 
@@ -138,9 +141,17 @@ export const useConnectAccount = () => {
         const message = `Authenticating request for NEAR account: ${currentAccountId}${authDetails ? ` (${authDetails})` : ""}`;
         const authToken = await signMessage(message, "crosspost.near");
 
-        // SDK expects authToken as a string (JSON-encoded)
-        // The backend expects: { signature: string, publicKey: string }
-        client.setAuthentication(JSON.stringify(authToken));
+        // Some SDK versions expect object auth payload while older ones accepted a JSON string.
+        // Try object first, then fallback to string for compatibility.
+        try {
+          (
+            client as unknown as { setAuthentication: (payload: Record<string, unknown>) => void }
+          ).setAuthentication(authToken as unknown as Record<string, unknown>);
+        } catch {
+          (client as unknown as { setAuthentication: (payload: string) => void }).setAuthentication(
+            JSON.stringify(authToken),
+          );
+        }
 
         const response: any = await client.auth.loginToPlatform(platform?.toLowerCase() as any);
 
@@ -240,7 +251,7 @@ export const useCheckAccountStatus = createAuthenticatedMutation<
 
     if (response.success) {
       const { authenticated, tokenStatus } = response.data;
-      const isConnected = authenticated && tokenStatus.valid;
+      void (authenticated && tokenStatus.valid);
       return response;
     } else {
       throw new Error(response.errors?.[0]?.message || "Failed to check account status");

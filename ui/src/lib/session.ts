@@ -1,41 +1,19 @@
 import { queryOptions } from "@tanstack/react-query";
-import { authClient } from "./auth-client";
+import { authClient, type SessionData } from "./auth-client";
 
-export interface User {
-  id: string;
-  email?: string;
-  name?: string;
-  image?: string | null;
-  role?: string;
-  banned?: boolean;
-  isAnonymous?: boolean;
-  emailVerified?: boolean;
-}
+export type { SessionData };
 
-export interface SessionInfo {
-  id: string;
-  userId: string;
-  expiresAt: Date;
-  token: string;
-  createdAt: Date;
-  updatedAt: Date;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-}
-
-export interface SessionData {
-  user: User;
-  session: SessionInfo;
-}
+export type User = NonNullable<SessionData["user"]>;
+export type SessionInfo = NonNullable<SessionData["session"]>;
 
 export const sessionQueryOptions = (initialSession?: SessionData | null) =>
   queryOptions({
     queryKey: ["session"],
     queryFn: async () => {
       const { data: session } = await authClient.getSession();
-      return session as SessionData | null;
+      return session;
     },
-    staleTime: 60 * 1000,
+    staleTime: 15 * 1000,
     gcTime: 10 * 60 * 1000,
     initialData: initialSession,
   });
@@ -53,11 +31,13 @@ export function getSessionFromData(session: SessionData | null | undefined) {
     };
   }
 
+  const orgSession = session.session as SessionInfo & { activeOrganizationId?: string | null };
+
   return {
     isAuthenticated: true,
     user: session.user,
     session: session.session,
-    activeOrganizationId: null,
+    activeOrganizationId: orgSession.activeOrganizationId ?? null,
     isAnonymous: session.user.isAnonymous || false,
     isAdmin: session.user.role === "admin",
     isBanned: session.user.banned || false,
@@ -88,5 +68,10 @@ export async function revokeOtherSessions() {
 }
 
 export async function linkNearWallet() {
-  await authClient.signIn.near();
+  await new Promise<void>((resolve, reject) => {
+    authClient.signIn.near({
+      onSuccess: () => resolve(),
+      onError: (error) => reject(error),
+    });
+  });
 }

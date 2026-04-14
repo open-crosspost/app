@@ -27,9 +27,59 @@ const evmWalletChains: EVMWalletChains = {
 export const NETWORK_ID = "mainnet";
 export const EVMWalletChain = evmWalletChains[NETWORK_ID];
 
-// API Configuration
-export const OPEN_CROSSPOST_PROXY_API = process.env.OPEN_CROSSPOST_PROXY_API;
+const RAW_OPEN_CROSSPOST_PROXY_API =
+  process.env.OPEN_CROSSPOST_PROXY_API ?? "/api/crosspost";
+
+export const OPEN_CROSSPOST_PROXY_API = RAW_OPEN_CROSSPOST_PROXY_API;
+
+function hostOriginFromRuntime(): string | null {
+  if (typeof window === "undefined") return null;
+  const hostUrl = (window as unknown as { __RUNTIME_CONFIG__?: { hostUrl?: string } })
+    .__RUNTIME_CONFIG__?.hostUrl;
+  if (!hostUrl) return null;
+  try {
+    return new URL(hostUrl).origin;
+  } catch {
+    return null;
+  }
+}
+
+function hostOriginFromPublicEnv(): string | null {
+  const raw = (import.meta.env as { PUBLIC_DEV_HOST_URL?: string }).PUBLIC_DEV_HOST_URL?.trim();
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+}
+
+export function getCrosspostApiBaseUrl(): string {
+  const raw = String(RAW_OPEN_CROSSPOST_PROXY_API ?? "").trim() || "/api/crosspost";
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw.replace(/\/+$/, "");
+  }
+
+  const path = raw.startsWith("/") ? raw : `/${raw}`;
+
+  const fromRuntime = hostOriginFromRuntime();
+  if (fromRuntime) {
+    return `${fromRuntime}${path}`.replace(/\/+$/, "");
+  }
+
+  const fromEnv = hostOriginFromPublicEnv();
+  if (fromEnv) {
+    return `${fromEnv}${path}`.replace(/\/+$/, "");
+  }
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}${path}`.replace(/\/+$/, "");
+  }
+
+  return `http://127.0.0.1:3000${path}`.replace(/\/+$/, "");
+}
 
 // Authentication configuration
 export const AUTH_STORAGE_PREFIX = "crosspost_auth_";
-export const APP_NAME = "Crosspost";
+export { APP_NAME } from "@/lib/branding";

@@ -1,4 +1,12 @@
+import { apiKeyClient } from "@better-auth/api-key/client";
+import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
+import {
+  adminClient,
+  anonymousClient,
+  organizationClient,
+  phoneNumberClient,
+} from "better-auth/client/plugins";
 import { siwnClient } from "better-near-auth/client";
 import { getAccount, getHostUrl, getNetworkId } from "@/app";
 
@@ -11,6 +19,12 @@ function createAuthClient() {
         recipient: getAccount(),
         networkId: getNetworkId(),
       }),
+      adminClient(),
+      anonymousClient(),
+      phoneNumberClient(),
+      passkeyClient(),
+      organizationClient(),
+      apiKeyClient(),
     ],
   });
 }
@@ -23,6 +37,12 @@ export function getAuthClient() {
   }
   return _authClient;
 }
+
+export type SessionData = ReturnType<typeof createAuthClient> extends {
+  $Infer: { Session: infer S };
+}
+  ? S
+  : never;
 
 export const authClient: ReturnType<typeof createAuthClient> = new Proxy(
   {} as ReturnType<typeof createAuthClient>,

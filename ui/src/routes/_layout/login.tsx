@@ -51,7 +51,7 @@ function LoginPage() {
 
   const handleSuccess = async (message: string) => {
     await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-    router.invalidate();
+    await router.invalidate();
     const redirectTo = redirect?.startsWith("/") ? redirect : "/crosspost";
     navigate({ to: redirectTo, replace: true, search: {} });
     toast.success(message);
@@ -66,7 +66,10 @@ function LoginPage() {
         });
       });
     },
-    onSuccess: () => handleSuccess("Signed in with NEAR"),
+    onSuccess: async () => {
+      await authClient.getSession();
+      await handleSuccess("Signed in with NEAR");
+    },
     onError: (error: { code?: string; message?: string }) => {
       if (error.code === "UNAUTHORIZED_NONCE_REPLAY") {
         toast.error("Sign-in already used");
