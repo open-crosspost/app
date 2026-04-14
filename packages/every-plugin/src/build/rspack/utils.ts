@@ -26,6 +26,10 @@ export function getPluginInfo(context: string): PluginInfo {
 const loadedModules = new Set<string>();
 
 export function loadDevConfig(devConfigPath: string) {
+  if (process.env.DEPLOY === "true") {
+    return null;
+  }
+
   try {
     const fullPath = path.resolve(devConfigPath);
 

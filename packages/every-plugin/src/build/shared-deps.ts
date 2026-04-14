@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
-import pkg from "../../package.json";
 
 const require = createRequire(import.meta.url);
+const pkg = require("../../package.json") as typeof import("../../package.json");
 
 export interface SharedDependencyConfig {
   version: string;
