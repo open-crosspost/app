@@ -1,7 +1,11 @@
-import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const require = createRequire(import.meta.url);
-const pkg = require("../../package.json") as typeof import("../../package.json");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(
+  readFileSync(join(__dirname, "../../package.json"), "utf-8"),
+) as typeof import("../../package.json");
 
 export interface SharedDependencyConfig {
   version: string;
