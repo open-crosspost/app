@@ -23,5 +23,5 @@ export default defineConfig({
   sourcemap: true,
   minify: false,
   unbundle: true,
-  external: ["effect", "zod", /^@orpc\/.*/, /^@module-federation\/.*/],
+  deps: { neverBundle: ["effect", "zod", /^@orpc\/.*/, /^@module-federation\/.*/] },
 });
