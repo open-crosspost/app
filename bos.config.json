@@ -2,12 +2,7 @@
   "account": "dev.everything.near",
   "domain": "everything.dev",
   "repository": "https://github.com/nearbuilders/everything-dev",
-  "plugins": {
-    "template": {
-      "development": "local:plugins/_template",
-      "production": "https://elliot-braem-2617-every-plugin-template-everythin-577d3fdfa-ze.zephyrcloud.app"
-    }
-  },
+  "plugins": {},
   "app": {
     "host": {
       "name": "host",

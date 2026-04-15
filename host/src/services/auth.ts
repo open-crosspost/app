@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { Context, Effect, Layer } from "every-plugin/effect";
+import { Context, Effect, Layer } from "effect";
 import * as schema from "../db/schema/auth";
 import { getPlugins } from "./auth-plugins";
 import { ConfigService } from "./config";

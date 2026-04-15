@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "every-plugin/effect";
+import { Context, Effect, Layer } from "effect";
 import { decodeSignedDelegateAction, Near } from "near-kit";
 import {
   buildRegistryConfigUrl,

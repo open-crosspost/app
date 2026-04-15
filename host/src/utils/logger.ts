@@ -1,4 +1,4 @@
-import { Effect } from "every-plugin/effect";
+import { Effect } from "effect";
 
 export const logger = {
   info: (...args: unknown[]) => Effect.runSync(Effect.logInfo(...args)),

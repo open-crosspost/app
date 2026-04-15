@@ -1,5 +1,5 @@
-import { Effect } from "every-plugin/effect";
-import type { z } from "every-plugin/zod";
+import { Effect } from "effect";
+import type { z } from "zod";
 
 // Import types from contract
 import type { ItemSchema, SearchResultSchema } from "./contract";

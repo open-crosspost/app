@@ -1,4 +1,4 @@
-import { Layer } from "every-plugin/effect";
+import { Layer } from "effect";
 import { AuthService } from "../services/auth";
 import { DatabaseService } from "../services/database";
 import { PluginsService } from "../services/plugins";

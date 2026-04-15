@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "every-plugin/effect";
+import { Context, Effect, Layer } from "effect";
 import { createDatabase, type Database } from "./index";
 
 export class DatabaseTag extends Context.Tag("Database")<DatabaseTag, Database>() {}

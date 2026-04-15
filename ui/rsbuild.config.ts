@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import { pluginModuleFederation } from "@module-federation/rsbuild-plugin";
 import { defineConfig } from "@rsbuild/core";
+import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { pluginReact } from "@rsbuild/plugin-react";
 import { TanStackRouterRspack } from "@tanstack/router-plugin/rspack";
 import { withZephyr } from "zephyr-rsbuild-plugin";
@@ -15,6 +16,11 @@ const normalizedName = pkg.name;
 const shouldDeploy = process.env.DEPLOY === "true";
 const buildTarget = process.env.BUILD_TARGET as "client" | "server" | undefined;
 const isServerBuild = buildTarget === "server";
+
+function resolveDevServerPort(fallback: number): number {
+  const n = Number(process.env.PORT);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 const bosConfigPath = path.resolve(__dirname, "../bos.config.json");
 const bosConfig = JSON.parse(fs.readFileSync(bosConfigPath, "utf8"));
@@ -38,9 +44,12 @@ function updateBosConfig(field: "production" | "ssr", url: string) {
   }
 }
 
+const isDevClient = process.env.NODE_ENV !== "production";
+
 function createClientConfig() {
   const plugins = [
     pluginReact(),
+    pluginNodePolyfill(),
     pluginModuleFederation({
       name: normalizedName,
       filename: "remoteEntry.js",
@@ -48,10 +57,6 @@ function createClientConfig() {
       exposes: {
         "./Router": "./src/router.tsx",
         "./Hydrate": "./src/hydrate.tsx",
-        "./components": "./src/components/index.ts",
-        "./providers": "./src/providers/index.tsx",
-        "./hooks": "./src/hooks/index.ts",
-        "./types": "./src/types/index.ts",
       },
       shared: uiSharedDeps,
     }),
@@ -74,7 +79,10 @@ function createClientConfig() {
     plugins,
     source: {
       entry: {
-        index: "./src/hydrate.tsx",
+        index: "./src/dev-entry.tsx",
+      },
+      define: {
+        "import.meta.env.PUBLIC_DEV_HOST_URL": JSON.stringify(process.env.PUBLIC_DEV_HOST_URL ?? ""),
       },
     },
     resolve: {
@@ -90,7 +98,9 @@ function createClientConfig() {
       },
     },
     server: {
-      port: isServerBuild ? 3003 : 3002,
+      port: resolveDevServerPort(3002),
+      strictPort: true,
+      host: "0.0.0.0",
       printUrls: ({ urls }) => urls.filter((url) => url.includes("localhost")),
       headers: {
         "Access-Control-Allow-Origin": "*",
@@ -106,10 +116,17 @@ function createClientConfig() {
         },
         infrastructureLogging: { level: "error" },
         stats: "errors-warnings",
+        ...(isDevClient
+          ? {
+              optimization: {
+                splitChunks: false,
+              },
+            }
+          : {}),
         plugins: [
           TanStackRouterRspack({
             target: "react",
-            autoCodeSplitting: true,
+            autoCodeSplitting: false,
           }),
         ],
       },
@@ -154,7 +171,7 @@ function createServerConfig() {
       },
     },
     server: {
-      port: 3003,
+      port: resolveDevServerPort(3003),
       printUrls: ({ urls }) => urls.filter((url) => url.includes("localhost")),
       headers: {
         "Access-Control-Allow-Origin": "*",

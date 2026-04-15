@@ -38,11 +38,13 @@
     "dotenv": "^17.2.3",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
+    "effect": "^3.21.0",
     "every-plugin": "catalog:",
     "hono": "^4.11.4",
     "near-kit": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",

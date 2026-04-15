@@ -2,12 +2,12 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
+import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-import { Cause, Deferred, Effect, Exit, Fiber, Layer, ManagedRuntime } from "every-plugin/effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Layer, ManagedRuntime } from "effect";
 import { formatORPCError } from "every-plugin/errors";
-import { onError } from "every-plugin/orpc";
 import { getBaseStyles, getHydrateScript, getThemeInitScript } from "everything-dev/ui/head";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
@@ -122,7 +122,7 @@ function buildRuntimeClientConfig(
   return {
     env: config.env,
     account: activeRuntime.accountId,
-    networkId: config.account.endsWith(".testnet") ? "testnet" : "mainnet",
+    networkId: activeRuntime.accountId.endsWith(".testnet") ? "testnet" : "mainnet",
     hostUrl: requestUrl.origin,
     assetsUrl: uiConfig.url,
     apiBase: "/api",
