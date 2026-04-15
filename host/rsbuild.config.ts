@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { computeSriHashForUrl } from "everything-dev/integrity";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import DrizzleORMMigrations from "@proj-airi/unplugin-drizzle-orm-migrations/rspack";
 import { defineConfig } from "@rsbuild/core";
@@ -14,12 +15,20 @@ const configPath = process.env.BOS_CONFIG_PATH ?? path.resolve(__dirname, "../bo
 const bosConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const sharedUi = bosConfig.shared?.ui ?? {};
 
-function updateBosConfig(url: string) {
+function updateBosConfig(url: string, integrity?: string) {
   try {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     config.app.host.production = url;
+    if (integrity) {
+      config.app.host.productionIntegrity = integrity;
+    } else {
+      delete config.app.host.productionIntegrity;
+    }
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     console.log(`   ✅ Updated bos.config.json: app.host.production`);
+    if (integrity) {
+      console.log(`   ✅ Updated bos.config.json: app.host.productionIntegrity`);
+    }
   } catch (err) {
     console.error("   ❌ Failed to update bos.config.json:", (err as Error).message);
   }
@@ -31,9 +40,10 @@ if (shouldDeploy) {
   plugins.push(
     withZephyr({
       hooks: {
-        onDeployComplete: (info: { url: string }) => {
+        onDeployComplete: async (info: { url: string }) => {
           console.log("🚀 Host Deployed:", info.url);
-          updateBosConfig(info.url);
+          const integrity = await computeSriHashForUrl(info.url);
+          updateBosConfig(info.url, integrity ?? undefined);
         },
       },
     }),

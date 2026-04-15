@@ -78,8 +78,6 @@ async function resolveActiveRuntime(config: RuntimeConfig, request: Request) {
       accountId: override.accountId,
       gatewayId: override.gatewayId,
       runtimeBasePath: override.runtimeBasePath,
-      canonicalConfigUrl: null,
-      resolvedConfig: null,
       title: `${override.accountId}/${override.gatewayId}`,
       hostUrl: url.origin,
     } satisfies ActiveRuntimeState;
@@ -90,8 +88,6 @@ async function resolveActiveRuntime(config: RuntimeConfig, request: Request) {
     accountId: config.account,
     gatewayId: fallbackGatewayId,
     runtimeBasePath: "/",
-    canonicalConfigUrl: null,
-    resolvedConfig: null,
     title: config.account,
     hostUrl: url.origin,
   } satisfies ActiveRuntimeState;
@@ -132,7 +128,16 @@ function buildRuntimeClientConfig(
       name: uiConfig.name,
       url: uiConfig.url,
       entry: uiConfig.entry,
+      integrity: uiConfig.integrity,
     },
+    api: config.api
+      ? {
+          name: config.api.name,
+          url: config.api.url,
+          entry: config.api.entry,
+          integrity: config.api.integrity,
+        }
+      : undefined,
     plugins: Object.fromEntries(
       (Object.entries(config.plugins ?? {}) as Array<[string, RuntimePlugin]>).map(
         ([key, plugin]) => [
@@ -141,6 +146,7 @@ function buildRuntimeClientConfig(
             name: plugin.name,
             url: plugin.url,
             entry: plugin.entry,
+            integrity: plugin.integrity,
           },
         ],
       ),
@@ -396,6 +402,15 @@ export const createStartServer = (onReady?: () => void) =>
     const port = Number(process.env.PORT) || 3000;
     const isDev = process.env.NODE_ENV !== "production";
 
+    if (!process.env.CORS_ORIGIN && !isDev) {
+      logger.warn(
+        "[Security] CORS_ORIGIN is not set in production. Auth endpoints will reject cross-origin requests.",
+      );
+      logger.warn(
+        "[Security] Set CORS_ORIGIN to your allowed origins (comma-separated), e.g.: CORS_ORIGIN=https://yourdomain.com,https://app.yourdomain.com",
+      );
+    }
+
     const config = yield* ConfigService;
     const uiConfig = config.ui!;
     const db = yield* DatabaseService;
@@ -422,7 +437,7 @@ export const createStartServer = (onReady?: () => void) =>
       cors({
         origin: process.env.CORS_ORIGIN?.split(",").map((o: string) => o.trim()) ?? [
           config.hostUrl,
-          uiConfig.url,
+          ...(uiConfig.url ? [uiConfig.url] : []),
         ],
         credentials: true,
       }),
@@ -448,10 +463,13 @@ export const createStartServer = (onReady?: () => void) =>
       error?: Error | null,
     ) => {
       const clientUrl = uiConfig.url;
+      const uiIntegrity = uiConfig.integrity;
       const themeInitScript = (getThemeInitScript() as { children?: string }).children ?? "";
       const hydrateScript =
         (getHydrateScript(runtimeConfig as ClientRuntimeConfig) as { children?: string })
           .children ?? "";
+
+      const sriAttr = uiIntegrity ? ` integrity="${uiIntegrity}" crossorigin="anonymous"` : "";
 
       return ctx.html(
         `<!DOCTYPE html>
@@ -470,7 +488,7 @@ export const createStartServer = (onReady?: () => void) =>
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 .error { color: #fca5a5; }
               </style>
-              <script src="${clientUrl}/remoteEntry.js"></script>
+              <script src="${clientUrl}/remoteEntry.js"${sriAttr}></script>
               <script>${themeInitScript}</script>
               <script>${hydrateScript}</script>
             </head>

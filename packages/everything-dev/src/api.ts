@@ -1,3 +1,4 @@
+import { verifySriForUrl } from "./integrity";
 import { ensureNodeRuntimePlugin, registerRemote } from "./mf";
 import { createPluginRuntime } from "./sdk";
 import type { RuntimeConfig, RuntimePluginConfig } from "./types";
@@ -26,6 +27,7 @@ export async function loadApiPlugin(opts: {
   entry: string;
   variables?: Record<string, string>;
   secrets?: Record<string, string>;
+  integrity?: string;
 }): Promise<LoadedPluginResult> {
   const remoteEntryUrl = (() => {
     if (opts.entry.endsWith("/remoteEntry.js")) return opts.entry;
@@ -36,9 +38,11 @@ export async function loadApiPlugin(opts: {
     return `${opts.entry.replace(/\/$/, "")}/remoteEntry.js`;
   })();
 
+  if (opts.integrity) {
+    await verifySriForUrl(remoteEntryUrl, opts.integrity);
+  }
+
   await ensureNodeRuntimePlugin();
-  // Use remoteEntry.js for the plugin runtime for now. mf-manifest.json support
-  // is still inconsistent across our stack.
   await registerRemote({ name: opts.runtimeId, entry: remoteEntryUrl });
 
   const runtime: any = createPluginRuntime({
@@ -108,6 +112,7 @@ export async function loadApiPluginsFromRuntimeConfig(
         entry: pluginConfig.entry,
         variables: pluginConfig.variables,
         secrets: collectSecrets(pluginConfig, envSecrets),
+        integrity: pluginConfig.integrity,
       });
     }),
   );

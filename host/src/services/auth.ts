@@ -135,13 +135,21 @@ export const createAuth = Effect.gen(function* () {
   const config = yield* ConfigService;
   const db = yield* DatabaseService;
 
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    console.warn("[Security] BETTER_AUTH_SECRET is not set in production. Using insecure default.");
+  }
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema: schema,
     }),
-    trustedOrigins: process.env.CORS_ORIGIN?.split(",") || ["*"],
-    secret: process.env.BETTER_AUTH_SECRET || "default-secret-change-in-production",
+    trustedOrigins: process.env.CORS_ORIGIN?.split(",").map((o: string) => o.trim()) ?? [
+      config.hostUrl,
+      ...(config.ui?.url ? [config.ui.url] : []),
+    ],
+    secret: secret || "default-secret-change-in-production",
     baseURL:
       process.env.BETTER_AUTH_URL ||
       (process.env.NODE_ENV !== "production" ? "http://localhost:3000" : undefined),

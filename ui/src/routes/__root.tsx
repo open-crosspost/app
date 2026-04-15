@@ -24,7 +24,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
-      apiClient: context.apiClient,
       session,
     };
   },
@@ -40,7 +39,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
-      apiClient: context.apiClient,
       session,
     };
   },
@@ -118,6 +116,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           runtimeConfig: runtimeConfig ?? undefined,
           containerName: "ui",
           hydratePath: "./Hydrate",
+          integrity: runtimeConfig?.ui?.integrity,
         }),
         {
           type: "application/ld+json",

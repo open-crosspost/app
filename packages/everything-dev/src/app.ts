@@ -212,6 +212,8 @@ export function buildRuntimeConfig(
           localPath: uiSource === "local" ? (uiLocalPath ?? undefined) : undefined,
           port: uiSource === "local" && uiLocalUrl ? parsePort(uiLocalUrl) : undefined,
           ssrUrl: uiSource === "remote" ? uiConfig.ssr : undefined,
+          ssrIntegrity: uiSource === "remote" ? uiConfig.ssrIntegrity : undefined,
+          integrity: uiSource === "remote" ? uiConfig.productionIntegrity : undefined,
           source: uiSource === "local" ? (uiLocalPath ? "local" : "remote") : "remote",
         }
       : {
@@ -236,6 +238,7 @@ export function buildRuntimeConfig(
           proxy: options.proxy ?? apiConfig.proxy,
           variables: apiConfig.variables,
           secrets: apiConfig.secrets,
+          integrity: apiSource === "remote" ? apiConfig.productionIntegrity : undefined,
         }
       : {
           name: "api",

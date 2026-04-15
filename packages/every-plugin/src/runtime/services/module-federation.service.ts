@@ -1,10 +1,7 @@
 import { createInstance, getInstance } from "@module-federation/enhanced/runtime";
 import { setGlobalFederationInstance } from "@module-federation/runtime-core";
 import { Effect } from "effect";
-import {
-  getPluginSharedDependencies,
-  type PluginSharedDependencyName,
-} from "../../build/shared-deps";
+import { MF_SHARED_DEPS, type SharedDepName } from "../mf-config";
 import type { AnyPlugin } from "../../types";
 import { ModuleFederationError } from "../errors";
 import { getNormalizedRemoteName } from "./normalize";
@@ -15,7 +12,7 @@ const sharedModuleLoaders = {
   "every-plugin": () => import("every-plugin"),
   effect: () => import("effect"),
   zod: () => import("zod"),
-} satisfies Record<PluginSharedDependencyName, () => Promise<unknown>>;
+} satisfies Record<SharedDepName, () => Promise<unknown>>;
 
 const createModuleFederationInstance = Effect.cached(
   Effect.sync(() => {
@@ -24,8 +21,13 @@ const createModuleFederationInstance = Effect.cached(
 
       if (!instance) {
         const shared = Object.fromEntries(
-          Object.entries(getPluginSharedDependencies()).map(([name, config]) => {
-            const load = sharedModuleLoaders[name as keyof typeof sharedModuleLoaders];
+          (
+            Object.entries(MF_SHARED_DEPS) as [
+              SharedDepName,
+              (typeof MF_SHARED_DEPS)[SharedDepName],
+            ][]
+          ).map(([name, config]) => {
+            const load = sharedModuleLoaders[name];
 
             if (!load) {
               throw new Error(`Missing shared module loader for ${name}`);
@@ -36,12 +38,7 @@ const createModuleFederationInstance = Effect.cached(
               {
                 version: config.version,
                 get: () => load().then((mod) => () => mod),
-                shareConfig: {
-                  singleton: config.singleton,
-                  requiredVersion: config.requiredVersion,
-                  eager: config.eager,
-                  strictVersion: config.strictVersion,
-                },
+                shareConfig: config.shareConfig,
               },
             ];
           }),

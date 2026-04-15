@@ -7,6 +7,7 @@ import {
   EveryPluginDevServer,
   FixMfDataUriPlugin,
 } from "every-plugin/build/rspack";
+import { computeSriHashForUrl } from "everything-dev/integrity";
 import { withZephyr } from "zephyr-rspack-plugin";
 
 const require = createRequire(import.meta.url);
@@ -17,7 +18,7 @@ const __dirname = path.dirname(__filename);
 
 const shouldDeploy = process.env.DEPLOY === "true";
 
-function updateHostConfig(name, url) {
+function updateHostConfig(name, url, integrity) {
   try {
     const configPath = path.resolve(__dirname, "../bos.config.json");
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -28,8 +29,16 @@ function updateHostConfig(name, url) {
     }
 
     config.app.api.production = url;
+    if (integrity) {
+      config.app.api.productionIntegrity = integrity;
+    } else {
+      delete config.app.api.productionIntegrity;
+    }
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     console.log(`   ✅ Updated bos.config.json: app.api.production`);
+    if (integrity) {
+      console.log(`   ✅ Updated bos.config.json: app.api.productionIntegrity`);
+    }
   } catch (err) {
     console.error("   ❌ Failed to update bos.config.json:", err.message);
   }
@@ -51,9 +60,10 @@ const baseConfig = {
 export default shouldDeploy
   ? withZephyr({
       hooks: {
-        onDeployComplete: (info) => {
+        onDeployComplete: async (info) => {
           console.log("🚀 API Deployed:", info.url);
-          updateHostConfig(pkg.name, info.url);
+          const integrity = await computeSriHashForUrl(info.url);
+          updateHostConfig(pkg.name, info.url, integrity ?? undefined);
         },
       },
     })(baseConfig)

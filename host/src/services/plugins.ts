@@ -1,5 +1,6 @@
 import { createPluginRuntime } from "every-plugin";
 import { Context, Effect, Layer } from "every-plugin/effect";
+import { verifySriForUrl } from "everything-dev/integrity";
 import type { RuntimeConfig } from "everything-dev/types";
 import { ConfigService } from "./config";
 import { PluginError } from "./errors";
@@ -116,6 +117,10 @@ export const initializePlugins = Effect.gen(function* () {
 
       const loaded = await Promise.allSettled(
         registryEntries.map(async (entry) => {
+          if (entry.config.integrity) {
+            await verifySriForUrl(entry.config.url, entry.config.integrity);
+          }
+
           const variables: Record<string, unknown> = {
             ...entry.config.variables,
           };

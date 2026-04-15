@@ -9,6 +9,7 @@ interface BosConfigInput extends Record<string, unknown> {
   extends?: string;
   development?: string;
   production?: string;
+  productionIntegrity?: string;
   proxy?: string;
   variables?: Record<string, string>;
   secrets?: string[];
@@ -169,6 +170,8 @@ function buildRuntimeConfig(
       localPath: uiRuntime.localPath,
       port: uiRuntime.port,
       ssrUrl: uiConfig.ssr,
+      ssrIntegrity: env === "production" ? uiConfig.ssrIntegrity : undefined,
+      integrity: env === "production" ? uiConfig.productionIntegrity : undefined,
       source: uiRuntime.source,
     },
     api: {
@@ -181,6 +184,7 @@ function buildRuntimeConfig(
       proxy: apiConfig.proxy,
       variables: apiConfig.variables,
       secrets: apiConfig.secrets,
+      integrity: env === "production" ? apiConfig.productionIntegrity : undefined,
     },
     plugins:
       options?.plugins && Object.keys(options.plugins).length > 0 ? options.plugins : undefined,
@@ -267,6 +271,12 @@ async function resolveRuntimePlugins(
         pluginRuntime.name,
       );
     }
+
+    const productionIntegrity = pluginInput.productionIntegrity;
+    if (env === "production" && productionIntegrity) {
+      pluginRuntime.integrity = productionIntegrity;
+    }
+
     out[runtimeKey] = pluginRuntime;
 
     if (resolvedConfig.plugins && Object.keys(resolvedConfig.plugins).length > 0) {

@@ -1,4 +1,5 @@
 import { ensureNodeRuntimePlugin, loadRemoteModule, registerRemote } from "./mf";
+import { verifySriForUrl } from "./integrity";
 import type { RuntimeConfig } from "./types";
 import type { RouterModule } from "./ui/types";
 
@@ -21,6 +22,10 @@ export async function loadRouterModule(config: RuntimeConfig): Promise<RouterMod
   }
 
   const ssrEntryUrl = `${ssrUrl.replace(/\/$/, "")}/remoteEntry.server.js`;
+
+  if (config.ui.ssrIntegrity) {
+    await verifySriForUrl(ssrEntryUrl, config.ui.ssrIntegrity);
+  }
 
   await ensureNodeRuntimePlugin();
   await registerRemote({

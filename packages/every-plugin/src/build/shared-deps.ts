@@ -1,11 +1,18 @@
+import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(
-  readFileSync(join(__dirname, "../../package.json"), "utf-8"),
-) as typeof import("../../package.json");
+const require = createRequire(import.meta.url);
+
+let pkg: typeof import("../../package.json");
+
+try {
+  pkg = JSON.parse(readFileSync(join(__dirname, "../../package.json"), "utf-8"));
+} catch {
+  pkg = require("every-plugin/package.json");
+}
 
 export interface SharedDependencyConfig {
   version: string;
@@ -16,6 +23,13 @@ export interface SharedDependencyConfig {
 }
 
 export type SharedDependencies = Record<string, SharedDependencyConfig>;
+
+const DEFAULT_SHARE_CONFIG: Omit<SharedDependencyConfig, "version"> = {
+  requiredVersion: false,
+  singleton: true,
+  strictVersion: false,
+  eager: false,
+};
 
 function extractExactVersion(input: string): string {
   const match = input.match(/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/);
@@ -30,20 +44,16 @@ function getInstalledPackageVersion(packageName: string, fallbackVersion: string
   }
 }
 
-function createSharedDependency(version: string): SharedDependencyConfig {
-  return {
-    version,
-    requiredVersion: false,
-    singleton: true,
-    strictVersion: false,
-    eager: false,
-  };
-}
-
 export const pluginSharedDependencies = {
-  "every-plugin": createSharedDependency(pkg.version),
-  effect: createSharedDependency(getInstalledPackageVersion("effect", pkg.peerDependencies.effect)),
-  zod: createSharedDependency(getInstalledPackageVersion("zod", pkg.peerDependencies.zod)),
+  "every-plugin": { version: pkg.version, ...DEFAULT_SHARE_CONFIG },
+  effect: {
+    version: getInstalledPackageVersion("effect", pkg.peerDependencies.effect),
+    ...DEFAULT_SHARE_CONFIG,
+  },
+  zod: {
+    version: getInstalledPackageVersion("zod", pkg.peerDependencies.zod),
+    ...DEFAULT_SHARE_CONFIG,
+  },
 } satisfies SharedDependencies;
 
 export type PluginSharedDependencyName = keyof typeof pluginSharedDependencies;

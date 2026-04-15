@@ -6,12 +6,18 @@ export interface RemoteScriptsOptions {
   runtimeConfig?: Partial<ClientRuntimeConfig>;
   containerName?: string;
   hydratePath?: string;
+  integrity?: string;
 }
 
-export function getRemoteEntryScript(assetsUrl: string): HeadScript {
-  return {
+export function getRemoteEntryScript(assetsUrl: string, integrity?: string): HeadScript {
+  const script: HeadScript = {
     src: `${assetsUrl}/remoteEntry.js`,
   };
+  if (integrity) {
+    script.integrity = integrity;
+    script.crossOrigin = "anonymous";
+  }
+  return script;
 }
 
 export function getThemeInitScript(): HeadScript {
@@ -57,10 +63,10 @@ export function getHydrateScript(
 }
 
 export function getRemoteScripts(options: RemoteScriptsOptions): HeadScript[] {
-  const { assetsUrl, runtimeConfig, containerName, hydratePath } = options;
+  const { assetsUrl, runtimeConfig, containerName, hydratePath, integrity } = options;
 
   return [
-    getRemoteEntryScript(assetsUrl),
+    getRemoteEntryScript(assetsUrl, integrity),
     getThemeInitScript(),
     getHydrateScript(runtimeConfig, containerName, hydratePath),
   ];

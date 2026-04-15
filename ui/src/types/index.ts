@@ -5,7 +5,10 @@ import type {
 } from "everything-dev/ui/types";
 import type { ApiClient as BaseApiClient } from "@/lib/api-client";
 
-export type { ActiveRuntimeInfo, ClientRuntimeConfig } from "everything-dev/types";
+export type {
+  ClientRuntimeInfo,
+  ClientRuntimeConfig,
+} from "everything-dev/types";
 export type {
   HeadData,
   HeadLink,

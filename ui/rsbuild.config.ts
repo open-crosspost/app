@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { computeSriHashForUrl } from "everything-dev/integrity";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import { pluginModuleFederation } from "@module-federation/rsbuild-plugin";
 import { defineConfig } from "@rsbuild/core";
@@ -20,7 +21,7 @@ const bosConfigPath = path.resolve(__dirname, "../bos.config.json");
 const bosConfig = JSON.parse(fs.readFileSync(bosConfigPath, "utf8"));
 const uiSharedDeps = bosConfig.shared?.ui ?? {};
 
-function updateBosConfig(field: "production" | "ssr", url: string) {
+function updateBosConfig(field: "production" | "ssr", url: string, integrity?: string) {
   try {
     const configPath = path.resolve(__dirname, "../bos.config.json");
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -31,8 +32,17 @@ function updateBosConfig(field: "production" | "ssr", url: string) {
     }
 
     config.app.ui[field] = url;
+    const integrityField = field === "production" ? "productionIntegrity" : "ssrIntegrity";
+    if (integrity) {
+      config.app.ui[integrityField] = integrity;
+    } else {
+      delete config.app.ui[integrityField];
+    }
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
     console.log(`   ✅ Updated bos.config.json: app.ui.${field}`);
+    if (integrity) {
+      console.log(`   ✅ Updated bos.config.json: app.ui.${integrityField}`);
+    }
   } catch (err) {
     console.error("   ❌ Failed to update bos.config.json:", (err as Error).message);
   }
@@ -61,9 +71,10 @@ function createClientConfig() {
     plugins.push(
       withZephyr({
         hooks: {
-          onDeployComplete: (info) => {
+          onDeployComplete: async (info) => {
             console.log("🚀 UI Client Deployed:", info.url);
-            updateBosConfig("production", info.url);
+            const integrity = await computeSriHashForUrl(info.url);
+            updateBosConfig("production", info.url, integrity ?? undefined);
           },
         },
       }),
@@ -133,9 +144,10 @@ function createServerConfig() {
     plugins.push(
       withZephyr({
         hooks: {
-          onDeployComplete: (info) => {
+          onDeployComplete: async (info) => {
             console.log("🚀 UI SSR Deployed:", info.url);
-            updateBosConfig("ssr", info.url);
+            const integrity = await computeSriHashForUrl(info.url);
+            updateBosConfig("ssr", info.url, integrity ?? undefined);
           },
         },
       }),

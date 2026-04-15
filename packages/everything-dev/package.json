@@ -31,6 +31,10 @@
       "types": "./src/mf.ts",
       "import": "./src/mf.ts"
     },
+    "./integrity": {
+      "types": "./src/integrity.ts",
+      "import": "./src/integrity.ts"
+    },
     "./plugin": {
       "types": "./src/plugin.ts",
       "import": "./src/plugin.ts"

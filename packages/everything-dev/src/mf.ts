@@ -1,6 +1,5 @@
 import { createInstance, getInstance } from "@module-federation/enhanced/runtime";
 import { setGlobalFederationInstance } from "@module-federation/runtime-core";
-import type { SharedUiResolved } from "./shared";
 
 type FederationInstance = ReturnType<typeof createInstance>;
 
@@ -46,62 +45,6 @@ export function getFederationInstance(): FederationInstance {
   setGlobalFederationInstance(mfInstance as any);
   patchManifestFetchForSsrPublicPath(mfInstance);
   return mfInstance;
-}
-
-const SHARED_ALLOWLIST = ["react", "react-dom"] as const;
-
-function makeSharedGetter(pkgName: string): (() => Promise<() => any>) | null {
-  switch (pkgName) {
-    case "react":
-      return async () => {
-        const mod: any = await import("react");
-        return () => mod?.default ?? mod;
-      };
-    case "react-dom":
-      return async () => {
-        const mod: any = await import("react-dom");
-        return () => mod?.default ?? mod;
-      };
-    default:
-      return null;
-  }
-}
-
-export function registerSharedFromResolved(shared: SharedUiResolved | null | undefined): void {
-  if (!shared) return;
-
-  const instance = getFederationInstance();
-  const picked: Record<string, any> = {};
-
-  for (const key of SHARED_ALLOWLIST) {
-    if (key in shared.deps) {
-      picked[key] = shared.deps[key];
-    }
-  }
-
-  const sharedConfig: any = {};
-  for (const [pkgName, dep] of Object.entries(picked)) {
-    const get = makeSharedGetter(pkgName);
-    if (!get) continue;
-
-    sharedConfig[pkgName] = {
-      version: dep.version,
-      scope: dep.shareScope,
-      shareConfig: {
-        requiredVersion: dep.requiredVersion,
-        singleton: dep.singleton,
-        eager: dep.eager,
-        strictVersion: dep.strictVersion,
-      },
-      get,
-    };
-  }
-
-  (instance as any).initOptions({
-    name: "host",
-    remotes: ((instance as any).options?.remotes as any[]) ?? [],
-    shared: sharedConfig,
-  });
 }
 
 export async function registerRemote(opts: {

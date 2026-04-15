@@ -1,7 +1,7 @@
 import { getNetworkIdForAccount } from "../network";
 import type { ClientRuntimeConfig } from "../types";
 
-export type { ActiveRuntimeInfo } from "../types";
+export type { ClientRuntimeInfo } from "../types";
 
 declare global {
   interface Window {

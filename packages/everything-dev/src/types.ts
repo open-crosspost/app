@@ -3,16 +3,6 @@ import { z } from "./sdk";
 export const SourceModeSchema = z.enum(["local", "remote"]);
 export type SourceMode = z.infer<typeof SourceModeSchema>;
 
-export const SharedDepConfigSchema = z.object({
-  version: z.string(),
-  requiredVersion: z.string().optional(),
-  singleton: z.boolean().optional(),
-  eager: z.boolean().optional(),
-  strictVersion: z.boolean().optional(),
-  shareScope: z.string().optional(),
-});
-export type SharedDepConfig = z.infer<typeof SharedDepConfigSchema>;
-
 export const SharedConfigSchema = z.object({
   version: z.string(),
   requiredVersion: z.string().optional(),
@@ -22,12 +12,15 @@ export const SharedConfigSchema = z.object({
   shareScope: z.string().optional(),
 });
 export type SharedConfig = z.infer<typeof SharedConfigSchema>;
+export type SharedDepConfig = SharedConfig;
+export const SharedDepConfigSchema = SharedConfigSchema;
 
 export const FederationEntrySchema = z.object({
   name: z.string(),
   url: z.string(),
   entry: z.string(),
   source: SourceModeSchema,
+  integrity: z.string().optional(),
 });
 export type FederationEntry = z.infer<typeof FederationEntrySchema>;
 
@@ -35,6 +28,7 @@ export const ApiPluginConfigSchema = z.object({
   name: z.string(),
   development: z.string().optional(),
   production: z.string().optional(),
+  productionIntegrity: z.string().optional(),
   proxy: z.string().optional(),
   variables: z.record(z.string(), z.string()).optional(),
   secrets: z.array(z.string()).optional(),
@@ -45,6 +39,7 @@ export const BosPluginRefSchema = z.object({
   extends: z.string().optional(),
   development: z.string().optional(),
   production: z.string().optional(),
+  productionIntegrity: z.string().optional(),
   proxy: z.string().optional(),
   variables: z.record(z.string(), z.string()).optional(),
   secrets: z.array(z.string()).optional(),
@@ -61,6 +56,7 @@ export const RuntimePluginConfigSchema = z.object({
   proxy: z.string().optional(),
   variables: z.record(z.string(), z.string()).optional(),
   secrets: z.array(z.string()).optional(),
+  integrity: z.string().optional(),
 });
 export type RuntimePluginConfig = z.infer<typeof RuntimePluginConfigSchema>;
 
@@ -68,34 +64,36 @@ export const UiConfigSchema = z.object({
   name: z.string(),
   development: z.string().optional(),
   production: z.string().optional(),
+  productionIntegrity: z.string().optional(),
   ssr: z.string().optional(),
+  ssrIntegrity: z.string().optional(),
 });
 export type UiConfig = z.infer<typeof UiConfigSchema>;
 
 export const HostConfigSchema = z.object({
   development: z.string(),
   production: z.string(),
+  productionIntegrity: z.string().optional(),
   secrets: z.array(z.string()).optional(),
 });
 export type HostConfig = z.infer<typeof HostConfigSchema>;
 
-export const ActiveRuntimeInfoSchema = z.object({
+export const ClientRuntimeInfoSchema = z.object({
   accountId: z.string(),
   gatewayId: z.string(),
   runtimeBasePath: z.string(),
-  canonicalConfigUrl: z.string().nullable(),
-  resolvedConfig: z.record(z.string(), z.unknown()).nullable(),
   title: z.string().nullable(),
   hostUrl: z.string().nullable(),
 });
-export type ActiveRuntimeInfo = z.infer<typeof ActiveRuntimeInfoSchema>;
+export type ClientRuntimeInfo = z.infer<typeof ClientRuntimeInfoSchema>;
 
 export const BosConfigSchema = z.object({
   account: z.string(),
   extends: z.string().optional(),
   domain: z.string().optional(),
+  testnet: z.string().optional(),
   repository: z.string().optional(),
-  shared: z.record(z.string(), z.record(z.string(), SharedDepConfigSchema)).optional(),
+  shared: z.record(z.string(), z.record(z.string(), SharedConfigSchema)).optional(),
   plugins: z.record(z.string(), BosPluginRefSchema).optional(),
   app: z.object({
     host: HostConfigSchema,
@@ -122,6 +120,7 @@ export const RuntimeConfigSchema = z.object({
     localPath: z.string().optional(),
     port: z.number().optional(),
     ssrUrl: z.string().optional(),
+    ssrIntegrity: z.string().optional(),
   }),
   api: FederationEntrySchema.extend({
     localPath: z.string().optional(),
@@ -143,12 +142,13 @@ export const ClientRuntimeConfigSchema = z.object({
   apiBase: z.string(),
   rpcBase: z.string(),
   repository: z.string().optional(),
-  runtime: ActiveRuntimeInfoSchema.optional(),
+  runtime: ClientRuntimeInfoSchema.optional(),
   ui: z
     .object({
       name: z.string(),
       url: z.string(),
       entry: z.string(),
+      integrity: z.string().optional(),
     })
     .optional(),
   api: z
@@ -156,6 +156,7 @@ export const ClientRuntimeConfigSchema = z.object({
       name: z.string(),
       url: z.string(),
       entry: z.string(),
+      integrity: z.string().optional(),
     })
     .optional(),
   plugins: z
@@ -165,6 +166,7 @@ export const ClientRuntimeConfigSchema = z.object({
         name: z.string(),
         url: z.string(),
         entry: z.string(),
+        integrity: z.string().optional(),
       }),
     )
     .optional(),

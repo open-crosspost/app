@@ -41,6 +41,7 @@ function buildClientRuntimeConfig(runtimeConfig: RuntimeConfig): ClientRuntimeCo
           name: runtimeConfig.ui.name,
           url: runtimeConfig.ui.url,
           entry: runtimeConfig.ui.entry,
+          integrity: runtimeConfig.ui.integrity,
         }
       : undefined,
     api: runtimeConfig.api
@@ -48,6 +49,7 @@ function buildClientRuntimeConfig(runtimeConfig: RuntimeConfig): ClientRuntimeCo
           name: runtimeConfig.api.name,
           url: runtimeConfig.api.url,
           entry: runtimeConfig.api.entry,
+          integrity: runtimeConfig.api.integrity,
         }
       : undefined,
     plugins: runtimeConfig.plugins
@@ -58,6 +60,7 @@ function buildClientRuntimeConfig(runtimeConfig: RuntimeConfig): ClientRuntimeCo
               name: plugin.name,
               url: plugin.url,
               entry: plugin.entry,
+              integrity: plugin.integrity,
             },
           ]),
         )
@@ -71,6 +74,9 @@ function renderLoadingShell(runtimeConfig: ClientRuntimeConfig, error?: string |
     ? `<p style="color: #fca5a5;">Error loading UI: ${escapeHtml(error)}</p>`
     : "<p>Loading UI...</p>";
 
+  const uiIntegrity = runtimeConfig.ui?.integrity;
+  const sriAttr = uiIntegrity ? ` integrity="${uiIntegrity}" crossorigin="anonymous"` : "";
+
   return `
 		<!DOCTYPE html>
 		<html lang="en">
@@ -83,7 +89,7 @@ function renderLoadingShell(runtimeConfig: ClientRuntimeConfig, error?: string |
 					.fade { animation: fadeIn 0.3s ease-in; text-align: center; padding: 2rem; }
 					@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 				</style>
-				${runtimeConfig.assetsUrl ? `<script src="${runtimeConfig.assetsUrl}/remoteEntry.js"></script>` : ""}
+				${runtimeConfig.assetsUrl ? `<script src="${runtimeConfig.assetsUrl}/remoteEntry.js"${sriAttr}></script>` : ""}
 				<script>${bootstrap}</script>
 			</head>
 			<body>
@@ -233,10 +239,21 @@ async function runHostServer(opts: {
 
   const app = new Hono();
 
+  const corsOrigins = process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) ?? [
+    runtimeConfig.hostUrl,
+    ...(runtimeConfig.ui?.url ? [runtimeConfig.ui.url] : []),
+  ];
+
+  if (!process.env.CORS_ORIGIN && runtimeConfig.env === "production") {
+    console.warn(
+      "[Security] CORS_ORIGIN is not set in production. Using host and UI URLs as allowed origins.",
+    );
+  }
+
   app.use(
     "/*",
     cors({
-      origin: runtimeConfig.hostUrl,
+      origin: corsOrigins,
       credentials: true,
     }),
   );

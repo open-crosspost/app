@@ -11,6 +11,7 @@ export default defineConfig({
     "src/errors.ts",
     "src/runtime/index.ts",
     "src/testing/index.ts",
+    "src/runtime/mf-config.ts",
     "src/runtime/services/normalize.ts",
     "src/build/shared-deps.ts",
     "src/build/rspack/index.ts",
