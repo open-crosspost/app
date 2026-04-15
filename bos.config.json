@@ -5,27 +5,27 @@
   "plugins": {
     "template": {
       "development": "local:plugins/_template",
-      "production": "https://elliot-braem-2631-every-plugin-template-everythin-44576cc67-ze.zephyrcloud.app/mf-manifest.json"
+      "production": "https://elliot-braem-2646-every-plugin-template-everythin-c5dcdb62e-ze.zephyrcloud.app"
     }
   },
   "app": {
     "host": {
       "name": "host",
       "development": "local:host",
-      "production": "https://elliot-braem-2632-host-everything-dev-nearbuilder-f7c6a23c3-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2647-host-everything-dev-nearbuilder-d7b701fc4-ze.zephyrcloud.app"
     },
     "ui": {
       "name": "ui",
       "development": "local:ui",
-      "production": "https://elliot-braem-2628-ui-everything-dev-nearbuilders-8f44c3c37-ze.zephyrcloud.app",
-      "ssr": "https://elliot-braem-2629-ui-everything-dev-nearbuilders-2401d7216-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2643-ui-everything-dev-nearbuilders-ec4b45063-ze.zephyrcloud.app",
+      "ssr": "https://elliot-braem-2644-ui-everything-dev-nearbuilders-cf51c1c2f-ze.zephyrcloud.app"
     },
     "api": {
       "name": "api",
       "development": "local:api",
       "variables": {},
       "secrets": [],
-      "production": "https://elliot-braem-2630-api-everything-dev-nearbuilders-341518f37-ze.zephyrcloud.app/mf-manifest.json"
+      "production": "https://elliot-braem-2645-api-everything-dev-nearbuilders-32d6bdb79-ze.zephyrcloud.app"
     }
   },
   "testnet": "dev.allthethings.testnet",

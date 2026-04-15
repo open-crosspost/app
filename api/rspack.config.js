@@ -2,7 +2,11 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { EveryPluginDevServer, FixMfDataUriPlugin } from "every-plugin/build/rspack";
+import {
+  EmitPluginManifest,
+  EveryPluginDevServer,
+  FixMfDataUriPlugin,
+} from "every-plugin/build/rspack";
 import { withZephyr } from "zephyr-rspack-plugin";
 
 const require = createRequire(import.meta.url);
@@ -33,7 +37,11 @@ function updateHostConfig(name, url) {
 
 const baseConfig = {
   externals: [/^@libsql\/.*/],
-  plugins: [new EveryPluginDevServer({ dts: false }), new FixMfDataUriPlugin()],
+  plugins: [
+    new EmitPluginManifest(),
+    new EveryPluginDevServer({ dts: false }),
+    new FixMfDataUriPlugin(),
+  ],
   infrastructureLogging: {
     level: "error",
   },
@@ -45,7 +53,7 @@ export default shouldDeploy
       hooks: {
         onDeployComplete: (info) => {
           console.log("🚀 API Deployed:", info.url);
-          updateHostConfig(pkg.name, `${info.url}/mf-manifest.json`);
+          updateHostConfig(pkg.name, info.url);
         },
       },
     })(baseConfig)
