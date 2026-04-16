@@ -1,9 +1,9 @@
 import { createInstance, getInstance } from "@module-federation/enhanced/runtime";
 import { setGlobalFederationInstance } from "@module-federation/runtime-core";
 import { Effect } from "effect";
-import { MF_SHARED_DEPS, type SharedDepName } from "../mf-config";
 import type { AnyPlugin } from "../../types";
 import { ModuleFederationError } from "../errors";
+import { MF_SHARED_DEPS, type SharedDepName } from "../mf-config";
 import { getNormalizedRemoteName } from "./normalize";
 
 type RemoteModule = (new () => AnyPlugin) | { default: new () => AnyPlugin };

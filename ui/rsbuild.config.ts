@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { computeSriHashForUrl } from "everything-dev/integrity";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import { pluginModuleFederation } from "@module-federation/rsbuild-plugin";
 import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
 import { TanStackRouterRspack } from "@tanstack/router-plugin/rspack";
+import { computeSriHashForUrl } from "everything-dev/integrity";
 import { withZephyr } from "zephyr-rsbuild-plugin";
 import pkg from "./package.json";
 

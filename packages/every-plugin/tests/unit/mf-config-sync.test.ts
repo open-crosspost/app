@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MF_SHARED_DEPS, PLUGIN_VERSION, SHARE_CONFIG } from "../../src/runtime/mf-config";
+import { MF_SHARED_DEPS, PLUGIN_VERSION } from "../../src/runtime/mf-config";
 
 describe("mf-config sync", () => {
   let pkg: typeof import("../../package.json");

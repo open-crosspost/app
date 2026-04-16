@@ -1,5 +1,5 @@
-import { ensureNodeRuntimePlugin, loadRemoteModule, registerRemote } from "./mf";
 import { verifySriForUrl } from "./integrity";
+import { ensureNodeRuntimePlugin, loadRemoteModule, registerRemote } from "./mf";
 import type { RuntimeConfig } from "./types";
 import type { RouterModule } from "./ui/types";
 

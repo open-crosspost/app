@@ -6,8 +6,8 @@ import type {
 import type { ApiClient as BaseApiClient } from "@/lib/api-client";
 
 export type {
-  ClientRuntimeInfo,
   ClientRuntimeConfig,
+  ClientRuntimeInfo,
 } from "everything-dev/types";
 export type {
   HeadData,
