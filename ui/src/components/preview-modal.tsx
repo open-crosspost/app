@@ -64,7 +64,10 @@ export function PreviewModal({ isOpen, onClose, posts, selectedAccounts }: Previ
                             >
                               {media.mimeType?.startsWith("image/") ? (
                                 <img
-                                  src={media.preview || media.data}
+                                  src={
+                                    media.preview ||
+                                    (typeof media.data === "string" ? media.data : "")
+                                  }
                                   alt={`Media ${mediaIndex + 1}`}
                                   className="w-full h-full object-cover rounded-lg"
                                 />

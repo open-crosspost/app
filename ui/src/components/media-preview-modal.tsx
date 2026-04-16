@@ -52,22 +52,12 @@ export function MediaPreviewModal({
               {isVideo && (
                 <ReactPlayer
                   key={mediaSrc}
-                  url={mediaSrc}
+                  src={mediaSrc}
                   controls
                   playing
                   width="100%"
                   height="100%"
-                  config={{
-                    file: {
-                      attributes: {
-                        style: {
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                        },
-                      },
-                    },
-                  }}
+                  style={{ objectFit: "contain" }}
                 />
               )}
               {!isImage && !isVideo && (

@@ -121,15 +121,14 @@ export async function signMessage(
       throw new Error("Invalid signature response: missing signature or publicKey");
     }
 
-    // The wallet already returns signature as a string, so use it directly
-    // If it's a Uint8Array, convert to base64; otherwise use as-is
+    // The wallet returns signature as a string or Uint8Array
+    // If it's a Uint8Array, convert to base64; otherwise use as string
     let signatureString: string;
-    if (result.signature instanceof Uint8Array) {
-      signatureString = Buffer.from(result.signature).toString("base64");
-    } else if (typeof result.signature === "string") {
+    if (typeof result.signature === "string") {
       signatureString = result.signature;
     } else {
-      throw new Error(`Unexpected signature type: ${typeof result.signature}`);
+      // Assume it's a Uint8Array or similar
+      signatureString = Buffer.from(result.signature as unknown as Uint8Array).toString("base64");
     }
 
     return {

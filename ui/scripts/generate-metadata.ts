@@ -20,7 +20,7 @@ const metadataPath = path.join(publicDir, "metadata.png");
 async function main() {
   await mkdir(publicDir, { recursive: true });
 
-  const dotIconSvg = createDotIconSvg(BRAND_DOT_COLOR);
+  const dotIconSvg = createDotIconSvg({ color: BRAND_DOT_COLOR });
   const dotIconBuffer = Buffer.from(dotIconSvg);
 
   const dotIconPngBuffer = await sharp(dotIconBuffer).resize(512, 512).png().toBuffer();
@@ -48,7 +48,7 @@ async function main() {
   await writeFile(metadataPath, socialImagePngBuffer);
   console.log(`✅ Generated ${metadataPath}`);
 
-  const faviconBuffer = await createPngIcoBuffer(dotIconPngBuffer, 32);
+  const faviconBuffer = await createPngIcoBuffer(dotIconPngBuffer, 32, 32);
   const faviconPath = path.join(publicDir, "favicon.ico");
   await writeFile(faviconPath, faviconBuffer);
   console.log(`✅ Generated ${faviconPath}`);

@@ -1,6 +1,6 @@
 import { useLeaderboardQuery } from "@/lib/api/leaderboard";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { BadgeProps } from '@/components/badges/inline-badges';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { BadgeProps } from "@/components/badges/inline-badges";
 
 export function LeaderboardBadge({ accountId }: BadgeProps) {
   const { data: leaderboard } = useLeaderboardQuery(3);
@@ -15,7 +15,7 @@ export function LeaderboardBadge({ accountId }: BadgeProps) {
     return null;
   }
 
-  const rank = userRankInfo.rank;
+  const rank = leaderboard.indexOf(userRankInfo) + 1;
   let badgeImage = "";
   let tooltipText = "";
 
