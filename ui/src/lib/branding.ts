@@ -1,9 +1,5 @@
-export const APP_NAME = "everything.dev";
-export const APP_DESCRIPTION =
-  "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.";
-
+export const APP_NAME = "open crosspost";
+export const APP_DESCRIPTION = "Share your content everywhere at once";
 export const TITLE_TEXT_SHADOW = "rgba(0,0,0,0.08) 1px 1px 1px, rgba(0,0,0,0.06) 3px 3px 3px";
-
-export const METADATA_IMAGE_ALT = "everything.dev splash screen with an under construction banner";
-
+export const METADATA_IMAGE_ALT = "open crosspost - Multi-platform posting";
 export const BRAND_DOT_COLOR = "#111111";

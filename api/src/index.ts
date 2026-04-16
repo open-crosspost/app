@@ -1,7 +1,10 @@
+import { ORPCError } from "@orpc/server";
+import { eq } from "drizzle-orm";
+import { Cause, Effect, Exit, Layer } from "effect";
 import { createPlugin } from "every-plugin";
-import { Cause, Effect, Exit, Layer } from "every-plugin/effect";
-import { ORPCError } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { z } from "zod";
+import type { Auth } from "../../host/src/services/auth";
+import type { Database } from "../../host/src/services/database";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
 import { RegistryConfigService } from "./services/fastkv";
@@ -15,10 +18,9 @@ import {
   getRegistryStatus,
   listRegistryApps,
   prepareRegistryMetadataWrite,
+  RegistryService,
   relayRegistryMetadataWrite,
 } from "./services/registry";
-
-type Auth = any;
 
 // Extended context with unified identity model
 export interface AuthContext {
@@ -42,6 +44,7 @@ export interface AuthContext {
   reqHeaders?: Headers;
 
   // Server capabilities
+  db: Database;
   auth: Auth;
 }
 
@@ -91,6 +94,7 @@ export default createPlugin({
     getRawBody: z.custom<() => Promise<string>>().optional(),
 
     // Server capabilities
+    db: z.custom<Database>().optional(),
     auth: z.custom<Auth>().optional(),
   }),
 
@@ -140,6 +144,7 @@ export default createPlugin({
           organizationId: context.organizationId,
           organizationRole: context.organizationRole,
           reqHeaders: context.reqHeaders,
+          db: context.db!,
           auth: context.auth!,
         } as AuthContext,
       });
@@ -170,6 +175,7 @@ export default createPlugin({
           user: context.user,
           nearAccountId: context.nearAccountId,
           reqHeaders: context.reqHeaders,
+          db: context.db!,
           auth: context.auth!,
         } as AuthContext,
       });
@@ -195,28 +201,18 @@ export default createPlugin({
           });
         }
 
-        let member: any;
-        try {
-          const result = await context.auth!.api.getActiveMember({
-            headers: context.reqHeaders!,
-            query: { organizationId: targetOrgId },
-          });
-          member = result;
-        } catch {
+        // Check membership in the target organization
+        const membership = await context.db!.query.member.findFirst({
+          where: (member: any, { and, eq }: any) =>
+            and(eq(member.userId, context.userId), eq(member.organizationId, targetOrgId)),
+        });
+
+        if (!membership) {
           throw new ORPCError("FORBIDDEN", {
             message: "You are not a member of this organization",
             data: {},
           });
         }
-
-        if (!member) {
-          throw new ORPCError("FORBIDDEN", {
-            message: "You are not a member of this organization",
-            data: {},
-          });
-        }
-
-        const userRole = member.role as string;
 
         const roleHierarchy: Record<string, number> = {
           owner: 100,
@@ -224,7 +220,7 @@ export default createPlugin({
           member: 50,
         };
 
-        const userRoleLevel = roleHierarchy[userRole] ?? 0;
+        const userRoleLevel = roleHierarchy[membership.role] ?? 0;
         const requiredRoleLevel = roleHierarchy[requiredRole] ?? 0;
 
         if (userRoleLevel < requiredRoleLevel) {
@@ -232,7 +228,7 @@ export default createPlugin({
             message: `Requires ${requiredRole} role in organization`,
             data: {
               requiredRole,
-              currentRole: userRole,
+              currentRole: membership.role,
             },
           });
         }
@@ -243,8 +239,9 @@ export default createPlugin({
             user: context.user,
             nearAccountId: context.nearAccountId,
             organizationId: targetOrgId,
-            organizationRole: userRole,
+            organizationRole: membership.role,
             reqHeaders: context.reqHeaders,
+            db: context.db!,
             auth: context.auth!,
           } as AuthContext,
         });
@@ -478,7 +475,7 @@ export default createPlugin({
         });
       }),
 
-      // API Keys - via Better Auth API
+      // API Keys - integrate with Better Auth API key plugin
       listApiKeys: builder.listApiKeys.use(requireAuth).handler(async ({ context, input }) => {
         const result = await context.auth.api.listApiKeys({
           query: {
@@ -562,87 +559,107 @@ export default createPlugin({
           }
         }),
 
-      // Organization Members - via Better Auth API
+      // Organization Members - query database directly
       listOrgMembers: builder.listOrgMembers
         .use(requireOrgRole("member"))
         .handler(async ({ context, input }) => {
-          const result = await context.auth.api.listMembers({
-            query: { organizationId: input.organizationId },
-            headers: context.reqHeaders!,
+          const members = await context.db.query.member.findMany({
+            where: (member, { eq }) => eq(member.organizationId, input.organizationId),
+            with: {
+              user: true,
+            },
           });
 
-          const members = Array.isArray(result) ? result : (result?.members ?? []);
-
           return {
-            members: members.map((m: any) => ({
+            members: members.map((m) => ({
               id: m.id,
               userId: m.userId,
               role: m.role as "owner" | "admin" | "member",
               name: m.user?.name || null,
               email: m.user?.email || null,
-              createdAt: new Date(m.createdAt).toISOString(),
+              createdAt: m.createdAt.toISOString(),
             })),
           };
         }),
 
-      // Organization Invitations - via Better Auth API
+      // Organization Invitations - query database directly
       listOrgInvitations: builder.listOrgInvitations
         .use(requireOrgRole("member"))
         .handler(async ({ context, input }) => {
-          const result = await context.auth.api.listInvitations({
-            query: { organizationId: input.organizationId },
-            headers: context.reqHeaders!,
+          const invitations = await context.db.query.invitation.findMany({
+            where: (invitation, { and, eq }) =>
+              and(
+                eq(invitation.organizationId, input.organizationId),
+                eq(invitation.status, "pending"),
+              ),
           });
 
-          const invitations = Array.isArray(result) ? result : [];
-
           return {
-            invitations: invitations.map((inv: any) => ({
+            invitations: invitations.map((inv) => ({
               id: inv.id,
               email: inv.email,
               role: inv.role as "admin" | "member",
               status: inv.status as "pending" | "accepted" | "rejected" | "expired",
-              expiresAt: new Date(inv.expiresAt).toISOString(),
-              createdAt: new Date(inv.createdAt).toISOString(),
+              expiresAt: inv.expiresAt.toISOString(),
+              createdAt: inv.createdAt.toISOString(),
             })),
           };
         }),
 
-      // Cancel invitation - via Better Auth API
+      // Cancel invitation - requires admin role
       cancelInvitation: builder.cancelInvitation
         .use(requireOrgRole("admin"))
         .handler(async ({ context, input, errors }) => {
-          try {
-            await context.auth.api.cancelInvitation({
-              body: { invitationId: input.invitationId },
-              headers: context.reqHeaders!,
-            });
+          const invitation = await context.db.query.invitation.findFirst({
+            where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
+          });
 
-            return { cancelled: true };
-          } catch (error) {
-            throw errors.NOT_FOUND({
-              message: error instanceof Error ? error.message : "Invitation not found",
-              data: {},
-            });
-          }
-        }),
-
-      // Resend invitation - requires admin role
-      resendInvitation: builder.resendInvitation
-        .use(requireOrgRole("admin"))
-        .handler(async ({ context, input, errors }) => {
-          try {
-            await context.auth.api.cancelInvitation({
-              body: { invitationId: input.invitationId },
-              headers: context.reqHeaders!,
-            });
-          } catch {
+          if (!invitation) {
             throw errors.NOT_FOUND({
               message: "Invitation not found",
               data: {},
             });
           }
 
+          if (invitation.organizationId !== context.organizationId) {
+            throw errors.FORBIDDEN({
+              message: "Invitation does not belong to your organization",
+              data: {},
+            });
+          }
+
+          const { invitation: invitationTable } = await import("../../host/src/db/schema/auth");
+          await context.db
+            .delete(invitationTable)
+            .where(eq(invitationTable.id, input.invitationId));
+
+          return { cancelled: true };
+        }),
+
+      // Resend invitation - requires admin role
+      resendInvitation: builder.resendInvitation
+        .use(requireOrgRole("admin"))
+        .handler(async ({ context, input, errors }) => {
+          const invitation = await context.db.query.invitation.findFirst({
+            where: (invitation, { eq }) => eq(invitation.id, input.invitationId),
+          });
+
+          if (!invitation) {
+            throw errors.NOT_FOUND({
+              message: "Invitation not found",
+              data: {},
+            });
+          }
+
+          if (invitation.organizationId !== context.organizationId) {
+            throw errors.FORBIDDEN({
+              message: "Invitation does not belong to your organization",
+              data: {},
+            });
+          }
+
+          // TODO: Actually resend the email via Better Auth
+          // For now, just return success
           return { sent: true };
         }),
 

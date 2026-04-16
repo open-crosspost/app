@@ -1,4 +1,5 @@
 import { createConnection } from "node:net";
+import { isAbsolute, join } from "node:path";
 import { Deferred, Effect, Fiber, Ref } from "effect";
 import { getHostDevelopmentPort, getProjectRoot, parsePort } from "./config";
 import { patchManifestFetchForSsrPublicPath } from "./mf";
@@ -30,6 +31,13 @@ export interface ProcessHandle {
 }
 
 export type ProcessStatus = "pending" | "starting" | "ready" | "error";
+
+function buildSpawnCmd(command: string, args: string[]): string[] {
+  if (command === "bun") {
+    return [command, ...args];
+  }
+  return [command, ...args];
+}
 
 interface ProcessConfigBase {
   name: string;
@@ -409,7 +417,7 @@ export const spawnDevProcess = (
     } catch {
       configDir = process.cwd();
     }
-    const fullCwd = config.cwd.startsWith("/") ? config.cwd : `${configDir}/${config.cwd}`;
+    const fullCwd = isAbsolute(config.cwd) ? config.cwd : join(configDir, config.cwd);
     const readyDeferred = yield* Deferred.make<void, Error>();
     const statusRef = yield* Ref.make<ProcessStatus>("starting");
 
@@ -420,6 +428,9 @@ export const spawnDevProcess = (
       ...config.env,
       FORCE_COLOR: "1",
       ...(config.port > 0 ? { PORT: String(config.port) } : {}),
+      ...(process.platform === "win32" && !process.env.WATCHPACK_POLLING
+        ? { WATCHPACK_POLLING: "true" }
+        : {}),
     };
 
     if (runtimeConfig && config.name === "host") {
@@ -427,10 +438,10 @@ export const spawnDevProcess = (
     }
 
     const proc = Bun.spawn({
-      cmd: [config.command, ...config.args],
+      cmd: buildSpawnCmd(config.command, config.args),
       cwd: fullCwd,
       env: envVars,
-      stdio: ["inherit", "pipe", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
     const markReady = Effect.gen(function* () {

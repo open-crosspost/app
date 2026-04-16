@@ -1,4 +1,4 @@
-import { Data } from "every-plugin/effect";
+import { Data } from "effect";
 
 export class ConfigError extends Data.TaggedError("ConfigError")<{
   readonly path?: string;

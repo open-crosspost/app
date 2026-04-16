@@ -9,14 +9,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "paths": {
-      "every-plugin": ["../../../src/index.ts"],
-      "every-plugin/*": ["../../../src/*"],
-      "every-plugin/zod": ["../../../src/zod.ts"],
-      "every-plugin/orpc": ["../../../src/orpc.ts"],
-      "every-plugin/effect": ["../../../src/effect.ts"],
-      "every-plugin/normalize": ["../../../src/runtime/services/normalize.ts"]
-    },
     "emitDeclarationOnly": true,
     "noEmit": false
   },

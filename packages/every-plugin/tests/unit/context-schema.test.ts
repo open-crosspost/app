@@ -1,8 +1,8 @@
+import { oc } from "@orpc/contract";
+import { Effect } from "effect";
 import { createPlugin } from "every-plugin";
-import { Effect } from "every-plugin/effect";
-import { oc } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 // Define a simple test contract
 const testContract = oc.router({

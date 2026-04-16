@@ -1,4 +1,4 @@
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 
 // Canonical shipping address schema
 export const ShippingAddressSchema = z.object({

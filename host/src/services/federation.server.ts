@@ -1,7 +1,6 @@
 import { createInstance, getInstance } from "@module-federation/enhanced/runtime";
 import { setGlobalFederationInstance } from "@module-federation/runtime-core";
-import { Effect, Schedule } from "every-plugin/effect";
-import { verifySriForUrl } from "everything-dev/integrity";
+import { Effect, Schedule } from "effect";
 import type { RouterModule } from "../types";
 import type { RuntimeConfig } from "./config";
 import { FederationError } from "./errors";
@@ -10,6 +9,12 @@ export type { RouterModule };
 
 let federationInstance: ReturnType<typeof createInstance> | null = null;
 
+/**
+ * Creates or retrieves the Module Federation instance for loading SSR modules.
+ *
+ * In local dev mode, if ssrUrl is undefined, falls back to ui.url.
+ * In production mode, ssrUrl must be properly configured.
+ */
 function getOrCreateFederationInstance(config: RuntimeConfig) {
   if (federationInstance) return federationInstance;
 
@@ -31,7 +36,7 @@ function getOrCreateFederationInstance(config: RuntimeConfig) {
     );
   }
 
-  const ssrEntryUrl = `${ssrUrl.replace(/\/$/, "")}/remoteEntry.server.js`;
+  const ssrEntryUrl = `${ssrUrl}/remoteEntry.server.js`;
 
   if (existingInstance) {
     existingInstance.registerRemotes([
@@ -63,50 +68,27 @@ function getOrCreateFederationInstance(config: RuntimeConfig) {
 const retrySchedule = Schedule.addDelay(Schedule.recurs(5), () => 500);
 
 export const loadRouterModule = (config: RuntimeConfig) =>
-  Effect.gen(function* () {
-    if (config.ui.ssrIntegrity) {
-      const ssrUrl = config.ui.ssrUrl ?? config.ui.url;
-      if (ssrUrl) {
-        yield* Effect.tryPromise({
-          try: () => verifySriForUrl(ssrUrl, config.ui.ssrIntegrity!),
-          catch: (e) =>
-            new FederationError({
-              remoteName: config.ui.name,
-              remoteUrl: config.ui.ssrUrl,
-              cause: e instanceof Error ? e : new Error(String(e)),
-            }),
-        });
+  Effect.tryPromise({
+    try: async () => {
+      const mf = getOrCreateFederationInstance(config);
+      const loadedModule = await mf.loadRemote<any>(`${config.ui.name}/Router`, {
+        from: "build",
+      });
+
+      if (!loadedModule) {
+        throw new Error(`Module not found: ${config.ui.name}/Router`);
       }
-    }
 
-    const loadedModule = yield* Effect.retry(
-      Effect.gen(function* () {
-        const mf = getOrCreateFederationInstance(config);
-        return yield* Effect.tryPromise({
-          try: async () => {
-            const result = await mf.loadRemote<any>(`${config.ui.name}/Router`, {
-              from: "build",
-            });
-
-            if (!result) {
-              throw new Error(`Module not found: ${config.ui.name}/Router`);
-            }
-
-            return result.default as RouterModule;
-          },
-          catch: (e) =>
-            new FederationError({
-              remoteName: config.ui.name,
-              remoteUrl: config.ui.ssrUrl,
-              cause: e,
-            }),
-        });
+      return loadedModule.default as RouterModule;
+    },
+    catch: (e) =>
+      new FederationError({
+        remoteName: config.ui.name,
+        remoteUrl: config.ui.ssrUrl,
+        cause: e,
       }),
-      retrySchedule,
-    );
-
-    return loadedModule;
   }).pipe(
+    Effect.retry(retrySchedule),
     Effect.timeout("30 seconds"),
     Effect.tapError((error: Error) => Effect.logError(`[SSR] Failed: ${error.message}`)),
   );

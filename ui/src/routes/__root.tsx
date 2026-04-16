@@ -5,19 +5,27 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useSearch,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/router-devtools";
 import { getRemoteScripts } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
+import React from "react";
 import { Toaster } from "sonner";
+import { z } from "zod";
 import { getBaseStyles, getRuntimeBasePath } from "@/app";
 import { APP_DESCRIPTION, APP_NAME, METADATA_IMAGE_ALT } from "@/lib/branding";
 import { type SessionData, sessionQueryOptions } from "@/lib/session";
 import type { RouterContext } from "@/types";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
+const rootSearchSchema = z.object({
+  pretend: z.string().optional(),
+});
+
 export const Route = createRootRouteWithContext<RouterContext>()({
+  validateSearch: (search) => rootSearchSchema.parse(search),
   beforeLoad: async ({ context }) => {
     const session = context.session as SessionData | undefined | null;
 
@@ -31,7 +39,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const { queryClient } = context;
     const session = context.session as SessionData | undefined | null;
 
-    // Pre-populate session cache from SSR data
     if (session && queryClient) {
       queryClient.setQueryData(sessionQueryOptions(session).queryKey, session);
     }
@@ -52,7 +59,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const title = APP_NAME;
     const description = APP_DESCRIPTION;
     const siteName = APP_NAME;
-    const ogImage = `${assetsUrl}/metadata.png`;
+    const ogImage = `${assetsUrl}/og-image.png`;
 
     const structuredData = {
       "@context": "https://schema.org",
@@ -100,13 +107,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { rel: "shortcut icon", href: `${assetsUrl}/favicon.ico` },
         { rel: "icon", type: "image/svg+xml", href: `${assetsUrl}/icon.svg` },
-        { rel: "icon", type: "image/png", sizes: "32x32", href: `${assetsUrl}/favicon-32x32.png` },
-        { rel: "icon", type: "image/png", sizes: "16x16", href: `${assetsUrl}/favicon-16x16.png` },
-        {
-          rel: "apple-touch-icon",
-          sizes: "180x180",
-          href: `${assetsUrl}/apple-touch-icon.png`,
-        },
         { rel: "manifest", href: `${assetsUrl}/manifest.json` },
         ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
@@ -126,9 +126,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     };
   },
   component: RootComponent,
+  notFoundComponent: () => <>Not found</>,
 });
 
 function RootComponent() {
+  const { pretend } = useSearch({ from: Route.id });
+
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
@@ -149,7 +152,7 @@ function RootComponent() {
               config={{ position: "bottom-right" }}
               plugins={[
                 {
-                  name: "Tanstack Router",
+                  name: "Router",
                   render: <TanStackRouterDevtoolsPanel />,
                 },
                 TanStackQueryDevtools,

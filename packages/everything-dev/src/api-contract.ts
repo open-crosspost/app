@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import type { RuntimeConfig, RuntimePluginConfig } from "./types";
 
@@ -51,10 +51,7 @@ function toImportPath(fromFile: string, targetFile: string): string {
 function writeFileIfChanged(filePath: string, content: string) {
   try {
     if (readFileSync(filePath, "utf8") === content) return false;
-  } catch {
-    // file does not exist yet
-  }
-
+  } catch {}
   writeFileSync(filePath, content);
   return true;
 }
@@ -79,14 +76,21 @@ async function fetchApiPluginManifest(apiBaseUrl: string): Promise<ApiPluginMani
   return manifest;
 }
 
-function localApiContractSource(configDir: string): ContractSource {
-  const sourcePath = join(configDir, "api", "src", "contract.ts");
+function localContractSource(opts: {
+  configDir: string;
+  key: string;
+  localPath: string;
+}): ContractSource {
+  const contractPath = join(opts.localPath, "src", "contract.ts");
+  if (!existsSync(contractPath)) {
+    throw new Error(`Contract not found for ${opts.key}: ${contractPath}`);
+  }
   return {
-    key: "api",
-    importName: "BaseApiContract",
+    key: opts.key,
+    importName: opts.key === "api" ? "BaseApiContract" : `${sanitizeIdentifier(opts.key)}Contract`,
     importPath: toImportPath(
-      join(configDir, ".bos", "generated", "api-contract.gen.ts"),
-      sourcePath,
+      join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
+      contractPath,
     ),
   };
 }
@@ -127,7 +131,7 @@ async function remoteContractSource(opts: {
     importName: `${sanitizeIdentifier(opts.name)}Contract`,
     importPath: toImportPath(
       join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
-      generatedPath,
+      generatedPath.replace(/\.d\.ts$/, ""),
     ),
     generatedPath,
   };
@@ -141,36 +145,22 @@ async function resolveContractSource(opts: {
   baseUrl: string;
   generatedSubdir: string;
 }): Promise<ContractSource> {
-  if (
-    opts.key === "api" &&
-    (!opts.source || !("localPath" in opts.source) || opts.source.localPath)
-  ) {
-    const localPath = opts.source && "localPath" in opts.source ? opts.source.localPath : undefined;
-    if (localPath) {
-      return {
-        key: opts.key,
-        importName: "BaseApiContract",
-        importPath: toImportPath(
-          join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
-          join(localPath, "src", "contract.ts"),
-        ),
-      };
-    }
+  const localPath = opts.source && "localPath" in opts.source ? opts.source.localPath : undefined;
 
-    if (!opts.baseUrl) {
-      return localApiContractSource(opts.configDir);
-    }
+  if (localPath) {
+    return localContractSource({
+      configDir: opts.configDir,
+      key: opts.key,
+      localPath,
+    });
   }
 
-  if (opts.source && "localPath" in opts.source && opts.source.localPath) {
-    return {
-      key: opts.key,
-      importName: `${sanitizeIdentifier(opts.key)}Contract`,
-      importPath: toImportPath(
-        join(opts.configDir, ".bos", "generated", "api-contract.gen.ts"),
-        join(opts.source.localPath, "src", "contract.ts"),
-      ),
-    };
+  if (opts.key === "api" && !opts.baseUrl) {
+    return localContractSource({
+      configDir: opts.configDir,
+      key: "api",
+      localPath: join(opts.configDir, "api"),
+    });
   }
 
   return remoteContractSource({

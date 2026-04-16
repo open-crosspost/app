@@ -1,5 +1,5 @@
-import { eventIterator, oc } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { eventIterator, oc } from "@orpc/contract";
+import { z } from "zod";
 
 // Define specific errors thrown by this plugin
 const Errors = {

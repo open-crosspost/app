@@ -58,8 +58,8 @@ export class EmitPluginManifest implements RspackPluginInstance {
         contractTypes = (await tryReadFile(sourceContractPath)) ?? "";
 
         if (!contractTypes) {
-          const packageDir = context.split("/").pop();
-          const nestedPath = path.join(context, "types", packageDir ?? "", "src", contractFileName);
+          const packageDir = path.basename(path.resolve(context));
+          const nestedPath = path.join(context, "types", packageDir, "src", contractFileName);
 
           contractTypes = (await tryReadFile(nestedPath)) ?? "";
 
@@ -225,9 +225,13 @@ export class EveryPluginDevServer implements RspackPluginInstance {
 
     const context = compiler.options.context || process.cwd();
     const originalSetup = compiler.options.devServer.setupMiddlewares;
+    const distDir = path.resolve(context, "dist");
+    if (!fs.existsSync(distDir)) {
+      fs.mkdirSync(distDir, { recursive: true });
+    }
 
     compiler.options.devServer.port = port;
-    compiler.options.devServer.static = path.join(context, "dist");
+    compiler.options.devServer.static = [];
     compiler.options.devServer.hot = true;
     compiler.options.devServer.devMiddleware = { writeToDisk: true };
     compiler.options.devServer.headers = {

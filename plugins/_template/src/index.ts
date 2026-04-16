@@ -1,7 +1,9 @@
+import { getEventMeta } from "@orpc/experimental-publisher";
+import { MemoryPublisher } from "@orpc/experimental-publisher/memory";
+import { ORPCError } from "@orpc/server";
+import { Effect } from "effect";
 import { createPlugin } from "every-plugin";
-import { Effect } from "every-plugin/effect";
-import { getEventMeta, MemoryPublisher, ORPCError } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 
 import { contract } from "./contract";
 import { TemplateService } from "./service";

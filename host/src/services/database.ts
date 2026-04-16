@@ -1,7 +1,7 @@
 import { type Client, createClient } from "@libsql/client";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import { migrate as drizzleMigrate } from "drizzle-orm/libsql/migrator";
-import { Context, Effect, Layer } from "every-plugin/effect";
+import { Context, Effect, Layer } from "effect";
 import { migrate } from "../db/migrator";
 import * as authSchema from "../db/schema/auth";
 import { DatabaseError } from "./errors";
