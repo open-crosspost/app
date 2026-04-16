@@ -289,11 +289,11 @@ export const near = {
       connector.off("wallet:signOut", handleSignOut);
     };
   },
-  onTx: (callback: (tx: unknown) => void) => {
+  onTx: (_callback: (tx: unknown) => void) => {
     // Wallet selector handles transactions, so this is a no-op
     return () => {}; // Return unsubscribe function
   },
-  requestSignIn: async (params: { contractId: string }) => {
+  requestSignIn: async (_params: { contractId: string }) => {
     await signIn();
   },
 };

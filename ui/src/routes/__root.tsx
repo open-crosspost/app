@@ -11,7 +11,6 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/router-devtools";
 import { getRemoteScripts } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
-import React from "react";
 import { Toaster } from "sonner";
 import { z } from "zod";
 import { getBaseStyles, getRuntimeBasePath } from "@/app";
@@ -130,7 +129,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  const { pretend } = useSearch({ from: Route.id });
+  useSearch({ from: Route.id });
 
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>

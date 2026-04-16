@@ -78,9 +78,17 @@ export function useScheduledPostExecutor() {
         const authToken = await signMessage(message, "crosspost.near");
 
         // Set fresh authentication on the client
-        // SDK expects authToken as a string (JSON-encoded)
         const client = getClient();
-        client.setAuthentication(JSON.stringify(authToken));
+        const nearAuthData = {
+          account_id: currentAccountId,
+          public_key: authToken.publicKey,
+          signature: authToken.signature,
+          message,
+          nonce: crypto.getRandomValues(new Uint8Array(32)),
+          recipient: "crosspost.near",
+          callback_url: null,
+        };
+        client.setAuthentication(nearAuthData);
 
         console.log("Fresh authentication token generated for scheduled post execution");
       } catch (authError) {

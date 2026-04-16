@@ -1,9 +1,9 @@
 import { useCallback } from "react";
-import { useDebounce } from '@/lib/utils/debounce';
-import type { EditorContent } from '@/store/drafts-store';
+import { useDebounce } from "@/lib/utils/debounce";
+import type { EditorContent } from "@/store/drafts-store";
 
 export function usePostManagement(
-  posts: EditorContent[],
+  _posts: EditorContent[],
   setPosts: React.Dispatch<React.SetStateAction<EditorContent[]>>,
   saveAutoSave?: (posts: EditorContent[]) => void,
 ) {

@@ -18,6 +18,9 @@ export enum ActivityType {
   REPOST = "repost",
   QUOTE = "quote",
   REPLY = "reply",
+  LIKE = "like",
+  UNLIKE = "unlike",
+  DELETE = "delete",
 }
 
 export const ActivityTypeSchema = z.nativeEnum(ActivityType);

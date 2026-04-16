@@ -1,11 +1,7 @@
-import Social, {
-  type IIsWritePermissionGrantedWithAccountIdOptions,
-  type IIsWritePermissionGrantedWithPublicKeyOptions,
-  type ISocialDBContractStorageBalance,
-} from "@builddao/near-social-js";
+import * as NearSocialJS from "near-social-js";
+import type { Network } from "near-kit";
 import type { PostContent } from "@crosspost/plugin/types";
 import { getErrorMessage, isPlatformError } from "@crosspost/sdk";
-import type { Near } from "near-kit";
 import { NETWORK_ID } from "@/config";
 import { getWalletInstance } from "@/lib/near";
 
@@ -24,9 +20,14 @@ export const ESTIMATED_NODE_SIZE = 98; // 40 * 2 + 8 + 10
 
 import BigNumber from "bignumber.js";
 
+interface StorageBalanceResult {
+  available: string;
+  total: string;
+}
+
 interface IOptions {
   data: Record<string, Record<string, unknown>>;
-  storageBalance: ISocialDBContractStorageBalance | null;
+  storageBalance: StorageBalanceResult | null;
 }
 
 /**
@@ -139,47 +140,6 @@ export function parseKeyFromData(data: Record<string, unknown>): string[] {
   return parse([], data) as string[];
 }
 
-function uniqueAccountIdsFromKeys(keys: string[]): string[] {
-  return keys.reduce<string[]>((acc, currentValue) => {
-    const accountId = currentValue.split("/")[0] || "";
-
-    return acc.find((value) => value === accountId) ? acc : [...acc, accountId];
-  }, []);
-}
-
-async function storageBalanceOf(
-  accountID: string,
-): Promise<ISocialDBContractStorageBalance | null> {
-  const walletInstance = getWalletInstance();
-  if (!walletInstance || !walletInstance.near) {
-    throw new Error("Wallet not initialized");
-  }
-
-  const near: Near = walletInstance.near;
-  const result = await near.view(SOCIAL_CONTRACT[NETWORK_ID], "storage_balance_of", {
-    account_id: accountID,
-  });
-
-  if (isStorageBalance(result)) {
-    return result;
-  } else if (result === null) {
-    return null;
-  } else {
-    throw new Error("Unexpected response format from storage_balance_of");
-  }
-}
-
-function isStorageBalance(data: unknown): data is ISocialDBContractStorageBalance {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "total" in data &&
-    "available" in data &&
-    typeof (data as ISocialDBContractStorageBalance).total === "string" &&
-    typeof (data as ISocialDBContractStorageBalance).available === "string"
-  );
-}
-
 /**
  * Upload a file or data URL to IPFS via NEAR Social
  * @param fileOrData The file to upload or a data URL/base64 string
@@ -260,49 +220,32 @@ export function validateAccountId(accountID: string): boolean {
 }
 
 export class NearSocialService {
-  private social: Social;
+  private social: NearSocialJS.Social;
 
   constructor() {
-    // Initialize near-social-js Social instance
-    this.social = new Social({
+    this.social = new NearSocialJS.Social({
       contractId: SOCIAL_CONTRACT[NETWORK_ID],
-      network: NETWORK_ID,
+      network: NETWORK_ID as Network,
     });
   }
 
-  /**
-   * Checks if an account, specified in `options.granteeAccountId`, has been granted write access for a key. If the
-   * signer and the supplied `options.granteeAccountId` match, true will be returned.
-   * @param {IIsWritePermissionGrantedWithAccountIdOptions | IIsWritePermissionGrantedWithPublicKeyOptions} options - the key and the grantee account ID.
-   * @returns {Promise<boolean>} a promise that resolves to true, if the grantee account ID has write access for the
-   * given key, or false.
-   * @throws {InvalidAccountIdError} if the grantee account ID is not a valid account ID.
-   * @public
-   */
-  public async isWritePermissionGranted(
-    options:
-      | IIsWritePermissionGrantedWithAccountIdOptions
-      | IIsWritePermissionGrantedWithPublicKeyOptions,
-  ): Promise<boolean> {
-    // Use near-social-js's built-in method
+  public async isWritePermissionGranted(options: {
+    key: string;
+    granteeAccountId?: string;
+    granteePublicKey?: string;
+  }): Promise<boolean> {
     return await this.social.isWritePermissionGranted(options);
   }
 
-  /**
-   * Create a post on NEAR Social
-   * @param posts Array of post content objects
-   * @returns Promise resolving to the transaction object
-   */
   async createPost(posts: PostContent[]): Promise<void> {
     const walletInstance = getWalletInstance();
     if (!walletInstance || !walletInstance.near || !walletInstance.accountId) {
       throw new Error("Wallet not connected");
     }
 
-    const near: Near = walletInstance.near;
+    const near = walletInstance.near;
     const accountId = walletInstance.accountId;
 
-    // Get public key from wallet
     let publicKey: string | null = null;
     try {
       if (walletInstance.connector) {
@@ -313,7 +256,6 @@ export class NearSocialService {
         }
       }
     } catch (error) {
-      // Handle "No accounts found" error
       if (error instanceof Error && error.message.includes("No accounts found")) {
         throw new Error("Wallet not connected. Please connect your wallet first.");
       }
@@ -326,7 +268,6 @@ export class NearSocialService {
     }
 
     try {
-      // Combine all posts into a single content, joining with newlines
       const combinedText = posts.map((p) => p.text).join("\n\n");
 
       const content = {
@@ -352,66 +293,26 @@ export class NearSocialService {
 
       const keys = parseKeyFromData(data);
 
-      // for each key, check if the signer has been granted write permission for the key
-      for (let i = 0; i < keys.length; i++) {
+      for (const key of keys) {
         if (
-          (keys[i].split("/")[0] || "") !== accountId &&
+          (key.split("/")[0] || "") !== accountId &&
           !(await this.isWritePermissionGranted({
             granteePublicKey: publicKey,
-            key: keys[i],
+            key: key,
           }))
         ) {
           throw new Error(
-            `the supplied public key has not been granted write permission for "${keys[i]}"`,
+            `the supplied public key has not been granted write permission for "${key}"`,
           );
         }
       }
 
-      // Use near-social-js to create the transaction
-      // near-social-js will handle block hash internally if not provided
-      const transaction = await this.social.set({
-        account: {
-          accountId,
-          publicKey,
-        },
+      const transaction = this.social.set({
+        signerId: accountId,
         data,
       });
 
-      // Extract actions from transaction and convert to near-kit format
-      // Transaction.actions is an array of Action objects
-      const builder = near.transaction(accountId);
-
-      for (const action of transaction.actions) {
-        // Check if it's a FunctionCall action
-        if ("functionCall" in action && action.functionCall) {
-          const fc = action.functionCall;
-          const methodName =
-            typeof fc.methodName === "string" ? fc.methodName : fc.methodName.toString();
-          const args = fc.args || {};
-
-          // Convert gas from u64 to Tgas format for near-kit
-          const gasValue = fc.gas ? BigInt(fc.gas.toString()) : BigInt(GAS_FEE_IN_ATOMIC_UNITS);
-          const gasAmount = `${gasValue / BigInt(1000000000000)} Tgas`;
-
-          // Convert deposit from u128 to yoctoNEAR format
-          const depositValue = fc.deposit ? BigInt(fc.deposit.toString()) : BigInt(0);
-          const depositAmount = `${depositValue} yoctoNEAR`;
-
-          builder.functionCall(SOCIAL_CONTRACT[NETWORK_ID], methodName, args, {
-            gas: gasAmount,
-            attachedDeposit: depositAmount,
-          });
-        } else if ("transfer" in action && action.transfer) {
-          // Handle transfer action if needed
-          const amount = action.transfer.deposit
-            ? BigInt(action.transfer.deposit.toString())
-            : BigInt(0);
-          builder.transfer(SOCIAL_CONTRACT[NETWORK_ID], `${amount} yoctoNEAR`);
-        }
-      }
-
-      // Send the transaction using near-kit
-      await builder.send();
+      await near.transaction(accountId).add(transaction).send();
     } catch (error) {
       console.error("Error creating post:", getErrorMessage(error));
 
