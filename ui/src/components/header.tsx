@@ -3,6 +3,7 @@ import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-
 import { useTheme } from "next-themes";
 import type * as React from "react";
 import { authClient } from "@/lib/auth-client";
+import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
 import { signOut } from "@/lib/session";
 import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
@@ -15,7 +16,7 @@ import {
 
 export const Header: React.FC = () => {
   const { data: session } = authClient.useSession();
-  const currentAccountId = session?.user?.id ?? null;
+  const profileAccountId = getNearWalletDisplayFromSession(session);
   const isSignedIn = !!session?.user;
   const { theme, setTheme, systemTheme } = useTheme();
   const isDarkMode = theme === "dark" || (theme === "system" && systemTheme === "dark");
@@ -45,7 +46,7 @@ export const Header: React.FC = () => {
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
           {!isSignedIn && <ConnectToNearButton />}
-          {isSignedIn && currentAccountId && (
+          {isSignedIn && profileAccountId && (
             <>
               <Link to="/leaderboard">
                 <Button className="flex items-center gap-2 px-3 sm:px-4 py-2 h-9 min-w-fit">
@@ -65,7 +66,7 @@ export const Header: React.FC = () => {
                   <DropdownMenuItem asChild>
                     <Link
                       to="/profile/$accountId"
-                      params={{ accountId: currentAccountId }}
+                      params={{ accountId: profileAccountId }}
                       className="flex items-center gap-2"
                     >
                       <User size={16} />

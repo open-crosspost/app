@@ -3,6 +3,58 @@ import { TimePeriod } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { getClient } from "@/lib/authorization-service";
 
+function normalizeLeaderboardResponse(responseData: unknown): {
+  entries: AccountActivityEntry[];
+  meta: { pagination: { total: number } };
+} {
+  const fallbackMeta = { pagination: { total: 0 } };
+
+  if (!responseData) {
+    return { entries: [], meta: fallbackMeta };
+  }
+
+  if (Array.isArray(responseData)) {
+    return { entries: responseData as AccountActivityEntry[], meta: fallbackMeta };
+  }
+
+  if (typeof responseData === "object") {
+    const maybe = responseData as {
+      entries?: unknown;
+      meta?: { pagination?: { total?: number } };
+    };
+
+    if (Array.isArray(maybe.entries)) {
+      return {
+        entries: maybe.entries as AccountActivityEntry[],
+        meta: {
+          pagination: {
+            total: Number(maybe.meta?.pagination?.total ?? maybe.entries.length ?? 0),
+          },
+        },
+      };
+    }
+
+    if (maybe.entries && typeof maybe.entries === "object") {
+      const nested = maybe.entries as {
+        entries?: unknown;
+        meta?: { pagination?: { total?: number } };
+      };
+      if (Array.isArray(nested.entries)) {
+        return {
+          entries: nested.entries as AccountActivityEntry[],
+          meta: {
+            pagination: {
+              total: Number(nested.meta?.pagination?.total ?? nested.entries.length ?? 0),
+            },
+          },
+        };
+      }
+    }
+  }
+
+  return { entries: [], meta: fallbackMeta };
+}
+
 export const fetchLeaderboard = async ({
   limit,
   offset,
@@ -25,38 +77,14 @@ export const fetchLeaderboard = async ({
   const response = await client.activity.getLeaderboard({
     limit,
     offset,
-    timeframe,
+    timeframe: timeframe as any,
     startDate,
     endDate,
-    platforms,
+    platforms: platforms as any,
   });
 
-  // Handle nested response structure
-  const responseData = response.data;
-  let entries: any[] = [];
-  let meta: any = { pagination: { total: 0 } };
-
-  if (responseData) {
-    // Check if entries is directly an array
-    if (Array.isArray(responseData.entries)) {
-      entries = responseData.entries;
-      meta = responseData.meta || meta;
-    }
-    // Check if entries is an object with nested entries
-    else if (responseData.entries && Array.isArray(responseData.entries.entries)) {
-      entries = responseData.entries.entries;
-      meta = responseData.entries.meta || meta;
-    }
-    // Check if the entire response is an array
-    else if (Array.isArray(responseData)) {
-      entries = responseData;
-    }
-  }
-
-  return {
-    entries,
-    meta,
-  };
+  const normalized = normalizeLeaderboardResponse(response.data);
+  return normalized;
 };
 
 export const useLeaderboardQuery = (limit: number = 3) => {

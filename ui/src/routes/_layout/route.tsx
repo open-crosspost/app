@@ -1,8 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Footer } from '@/components/footer';
-import { Header } from '@/components/header';
-// import { HelperBuddy } from '@/components/helper-buddy';
+import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
 
 export const Route = createFileRoute("/_layout")({
   component: LayoutComponent,
@@ -24,7 +23,6 @@ function LayoutComponent() {
           </div>
         </motion.div>
       </div>
-      {/* <HelperBuddy /> */}
       <Footer />
     </>
   );

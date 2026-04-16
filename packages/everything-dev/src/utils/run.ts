@@ -1,10 +1,17 @@
+function buildSpawnCmd(command: string, args: string[]): string[] {
+  if (command === "bun") {
+    return [command, ...args];
+  }
+  return [command, ...args];
+}
+
 export async function run(
   cmd: string,
   args: string[],
   options: { cwd?: string; env?: Record<string, string>; capture?: boolean } = {},
 ): Promise<void | { stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn({
-    cmd: [cmd, ...args],
+    cmd: buildSpawnCmd(cmd, args),
     cwd: options.cwd,
     env: options.env ? { ...(process.env as Record<string, string>), ...options.env } : process.env,
     stdio: options.capture ? ["inherit", "pipe", "pipe"] : ["inherit", "inherit", "inherit"],

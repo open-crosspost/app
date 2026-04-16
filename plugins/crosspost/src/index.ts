@@ -1,4 +1,3 @@
-import { implement } from "@orpc/contract";
 import { Effect } from "effect";
 import { createPlugin } from "every-plugin";
 import { z } from "zod";
@@ -48,9 +47,8 @@ export default createPlugin({
 
   shutdown: () => Effect.void,
 
-  createRouter: (context) => {
+  createRouter: (context, os) => {
     const { service } = context;
-    const os = implement(contract);
 
     // AUTH HANDLERS
     const authRouter = os.auth.router({

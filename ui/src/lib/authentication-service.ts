@@ -89,8 +89,10 @@ export function createAuthenticatedMutation<
             );
           }
 
-          // Set account header before authentication
-          // client.setAccountHeader(currentAccountId);
+          // Set account header before authentication when supported by client.
+          (client as { setAccountHeader?: (accountId: string) => void }).setAccountHeader?.(
+            currentAccountId,
+          );
 
           // Verify wallet instance is available
           const { getWalletInstance } = await import("./near");
@@ -215,9 +217,17 @@ export function createAuthenticatedMutation<
             );
           }
 
-          // SDK expects authToken as a string (JSON-encoded)
-          // The backend expects: { signature: string, publicKey: string }
-          client.setAuthentication(JSON.stringify(authToken));
+          // Some SDK versions expect object auth payload while older ones accepted a JSON string.
+          // Try object first, then fallback to string for compatibility.
+          try {
+            (
+              client as unknown as { setAuthentication: (payload: Record<string, unknown>) => void }
+            ).setAuthentication(authToken as unknown as Record<string, unknown>);
+          } catch {
+            (client as unknown as { setAuthentication: (payload: string) => void }).setAuthentication(
+              JSON.stringify(authToken),
+            );
+          }
 
           const response = await clientMethod(client, variables);
 

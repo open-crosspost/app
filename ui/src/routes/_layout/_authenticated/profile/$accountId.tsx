@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_layout/_authenticated/profile/$accountId
 export function ProfilePage() {
   const data = Route.useLoaderData();
   const accountId = useParams({
-    from: "/_layout/_authenticated/crosspost/profile/$accountId",
+    from: "/_layout/_authenticated/profile/$accountId",
     select: (params) => params.accountId,
   });
 

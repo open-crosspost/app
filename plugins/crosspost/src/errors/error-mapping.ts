@@ -1,4 +1,4 @@
-import { ApiErrorCode } from '@crosspost/types';
+import { ApiErrorCode } from "../types/api";
 
 /**
  * Maps CrosspostError codes to appropriate error messages

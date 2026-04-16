@@ -49,6 +49,8 @@
     "@tanstack/react-router": "catalog:",
     "@tanstack/react-router-devtools": "^1.139.14",
     "@tanstack/react-table": "^8.21.3",
+    "@better-auth/api-key": "^1.5.4",
+    "@better-auth/passkey": "^1.5.4",
     "better-auth": "catalog:",
     "better-near-auth": "catalog:",
     "bignumber.js": "^9.1.2",

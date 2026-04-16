@@ -122,7 +122,7 @@ function buildRuntimeClientConfig(
   return {
     env: config.env,
     account: activeRuntime.accountId,
-    networkId: config.account.endsWith(".testnet") ? "testnet" : "mainnet",
+    networkId: activeRuntime.accountId.endsWith(".testnet") ? "testnet" : "mainnet",
     hostUrl: requestUrl.origin,
     assetsUrl: uiConfig.url,
     apiBase: "/api",
