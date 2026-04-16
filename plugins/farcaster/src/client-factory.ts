@@ -1,11 +1,9 @@
-import { Effect } from 'effect';
-import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
-import { mapNeynarError } from './utils/error-mapping';
+import { Configuration, NeynarAPIClient } from "@neynar/nodejs-sdk";
+import { Effect } from "effect";
+import { mapNeynarError } from "./utils/error-mapping";
 
 export class ClientFactory {
-  constructor(
-    private neynarApiKey: string
-  ) {}
+  constructor(private neynarApiKey: string) {}
 
   /**
    * Create a Neynar API client instance
@@ -14,14 +12,12 @@ export class ClientFactory {
   createClient(): Effect.Effect<NeynarAPIClient, Error> {
     return Effect.tryPromise({
       try: async () => {
-        const client = new NeynarAPIClient(
-          new Configuration({ apiKey: this.neynarApiKey })
-        );
+        const client = new NeynarAPIClient(new Configuration({ apiKey: this.neynarApiKey }));
         return client;
       },
       catch: (error) => {
         throw mapNeynarError(error);
-      }
+      },
     });
   }
 }

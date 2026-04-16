@@ -9,7 +9,7 @@ export async function run(
   cmd: string,
   args: string[],
   options: { cwd?: string; env?: Record<string, string>; capture?: boolean } = {},
-): Promise<void | { stdout: string; stderr: string; exitCode: number }> {
+): Promise<undefined | { stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn({
     cmd: buildSpawnCmd(cmd, args),
     cwd: options.cwd,

@@ -34,8 +34,9 @@ export function AccountItem({
   // Compact variant is used in the grid layout of PlatformAccountsSelector
   if (variant === "compact") {
     return (
-      <div
-        className={`flex items-center p-3 rounded-md transition-colors ${
+      <button
+        type="button"
+        className={`flex items-center p-3 rounded-md transition-colors w-full text-left ${
           hasError
             ? "border-2 border-red-500 bg-red-50 dark:bg-red-900 opacity-80 cursor-not-allowed"
             : disabled
@@ -46,6 +47,7 @@ export function AccountItem({
         }`}
         onClick={handleClick}
         title={title}
+        disabled={disabled || hasError}
       >
         <div className="flex-grow overflow-hidden">
           {hasError ? (
@@ -92,13 +94,14 @@ export function AccountItem({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="w-3 h-3 text-white"
+                aria-hidden="true"
               >
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             )}
           </div>
         </div>
-      </div>
+      </button>
     );
   }
 

@@ -31,10 +31,8 @@ export interface FarcasterCastParams {
 /** Helper: turn IPFS CIDs into URL embeds */
 export const cidEmbeds = (
   cids: string[],
-  gateway = 'https://gateway.pinata.cloud/ipfs',
-): FarcasterCastParams['embeds'] =>
+  gateway = "https://gateway.pinata.cloud/ipfs",
+): FarcasterCastParams["embeds"] =>
   cids.slice(0, 2).map((cid) => ({
     url: `${gateway}/${cid}`,
-  })) as FarcasterCastParams['embeds'];
-
-
+  })) as FarcasterCastParams["embeds"];

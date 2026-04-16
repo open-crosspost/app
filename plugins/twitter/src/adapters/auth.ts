@@ -1,12 +1,12 @@
-import * as AuthSchemas from '@crosspost/plugin/platform-contract';
-import { Effect } from 'effect';
-import { TwitterApi } from 'twitter-api-v2';
+import type * as AuthSchemas from "@crosspost/plugin/platform-contract";
+import { Effect } from "effect";
+import { TwitterApi } from "twitter-api-v2";
 
 export class AuthAdapter {
   constructor(
     private clientId: string,
-    private clientSecret: string
-  ) { }
+    private clientSecret: string,
+  ) {}
 
   /**
    * Get the authorization URL for OAuth flow
@@ -18,7 +18,7 @@ export class AuthAdapter {
       try: async () => {
         const client = new TwitterApi({
           clientId: this.clientId,
-          clientSecret: this.clientSecret
+          clientSecret: this.clientSecret,
         });
 
         const authLink = client.generateOAuth2AuthLink(input.redirectUri, {
@@ -29,9 +29,9 @@ export class AuthAdapter {
         return authLink.url;
       },
       catch: (error) => {
-        console.error('Error generating auth URL:', error);
-        throw new Error('Failed to generate authorization URL');
-      }
+        console.error("Error generating auth URL:", error);
+        throw new Error("Failed to generate authorization URL");
+      },
     });
   }
 
@@ -40,18 +40,20 @@ export class AuthAdapter {
    * @param input The input parameters for token exchange
    * @returns The authentication tokens
    */
-  exchangeCodeForToken(input: AuthSchemas.ExchangeCodeInput): Effect.Effect<AuthSchemas.AuthToken, Error> {
+  exchangeCodeForToken(
+    input: AuthSchemas.ExchangeCodeInput,
+  ): Effect.Effect<AuthSchemas.AuthToken, Error> {
     return Effect.tryPromise({
       try: async () => {
         const client = new TwitterApi({
           clientId: this.clientId,
-          clientSecret: this.clientSecret
+          clientSecret: this.clientSecret,
         });
 
         const { accessToken, refreshToken, expiresIn } = await client.loginWithOAuth2({
           code: input.code,
           redirectUri: input.redirectUri,
-          codeVerifier: input.codeVerifier || '',
+          codeVerifier: input.codeVerifier || "",
         });
 
         // Get user ID to associate with tokens
@@ -61,16 +63,16 @@ export class AuthAdapter {
         return {
           accessToken,
           refreshToken,
-          expiresAt: Date.now() + (expiresIn * 1000),
+          expiresAt: Date.now() + expiresIn * 1000,
           scope: input.scopes,
-          tokenType: 'oauth2',
-          userId: user.id
+          tokenType: "oauth2",
+          userId: user.id,
         };
       },
       catch: (error) => {
-        console.error('Error exchanging code for token:', error);
-        throw new Error('Failed to exchange authorization code for tokens');
-      }
+        console.error("Error exchanging code for token:", error);
+        throw new Error("Failed to exchange authorization code for tokens");
+      },
     });
   }
 
@@ -84,24 +86,27 @@ export class AuthAdapter {
       try: async () => {
         const client = new TwitterApi({
           clientId: this.clientId,
-          clientSecret: this.clientSecret
+          clientSecret: this.clientSecret,
         });
 
-        const { accessToken, refreshToken: newRefreshToken, expiresIn } = await client
-          .refreshOAuth2Token(input.refreshToken);
+        const {
+          accessToken,
+          refreshToken: newRefreshToken,
+          expiresIn,
+        } = await client.refreshOAuth2Token(input.refreshToken);
 
         return {
           accessToken,
           refreshToken: newRefreshToken || input.refreshToken,
-          expiresAt: Date.now() + (expiresIn * 1000),
+          expiresAt: Date.now() + expiresIn * 1000,
           scope: input.scope,
-          tokenType: 'oauth2'
+          tokenType: "oauth2",
         };
       },
       catch: (error) => {
-        console.error('Error refreshing token:', error);
-        throw new Error('Failed to refresh access token');
-      }
+        console.error("Error refreshing token:", error);
+        throw new Error("Failed to refresh access token");
+      },
     });
   }
 
@@ -115,7 +120,7 @@ export class AuthAdapter {
     return Effect.gen(function* () {
       const client = new TwitterApi({
         clientId: self.clientId,
-        clientSecret: self.clientSecret
+        clientSecret: self.clientSecret,
       });
 
       yield* Effect.tryPromise({
@@ -123,25 +128,25 @@ export class AuthAdapter {
           try {
             // Revoke access token
             if (input.accessToken) {
-              await client.revokeOAuth2Token(input.accessToken, 'access_token');
+              await client.revokeOAuth2Token(input.accessToken, "access_token");
             }
 
-            // Revoke refresh token  
+            // Revoke refresh token
             if (input.refreshToken) {
-              await client.revokeOAuth2Token(input.refreshToken, 'refresh_token');
+              await client.revokeOAuth2Token(input.refreshToken, "refresh_token");
             }
           } catch (err) {
             // 401 means token already invalid/revoked - this is success
-            if (err && typeof err === 'object' && 'status' in err && err.status === 401) {
+            if (err && typeof err === "object" && "status" in err && err.status === 401) {
               return; // Success - token already invalid
             }
             throw err; // Re-throw other errors
           }
         },
         catch: (error) => {
-          console.error('Error revoking tokens:', error);
-          return new Error('Failed to revoke tokens');
-        }
+          console.error("Error revoking tokens:", error);
+          return new Error("Failed to revoke tokens");
+        },
       });
 
       return true;

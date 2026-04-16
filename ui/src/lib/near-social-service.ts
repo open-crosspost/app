@@ -1,7 +1,7 @@
-import * as NearSocialJS from "near-social-js";
-import type { Network } from "near-kit";
 import type { PostContent } from "@crosspost/plugin/types";
 import { getErrorMessage, isPlatformError } from "@crosspost/sdk";
+import type { Network } from "near-kit";
+import * as NearSocialJS from "near-social-js";
 import { NETWORK_ID } from "@/config";
 import { getWalletInstance } from "@/lib/near";
 
@@ -91,14 +91,14 @@ export function calculateRequiredDeposit({ data, storageBalance }: IOptions): Bi
   const storageCostOfData: BigNumber = new BigNumber(String(calculateSizeOfData(data)))
     .plus(EXTRA_STORAGE_BALANCE) // https://github.com/NearSocial/VM/blob/6047c6a9b96f3de14e600c1d2b96c432bbb76dd4/src/lib/data/commitData.js#L62
     .multipliedBy(STORAGE_COST_PER_BYTES_IN_ATOMIC_UNITS);
-  let storageDepositAvailable: BigNumber;
+  const storageDepositAvailable = storageBalance
+    ? new BigNumber(storageBalance.available.toString())
+    : null;
 
   // if there is no balance, use the minimum storage cost, or the storage cost of the data
-  if (!storageBalance) {
+  if (!storageDepositAvailable) {
     return storageCostOfData.lt(minimumStorageCost) ? minimumStorageCost : storageCostOfData;
   }
-
-  storageDepositAvailable = new BigNumber(storageBalance.available.toString());
 
   // if the storage deposit available is less than the cost of storage, use the difference as the required deposit
   return storageDepositAvailable.lt(storageCostOfData)
@@ -239,7 +239,7 @@ export class NearSocialService {
 
   async createPost(posts: PostContent[]): Promise<void> {
     const walletInstance = getWalletInstance();
-    if (!walletInstance || !walletInstance.near || !walletInstance.accountId) {
+    if (!walletInstance?.near || !walletInstance.accountId) {
       throw new Error("Wallet not connected");
     }
 

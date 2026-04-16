@@ -1,6 +1,6 @@
+import BigNumber from "bignumber.js";
 import { near } from "./near";
 import { convertAtomicToStandard } from "./utils/string";
-import BigNumber from "bignumber.js";
 
 // Neko Cookie contract ID
 export const NEKO_COOKIE_CONTRACT_ID = "cookie.nekotoken.near";

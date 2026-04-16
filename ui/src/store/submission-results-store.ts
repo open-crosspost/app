@@ -5,8 +5,8 @@ import type {
   SuccessDetail,
 } from "@crosspost/plugin/types";
 import { create } from "zustand";
-import type { PostType } from '@/components/post-interaction-selector';
-import type { EditorContent } from '@/store/drafts-store';
+import type { PostType } from "@/components/post-interaction-selector";
+import type { EditorContent } from "@/store/drafts-store";
 
 export interface SubmissionRequest {
   posts: EditorContent[];

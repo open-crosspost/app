@@ -19,10 +19,8 @@ export default createPlugin({
   contract,
 
   initialize: (config) =>
-    Effect.gen(function* () {
-      const service = new TwitterService(config.secrets.clientId, config.secrets.clientSecret);
-
-      return { service };
+    Effect.succeed({
+      service: new TwitterService(config.secrets.clientId, config.secrets.clientSecret),
     }),
 
   shutdown: () => Effect.void,

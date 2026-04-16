@@ -165,7 +165,7 @@ function LeaderboardPage() {
         if (!value) return "N/A";
         try {
           const date = new Date(value);
-          return isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
+          return Number.isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
         } catch {
           return "Invalid Date";
         }
@@ -178,7 +178,7 @@ function LeaderboardPage() {
         if (!value) return "N/A";
         try {
           const date = new Date(value);
-          return isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
+          return Number.isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
         } catch {
           return "Invalid Date";
         }
@@ -258,7 +258,7 @@ function LeaderboardPage() {
         if (!timestamp) return "N/A";
         try {
           const date = new Date(timestamp);
-          if (isNaN(date.getTime())) return "Invalid Date";
+          if (Number.isNaN(date.getTime())) return "Invalid Date";
           return date.toLocaleString(undefined, {
             year: "numeric",
             month: "short",
@@ -279,7 +279,7 @@ function LeaderboardPage() {
         if (!dateTimeString) return "N/A";
         try {
           const date = new Date(dateTimeString);
-          if (isNaN(date.getTime())) return "Invalid Date";
+          if (Number.isNaN(date.getTime())) return "Invalid Date";
           return date.toLocaleString(undefined, {
             year: "numeric",
             month: "short",

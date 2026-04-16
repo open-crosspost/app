@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { PenSquare } from "lucide-react";
-import React from "react";
+import type React from "react";
 
 interface LoadingSpinnerProps {
   message?: string;

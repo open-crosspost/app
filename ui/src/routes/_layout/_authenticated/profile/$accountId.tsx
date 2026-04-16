@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_layout/_authenticated/profile/$accountId
         accountId: params.accountId,
         profile,
       };
-    } catch (error) {
+    } catch (_error) {
       // Return null to indicate profile fetch failed
       return null;
     }

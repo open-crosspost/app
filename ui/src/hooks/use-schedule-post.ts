@@ -4,7 +4,7 @@ import type {
   QuotePostRequest,
   ReplyToPostRequest,
 } from "@crosspost/plugin/types";
-import { createAuthenticatedMutation } from '@/lib/authentication-service';
+import { createAuthenticatedMutation } from "@/lib/authentication-service";
 
 // Schedule post request extends the base create post request with scheduling
 export interface SchedulePostRequest extends CreatePostRequest {

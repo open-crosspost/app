@@ -1,12 +1,10 @@
-import { Effect } from 'effect';
-import { SendTweetV2Params } from 'twitter-api-v2';
-import { ClientFactory } from '../client-factory';
-import * as PostSchemas from '@crosspost/plugin/platform-contract';
+import type * as PostSchemas from "@crosspost/plugin/platform-contract";
+import { Effect } from "effect";
+import type { SendTweetV2Params } from "twitter-api-v2";
+import type { ClientFactory } from "../client-factory";
 
 export class PostAdapter {
-  constructor(
-    private clientFactory: ClientFactory
-  ) {}
+  constructor(private clientFactory: ClientFactory) {}
 
   /**
    * Create a new post
@@ -42,14 +40,14 @@ export class PostAdapter {
           await client.v2.deleteTweet(input.postId);
         },
         catch: (error) => {
-          console.error('Error deleting post:', error);
-          throw new Error('Failed to delete post');
-        }
+          console.error("Error deleting post:", error);
+          throw new Error("Failed to delete post");
+        },
       });
 
       return {
         success: true,
-        id: input.postId
+        id: input.postId,
       };
     });
   }
@@ -69,9 +67,9 @@ export class PostAdapter {
           await client.v2.retweet(input.userId, input.postId);
         },
         catch: (error) => {
-          console.error('Error reposting:', error);
-          throw new Error('Failed to repost');
-        }
+          console.error("Error reposting:", error);
+          throw new Error("Failed to repost");
+        },
       });
 
       return {
@@ -134,14 +132,14 @@ export class PostAdapter {
           await client.v2.like(input.userId, input.postId);
         },
         catch: (error) => {
-          console.error('Error liking post:', error);
-          throw new Error('Failed to like post');
-        }
+          console.error("Error liking post:", error);
+          throw new Error("Failed to like post");
+        },
       });
 
       return {
         success: true,
-        id: input.postId
+        id: input.postId,
       };
     });
   }
@@ -161,24 +159,26 @@ export class PostAdapter {
           await client.v2.unlike(input.userId, input.postId);
         },
         catch: (error) => {
-          console.error('Error unliking post:', error);
-          throw new Error('Failed to unlike post');
-        }
+          console.error("Error unliking post:", error);
+          throw new Error("Failed to unlike post");
+        },
       });
 
       return {
         success: true,
-        id: input.postId
+        id: input.postId,
       };
     });
   }
 
   // Private helper methods
 
-  private createSinglePost(client: any, content: PostSchemas.PostContent): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
+  private createSinglePost(
+    client: any,
+    content: PostSchemas.PostContent,
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     return Effect.gen(function* () {
-      const text = content?.text || '';
+      const text = content?.text || "";
       const tweetData: SendTweetV2Params = { text };
 
       // TODO: Handle media uploads
@@ -187,9 +187,9 @@ export class PostAdapter {
       const result = yield* Effect.tryPromise({
         try: async () => await client.v2.tweet(tweetData),
         catch: (error) => {
-          console.error('Error creating single post:', error);
-          throw new Error('Failed to create post');
-        }
+          console.error("Error creating single post:", error);
+          throw new Error("Failed to create post");
+        },
       });
 
       return {
@@ -200,22 +200,24 @@ export class PostAdapter {
     });
   }
 
-  private createThread(client: any, contentArray: PostSchemas.PostContent[]): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
+  private createThread(
+    client: any,
+    contentArray: PostSchemas.PostContent[],
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     return Effect.gen(function* () {
       const formattedTweets: SendTweetV2Params[] = [];
 
       for (const content of contentArray) {
-        const text = content?.text || '';
+        const text = content?.text || "";
         formattedTweets.push({ text });
       }
 
       const result = yield* Effect.tryPromise({
         try: async () => await client.v2.tweetThread(formattedTweets),
         catch: (error) => {
-          console.error('Error creating thread:', error);
-          throw new Error('Failed to create thread');
-        }
+          console.error("Error creating thread:", error);
+          throw new Error("Failed to create thread");
+        },
       });
 
       return {
@@ -227,21 +229,24 @@ export class PostAdapter {
     });
   }
 
-  private createQuotePost(client: any, postId: string, content: PostSchemas.PostContent): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
+  private createQuotePost(
+    client: any,
+    postId: string,
+    content: PostSchemas.PostContent,
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     return Effect.gen(function* () {
-      const text = content?.text || '';
+      const text = content?.text || "";
       const tweetData: SendTweetV2Params = {
         text,
-        quote_tweet_id: postId
+        quote_tweet_id: postId,
       };
 
       const result = yield* Effect.tryPromise({
         try: async () => await client.v2.tweet(tweetData),
         catch: (error) => {
-          console.error('Error creating quote post:', error);
-          throw new Error('Failed to create quote post');
-        }
+          console.error("Error creating quote post:", error);
+          throw new Error("Failed to create quote post");
+        },
       });
 
       return {
@@ -253,14 +258,17 @@ export class PostAdapter {
     });
   }
 
-  private createQuoteThread(client: any, postId: string, contentArray: PostSchemas.PostContent[]): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
+  private createQuoteThread(
+    client: any,
+    postId: string,
+    contentArray: PostSchemas.PostContent[],
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     return Effect.gen(function* () {
       const formattedTweets: SendTweetV2Params[] = [];
 
       for (let i = 0; i < contentArray.length; i++) {
         const content = contentArray[i];
-        const text = content?.text || '';
+        const text = content?.text || "";
         const tweetData: SendTweetV2Params = { text };
 
         // Add quote to first tweet only
@@ -274,9 +282,9 @@ export class PostAdapter {
       const result = yield* Effect.tryPromise({
         try: async () => await client.v2.tweetThread(formattedTweets),
         catch: (error) => {
-          console.error('Error creating quote thread:', error);
-          throw new Error('Failed to create quote thread');
-        }
+          console.error("Error creating quote thread:", error);
+          throw new Error("Failed to create quote thread");
+        },
       });
 
       return {
@@ -289,21 +297,24 @@ export class PostAdapter {
     });
   }
 
-  private createReplyPost(client: any, postId: string, content: PostSchemas.PostContent): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
+  private createReplyPost(
+    client: any,
+    postId: string,
+    content: PostSchemas.PostContent,
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     return Effect.gen(function* () {
-      const text = content?.text || '';
+      const text = content?.text || "";
       const tweetData: SendTweetV2Params = {
         text,
-        reply: { in_reply_to_tweet_id: postId }
+        reply: { in_reply_to_tweet_id: postId },
       };
 
       const result = yield* Effect.tryPromise({
         try: async () => await client.v2.tweet(tweetData),
         catch: (error) => {
-          console.error('Error creating reply post:', error);
-          throw new Error('Failed to create reply post');
-        }
+          console.error("Error creating reply post:", error);
+          throw new Error("Failed to create reply post");
+        },
       });
 
       return {
@@ -315,14 +326,17 @@ export class PostAdapter {
     });
   }
 
-  private createReplyThread(client: any, postId: string, contentArray: PostSchemas.PostContent[]): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
+  private createReplyThread(
+    client: any,
+    postId: string,
+    contentArray: PostSchemas.PostContent[],
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     return Effect.gen(function* () {
       const formattedTweets: SendTweetV2Params[] = [];
 
       for (let i = 0; i < contentArray.length; i++) {
         const content = contentArray[i];
-        const text = content?.text || '';
+        const text = content?.text || "";
         const tweetData: SendTweetV2Params = { text };
 
         // Add reply to first tweet only
@@ -336,9 +350,9 @@ export class PostAdapter {
       const result = yield* Effect.tryPromise({
         try: async () => await client.v2.tweetThread(formattedTweets),
         catch: (error) => {
-          console.error('Error creating reply thread:', error);
-          throw new Error('Failed to create reply thread');
-        }
+          console.error("Error creating reply thread:", error);
+          throw new Error("Failed to create reply thread");
+        },
       });
 
       return {

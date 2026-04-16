@@ -116,7 +116,7 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
         title: "Copied to Clipboard",
         description: `User ID copied to clipboard`,
       });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Copy Error",
         description: "Failed to copy user ID to clipboard",

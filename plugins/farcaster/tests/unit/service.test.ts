@@ -1,10 +1,12 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { FarcasterService } from "@/service";
 
 describe("FarcasterService", () => {
   const mockConfig = {
     neynarApiKey: process.env.NEYNAR_API_KEY || "test-api-key",
-    farcasterDeveloperMnemonic: process.env.FARCASTER_DEVELOPER_MNEMONIC || "test test test test test test test test test test test test",
+    farcasterDeveloperMnemonic:
+      process.env.FARCASTER_DEVELOPER_MNEMONIC ||
+      "test test test test test test test test test test test test",
     pinataJwt: process.env.PINATA_JWT || "test-jwt",
     ipfsGatewayUrl: process.env.IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs",
     timeout: 10000,
@@ -18,7 +20,7 @@ describe("FarcasterService", () => {
       mockConfig.farcasterDeveloperMnemonic,
       mockConfig.pinataJwt,
       mockConfig.ipfsGatewayUrl,
-      mockConfig.timeout
+      mockConfig.timeout,
     );
   });
 

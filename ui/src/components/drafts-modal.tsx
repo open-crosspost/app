@@ -2,11 +2,17 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import type * as React from "react";
-import type { EditorContent } from '@/store/drafts-store';
-import { useDraftsStore } from '@/store/drafts-store';
-import { ModalWindowControls } from '@/components/modal-window-controls';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModalWindowControls } from "@/components/modal-window-controls";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { EditorContent } from "@/store/drafts-store";
+import { useDraftsStore } from "@/store/drafts-store";
 
 interface DraftsModalProps {
   onSelect: (posts: EditorContent[]) => void;

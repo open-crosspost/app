@@ -1,13 +1,13 @@
-import { Effect } from 'effect';
-import { TwitterApi } from 'twitter-api-v2';
-import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
+import { TwitterApiRateLimitPlugin } from "@twitter-api-v2/plugin-rate-limit";
+import { Effect } from "effect";
+import { TwitterApi } from "twitter-api-v2";
 
 export class ClientFactory {
   private rateLimitPlugin: TwitterApiRateLimitPlugin;
 
   constructor(
     private clientId: string,
-    private clientSecret: string
+    private clientSecret: string,
   ) {
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
   }
@@ -21,12 +21,12 @@ export class ClientFactory {
     return Effect.tryPromise({
       try: async () => {
         const client = new TwitterApi(accessToken, {
-          plugins: [this.rateLimitPlugin]
+          plugins: [this.rateLimitPlugin],
         });
 
         // Validate the client by making a simple API call
         try {
-          await client.v2.me({ 'user.fields': ['id'] });
+          await client.v2.me({ "user.fields": ["id"] });
         } catch (error) {
           throw new Error(`Invalid access token: ${error}`);
         }
@@ -34,9 +34,9 @@ export class ClientFactory {
         return client;
       },
       catch: (error) => {
-        console.error('Error creating Twitter client:', error);
-        throw new Error('Failed to create Twitter client with provided access token');
-      }
+        console.error("Error creating Twitter client:", error);
+        throw new Error("Failed to create Twitter client with provided access token");
+      },
     });
   }
 
@@ -49,15 +49,15 @@ export class ClientFactory {
       try: async () => {
         const client = new TwitterApi({
           clientId: this.clientId,
-          clientSecret: this.clientSecret
+          clientSecret: this.clientSecret,
         });
 
         return client;
       },
       catch: (error) => {
-        console.error('Error creating Twitter app client:', error);
-        throw new Error('Failed to create Twitter app client');
-      }
+        console.error("Error creating Twitter app client:", error);
+        throw new Error("Failed to create Twitter app client");
+      },
     });
   }
 }

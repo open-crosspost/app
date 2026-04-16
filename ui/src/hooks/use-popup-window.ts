@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
 interface PopupWindowOptions {
   width?: number;
@@ -14,11 +14,7 @@ interface PopupMessageHandler<T> {
   onError?: (error: any) => void;
 }
 
-export function usePopupWindow<T>({
-  type,
-  onSuccess,
-  onError,
-}: PopupMessageHandler<T>) {
+export function usePopupWindow<T>({ type, onSuccess, onError }: PopupMessageHandler<T>) {
   const popupRef = useRef<Window | null>(null);
   const hasReceivedSuccess = useRef(false);
   const isHandlingSuccess = useRef(false);
@@ -55,8 +51,8 @@ export function usePopupWindow<T>({
     const handleMessage = (event: MessageEvent) => {
       // Filter out wallet extension messages (MetaMask, etc.)
       if (
-        event.data?.name === 'metamask-provider' ||
-        event.data?.target === 'metamask-inpage' ||
+        event.data?.name === "metamask-provider" ||
+        event.data?.target === "metamask-inpage" ||
         event.source === window // Ignore messages from same window (wallet extensions)
       ) {
         // These are from wallet extensions, not our popup
@@ -67,14 +63,12 @@ export function usePopupWindow<T>({
       if (event.origin !== expectedOrigin) {
         // Only warn if it's not from a known wallet extension origin
         const walletOrigins = [
-          'https://wallet.meteorwallet.app',
-          'chrome-extension://',
-          'moz-extension://',
+          "https://wallet.meteorwallet.app",
+          "chrome-extension://",
+          "moz-extension://",
         ];
-        const isWalletOrigin = walletOrigins.some(origin => 
-          event.origin.includes(origin)
-        );
-        
+        const isWalletOrigin = walletOrigins.some((origin) => event.origin.includes(origin));
+
         if (!isWalletOrigin) {
           console.warn(
             "Ignoring message from unexpected origin:",
@@ -121,12 +115,8 @@ export function usePopupWindow<T>({
     const {
       width = 600,
       height = 700,
-      left = typeof window !== "undefined"
-        ? (window.innerWidth - 600) / 2
-        : 400,
-      top = typeof window !== "undefined"
-        ? (window.innerHeight - 700) / 2
-        : 100,
+      left = typeof window !== "undefined" ? (window.innerWidth - 600) / 2 : 400,
+      top = typeof window !== "undefined" ? (window.innerHeight - 700) / 2 : 100,
     } = options;
 
     const popup = window.open(

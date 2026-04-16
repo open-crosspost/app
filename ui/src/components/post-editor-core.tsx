@@ -57,8 +57,8 @@ export function PostEditorCore({
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = parseInt(active.id.split("-")[1]);
-      const newIndex = parseInt(over.id.split("-")[1]);
+      const oldIndex = parseInt(active.id.split("-")[1], 10);
+      const newIndex = parseInt(over.id.split("-")[1], 10);
 
       const newPosts = arrayMove(posts, oldIndex, newIndex);
       onPostsChange(newPosts);

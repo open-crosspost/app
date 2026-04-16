@@ -6,11 +6,7 @@ export interface ExportField<T> {
 
 export type ExportFormat = "csv" | "json";
 
-export const downloadFile = (
-  content: string,
-  filename: string,
-  contentType: string,
-) => {
+export const downloadFile = (content: string, filename: string, contentType: string) => {
   const blob = new Blob([content], { type: contentType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -22,10 +18,7 @@ export const downloadFile = (
   URL.revokeObjectURL(url);
 };
 
-export const convertToCSV = <T>(
-  data: T[],
-  fields: ExportField<T>[],
-): string => {
+export const convertToCSV = <T>(data: T[], fields: ExportField<T>[]): string => {
   if (data.length === 0) return "";
 
   const headers = fields.map((field) => field.header);
@@ -39,9 +32,7 @@ export const convertToCSV = <T>(
 
           if (typeof field.key === "string" && field.key.includes(".")) {
             // Handle nested properties like 'user.name'
-            value = field.key
-              .split(".")
-              .reduce((obj, key) => obj?.[key], item as any);
+            value = field.key.split(".").reduce((obj, key) => obj?.[key], item as any);
           } else {
             value = (item as any)[field.key];
           }
@@ -74,10 +65,7 @@ export const convertToCSV = <T>(
   return csvContent;
 };
 
-export const convertToJSON = <T>(
-  data: T[],
-  fields?: ExportField<T>[],
-): string => {
+export const convertToJSON = <T>(data: T[], fields?: ExportField<T>[]): string => {
   if (!fields) {
     return JSON.stringify(data, null, 2);
   }
@@ -89,9 +77,7 @@ export const convertToJSON = <T>(
       let value: any;
 
       if (typeof field.key === "string" && field.key.includes(".")) {
-        value = field.key
-          .split(".")
-          .reduce((obj, key) => obj?.[key], item as any);
+        value = field.key.split(".").reduce((obj, key) => obj?.[key], item as any);
       } else {
         value = (item as any)[field.key];
       }

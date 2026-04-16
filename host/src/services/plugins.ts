@@ -1,5 +1,5 @@
-import { createPluginRuntime } from "every-plugin";
 import { Context, Effect, Layer } from "effect";
+import { createPluginRuntime } from "every-plugin";
 import type { RuntimeConfig } from "everything-dev/types";
 import { ConfigService } from "./config";
 import { PluginError } from "./errors";

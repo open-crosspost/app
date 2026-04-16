@@ -93,7 +93,9 @@ function createClientConfig() {
         index: "./src/dev-entry.tsx",
       },
       define: {
-        "import.meta.env.PUBLIC_DEV_HOST_URL": JSON.stringify(process.env.PUBLIC_DEV_HOST_URL ?? ""),
+        "import.meta.env.PUBLIC_DEV_HOST_URL": JSON.stringify(
+          process.env.PUBLIC_DEV_HOST_URL ?? "",
+        ),
       },
     },
     resolve: {

@@ -1,8 +1,8 @@
-import { Effect } from 'effect';
-import type * as Types from './types';
-import { createAuthHeaders, isValidNearAuthData } from './utils/auth-helpers';
-import { getStatusErrorMessage, mapToCrosspostError } from './errors/error-mapping';
-import type { NearAuthData } from './types/auth';
+import { Effect } from "effect";
+import { mapToCrosspostError } from "./errors/error-mapping";
+import type * as Types from "./types";
+import type { NearAuthData } from "./types/auth";
+import { createAuthHeaders, isValidNearAuthData } from "./utils/auth-helpers";
 
 /**
  * CrosspostService - HTTP client for Crosspost API with NEAR authentication
@@ -14,145 +14,98 @@ export class CrosspostService {
     private readonly timeout: number,
   ) {
     if (!isValidNearAuthData(nearAuthData)) {
-      throw new Error('Invalid NEAR authentication data');
+      throw new Error("Invalid NEAR authentication data");
     }
   }
 
   // ============ AUTH METHODS ============
 
   authorizeNearAccount() {
-    return this.makeRequest<Types.NearAuthorizationResponse>(
-      'POST',
-      '/auth/authorize/near',
-      {},
-    );
+    return this.makeRequest<Types.NearAuthorizationResponse>("POST", "/auth/authorize/near", {});
   }
 
   getNearAuthorizationStatus() {
-    return this.makeRequest<Types.NearAuthorizationResponse>(
-      'GET',
-      '/auth/authorize/near/status',
-    );
+    return this.makeRequest<Types.NearAuthorizationResponse>("GET", "/auth/authorize/near/status");
   }
 
   loginToPlatform(platform: Types.Platform, options?: Types.AuthInitRequest) {
     return this.makeRequest<Types.AuthUrlResponse | Types.AuthCallbackResponse>(
-      'POST',
+      "POST",
       `/auth/${platform}/login`,
       options || { redirect: false },
     );
   }
 
   refreshToken(platform: Types.Platform, userId: string) {
-    return this.makeRequest<Types.AuthCallbackResponse>(
-      'POST',
-      `/auth/${platform}/refresh`,
-      { userId },
-    );
+    return this.makeRequest<Types.AuthCallbackResponse>("POST", `/auth/${platform}/refresh`, {
+      userId,
+    });
   }
 
   refreshProfile(platform: Types.Platform, userId: string) {
-    return this.makeRequest<Types.ConnectedAccount>(
-      'POST',
-      `/auth/${platform}/refresh-profile`,
-      { userId },
-    );
+    return this.makeRequest<Types.ConnectedAccount>("POST", `/auth/${platform}/refresh-profile`, {
+      userId,
+    });
   }
 
   getAuthStatus(platform: Types.Platform, userId: string) {
-    return this.makeRequest<Types.AuthStatusResponse>(
-      'GET',
-      `/auth/${platform}/status/${userId}`,
-    );
+    return this.makeRequest<Types.AuthStatusResponse>("GET", `/auth/${platform}/status/${userId}`);
   }
 
   unauthorizeNear() {
     return this.makeRequest<Types.NearUnauthorizationResponse>(
-      'DELETE',
-      '/auth/unauthorize/near',
+      "DELETE",
+      "/auth/unauthorize/near",
       {},
     );
   }
 
   revokeAuth(platform: Types.Platform, userId: string) {
-    return this.makeRequest<Types.AuthRevokeResponse>(
-      'DELETE',
-      `/auth/${platform}/revoke`,
-      { userId },
-    );
+    return this.makeRequest<Types.AuthRevokeResponse>("DELETE", `/auth/${platform}/revoke`, {
+      userId,
+    });
   }
 
   getConnectedAccounts() {
-    return this.makeRequest<Types.ConnectedAccountsResponse>(
-      'GET',
-      '/auth/accounts',
-    );
+    return this.makeRequest<Types.ConnectedAccountsResponse>("GET", "/auth/accounts");
   }
 
   // ============ POST METHODS ============
 
   createPost(request: Types.CreatePostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'POST',
-      '/api/post',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("POST", "/api/post", request);
   }
 
   deletePost(request: Types.DeletePostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'DELETE',
-      '/api/post',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("DELETE", "/api/post", request);
   }
 
   repost(request: Types.RepostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'POST',
-      '/api/post/repost',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("POST", "/api/post/repost", request);
   }
 
   quotePost(request: Types.QuotePostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'POST',
-      '/api/post/quote',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("POST", "/api/post/quote", request);
   }
 
   replyToPost(request: Types.ReplyToPostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'POST',
-      '/api/post/reply',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("POST", "/api/post/reply", request);
   }
 
   likePost(request: Types.LikePostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'POST',
-      '/api/post/like',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("POST", "/api/post/like", request);
   }
 
   unlikePost(request: Types.UnlikePostRequest) {
-    return this.makeRequest<Types.MultiStatusData>(
-      'DELETE',
-      '/api/post/like',
-      request,
-    );
+    return this.makeRequest<Types.MultiStatusData>("DELETE", "/api/post/like", request);
   }
 
   // ============ ACTIVITY METHODS ============
 
   getLeaderboard(query?: Types.ActivityLeaderboardQuery) {
     return this.makeRequest<Types.ActivityLeaderboardResponse>(
-      'GET',
-      '/api/activity',
+      "GET",
+      "/api/activity",
       undefined,
       query,
     );
@@ -160,7 +113,7 @@ export class CrosspostService {
 
   getAccountActivity(signerId: string, query?: Types.AccountActivityQuery) {
     return this.makeRequest<Types.AccountActivityResponse>(
-      'GET',
+      "GET",
       `/api/activity/${signerId}`,
       undefined,
       query,
@@ -169,7 +122,7 @@ export class CrosspostService {
 
   getAccountPosts(signerId: string, query?: Types.AccountPostsQuery) {
     return this.makeRequest<Types.AccountPostsResponse>(
-      'GET',
+      "GET",
       `/api/activity/${signerId}/posts`,
       undefined,
       query,
@@ -179,24 +132,15 @@ export class CrosspostService {
   // ============ SYSTEM METHODS ============
 
   getRateLimits() {
-    return this.makeRequest<Types.RateLimitResponse>(
-      'GET',
-      '/api/rate-limit',
-    );
+    return this.makeRequest<Types.RateLimitResponse>("GET", "/api/rate-limit");
   }
 
   getEndpointRateLimit(endpoint: string) {
-    return this.makeRequest<Types.EndpointRateLimitResponse>(
-      'GET',
-      `/api/rate-limit/${endpoint}`,
-    );
+    return this.makeRequest<Types.EndpointRateLimitResponse>("GET", `/api/rate-limit/${endpoint}`);
   }
 
   getHealthStatus() {
-    return this.makeRequest<Types.HealthStatus>(
-      'GET',
-      '/health',
-    );
+    return this.makeRequest<Types.HealthStatus>("GET", "/health");
   }
 
   // ============ PRIVATE HELPERS ============
@@ -229,7 +173,7 @@ export class CrosspostService {
           const response = await fetch(url, {
             method,
             headers,
-            body: method !== 'GET' && data ? JSON.stringify(data) : undefined,
+            body: method !== "GET" && data ? JSON.stringify(data) : undefined,
             signal: controller.signal,
           });
 

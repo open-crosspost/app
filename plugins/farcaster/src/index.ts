@@ -23,16 +23,14 @@ export default createPlugin({
   contract,
 
   initialize: (config) =>
-    Effect.gen(function* () {
-      const service = new FarcasterService(
+    Effect.succeed({
+      service: new FarcasterService(
         config.secrets.neynarApiKey,
         config.secrets.farcasterDeveloperMnemonic,
         config.secrets.pinataJwt,
         config.variables.ipfsGatewayUrl,
         config.variables.timeout,
-      );
-
-      return { service };
+      ),
     }),
 
   shutdown: () => Effect.void,

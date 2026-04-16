@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { hasBlackdragonNft } from '@/lib/nft';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { BadgeProps } from '@/components/badges/inline-badges';
+import type { BadgeProps } from "@/components/badges/inline-badges";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { hasBlackdragonNft } from "@/lib/nft";
 
 export function BlackdragonBadge({ accountId }: BadgeProps) {
   const { data: hasNft, isLoading } = useQuery({

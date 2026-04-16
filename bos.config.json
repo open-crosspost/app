@@ -1,8 +1,22 @@
 {
-  "account": "dev.everything.near",
-  "domain": "everything.dev",
-  "repository": "https://github.com/nearbuilders/everything-dev",
-  "plugins": {},
+  "account": "crosspost.near",
+  "extends": "bos://dev.everything.near/everything.dev",
+  "domain": "opencrosspost.com",
+  "repository": "https://github.com/open-crosspost/app",
+  "plugins": {
+    "crosspost": {
+      "development": "local:plugins/crosspost",
+      "production": ""
+    },
+    "farcaster": {
+      "development": "local:plugins/farcaster",
+      "production": ""
+    },
+    "twitter": {
+      "development": "local:plugins/twitter",
+      "production": ""
+    }
+  },
   "app": {
     "host": {
       "name": "host",
@@ -23,7 +37,7 @@
       "production": "https://elliot-braem-2616-api-everything-dev-nearbuilders-9f203cd13-ze.zephyrcloud.app"
     }
   },
-  "testnet": "dev.allthethings.testnet",
+  "testnet": "crosspost.testnet",
   "shared": {
     "ui": {}
   }

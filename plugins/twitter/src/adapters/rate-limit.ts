@@ -1,14 +1,12 @@
-import { Effect } from 'effect';
-import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
-import { ClientFactory } from '../client-factory';
-import * as RateLimitSchemas from '@crosspost/plugin/platform-contract';
+import type * as RateLimitSchemas from "@crosspost/plugin/platform-contract";
+import { TwitterApiRateLimitPlugin } from "@twitter-api-v2/plugin-rate-limit";
+import { Effect } from "effect";
+import type { ClientFactory } from "../client-factory";
 
 export class RateLimitAdapter {
   private rateLimitPlugin: TwitterApiRateLimitPlugin;
 
-  constructor(
-    private clientFactory: ClientFactory
-  ) {
+  constructor(private clientFactory: ClientFactory) {
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
   }
 
@@ -17,22 +15,24 @@ export class RateLimitAdapter {
    * @param input The input parameters for checking rate limit
    * @returns The rate limit status
    */
-  check(input: RateLimitSchemas.CheckRateLimitInput): Effect.Effect<RateLimitSchemas.RateLimitStatus, Error> {
+  check(
+    input: RateLimitSchemas.CheckRateLimitInput,
+  ): Effect.Effect<RateLimitSchemas.RateLimitStatus, Error> {
     const self = this;
     return Effect.gen(function* () {
       // Rate limit checking doesn't require authentication
-      const client = yield* self.clientFactory.createAppClient();
+      const _client = yield* self.clientFactory.createAppClient();
 
       const result = yield* Effect.tryPromise({
         try: async () => {
           // Map common endpoints to their rate limit paths
           const endpointMap: Record<string, string> = {
-            'posts': '/2/tweets',
-            'likes': '/2/users/:id/likes',
-            'retweets': '/2/users/:id/retweets',
-            'media': 'media/upload',
-            'users': '/2/users/me',
-            'timeline': '/2/users/:id/tweets',
+            posts: "/2/tweets",
+            likes: "/2/users/:id/likes",
+            retweets: "/2/users/:id/retweets",
+            media: "media/upload",
+            users: "/2/users/me",
+            timeline: "/2/users/:id/tweets",
           };
 
           const rateLimitPath = endpointMap[input.endpoint] || input.endpoint;
@@ -58,9 +58,9 @@ export class RateLimitAdapter {
           };
         },
         catch: (error) => {
-          console.error('Error checking rate limit:', error);
-          throw new Error('Failed to check rate limit');
-        }
+          console.error("Error checking rate limit:", error);
+          throw new Error("Failed to check rate limit");
+        },
       });
 
       return result;

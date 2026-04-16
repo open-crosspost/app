@@ -5,7 +5,7 @@ import type {
   QuotePostRequest,
   ReplyToPostRequest,
 } from "@crosspost/plugin/types";
-import { createAuthenticatedMutation } from '@/lib/authentication-service';
+import { createAuthenticatedMutation } from "@/lib/authentication-service";
 
 // Re-export scheduling hooks
 export {
@@ -15,7 +15,7 @@ export {
   useSchedulePost,
   useScheduleQuotePost,
   useScheduleReplyPost,
-} from '@/hooks/use-schedule-post';
+} from "@/hooks/use-schedule-post";
 
 /**
  * Hook for creating a new post across multiple platforms

@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { LandingPage } from "@/components/landing-page";
 import { authClient } from "@/lib/auth-client";
 import type { SessionData } from "@/lib/session";

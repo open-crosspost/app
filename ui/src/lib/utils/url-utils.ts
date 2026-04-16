@@ -72,7 +72,7 @@ export function extractPostIdFromUrl(url: string, platform: PlatformName | null)
 
     if (platform === Platform.FARCASTER) {
       // Farcaster URLs typically have format: /posts/{hash}
-      const postsIndex = pathSegments.findIndex((segment) => segment === "posts");
+      const postsIndex = pathSegments.indexOf("posts");
       if (postsIndex !== -1 && postsIndex + 1 < pathSegments.length) {
         const potentialId = pathSegments[postsIndex + 1];
         // Farcaster post IDs are typically alphanumeric hashes

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import { useDebounce } from '@/lib/utils/debounce';
-import type { EditorContent, EditorMedia } from '@/store/drafts-store';
-import { toast as toastFunction } from '@/hooks/use-toast';
+import { toast as toastFunction } from "@/hooks/use-toast";
+import { useDebounce } from "@/lib/utils/debounce";
+import type { EditorContent, EditorMedia } from "@/store/drafts-store";
 
 export function usePostMedia(
   setPosts: React.Dispatch<React.SetStateAction<EditorContent[]>>,

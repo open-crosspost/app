@@ -2,11 +2,11 @@ import type { PlatformName } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import { Twitter } from "lucide-react";
 import React from "react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { capitalize } from "@/lib/utils/string";
-import { useToast } from '@/hooks/use-toast';
-import { useConnectAccount } from '@/store/platform-accounts-store';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useConnectAccount } from "@/store/platform-accounts-store";
 
 interface ConnectPlatformProps {
   platform: PlatformName;
@@ -85,37 +85,35 @@ export function ConnectPlatform({
             variant={variant}
             className={`gap-2 ${className}`}
           >
-            {showIcon && (
-              <>
-                {platform === Platform.TWITTER ? (
-                  <Twitter size={size === "sm" ? 18 : 24} />
-                ) : platform === Platform.FARCASTER ? (
-                  <img
-                    src="/platforms/farcaster.svg"
-                    alt="Farcaster"
-                    width={size === "sm" ? 18 : 24}
-                    height={size === "sm" ? 18 : 24}
-                    className="object-contain"
-                  />
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width={size === "sm" ? 16 : 20}
-                    height={size === "sm" ? 16 : 20}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="16" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                  </svg>
-                )}
-              </>
-            )}
+            {showIcon &&
+              (platform === Platform.TWITTER ? (
+                <Twitter size={size === "sm" ? 18 : 24} />
+              ) : platform === Platform.FARCASTER ? (
+                <img
+                  src="/platforms/farcaster.svg"
+                  alt="Farcaster"
+                  width={size === "sm" ? 18 : 24}
+                  height={size === "sm" ? 18 : 24}
+                  className="object-contain"
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={size === "sm" ? 16 : 20}
+                  height={size === "sm" ? 16 : 20}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+              ))}
             {isConnecting || connectAccount.isPending
               ? "Connecting..."
               : `Connect ${capitalize(platform)} Account`}

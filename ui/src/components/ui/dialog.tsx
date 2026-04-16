@@ -1,6 +1,6 @@
-import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -60,13 +60,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName;
 interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const DialogHeader = ({ className, ...props }: DialogHeaderProps) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
-      className,
-    )}
-    {...props}
-  />
+  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
@@ -74,17 +68,13 @@ interface DialogFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const DialogFooter = ({ className, ...props }: DialogFooterProps) => (
   <div
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className,
-    )}
+    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
     {...props}
   />
 );
 DialogFooter.displayName = "DialogFooter";
 
-interface DialogTitleProps
-  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> {}
+interface DialogTitleProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> {}
 
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
@@ -92,10 +82,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className,
-    )}
+    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));
@@ -118,13 +105,13 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
   Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogTrigger,
   DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
 };

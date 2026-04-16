@@ -117,8 +117,11 @@ export function SchedulePostModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2 ">Date</label>
+            <label htmlFor="schedule-date" className="block text-sm font-medium mb-2 ">
+              Date
+            </label>
             <input
+              id="schedule-date"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -128,8 +131,11 @@ export function SchedulePostModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 ">Time</label>
+            <label htmlFor="schedule-time" className="block text-sm font-medium mb-2 ">
+              Time
+            </label>
             <input
+              id="schedule-time"
               type="time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}

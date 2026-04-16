@@ -1,10 +1,10 @@
-import { AuthAdapter } from './adapters/auth';
-import { PostAdapter } from './adapters/post';
-import { MediaAdapter } from './adapters/media';
-import { ProfileAdapter } from './adapters/profile';
-import { RateLimitAdapter } from './adapters/rate-limit';
-import { ClientFactory } from './client-factory';
-import * as PlatformContract from '@crosspost/plugin/platform-contract';
+import type * as PlatformContract from "@crosspost/plugin/platform-contract";
+import { AuthAdapter } from "./adapters/auth";
+import { MediaAdapter } from "./adapters/media";
+import { PostAdapter } from "./adapters/post";
+import { ProfileAdapter } from "./adapters/profile";
+import { RateLimitAdapter } from "./adapters/rate-limit";
+import { ClientFactory } from "./client-factory";
 
 export class TwitterService {
   private clientFactory: ClientFactory;
@@ -14,10 +14,7 @@ export class TwitterService {
   private profileAdapter: ProfileAdapter;
   private rateLimitAdapter: RateLimitAdapter;
 
-  constructor(
-    private clientId: string,
-    private clientSecret: string
-  ) {
+  constructor(clientId: string, clientSecret: string) {
     this.clientFactory = new ClientFactory(clientId, clientSecret);
     this.authAdapter = new AuthAdapter(clientId, clientSecret);
     this.postAdapter = new PostAdapter(this.clientFactory);

@@ -1,5 +1,5 @@
-import { Effect } from 'effect';
-import * as RateLimitSchemas from '@crosspost/plugin/platform-contract';
+import type * as RateLimitSchemas from "@crosspost/plugin/platform-contract";
+import { Effect } from "effect";
 
 export class RateLimitAdapter {
   /**
@@ -8,7 +8,9 @@ export class RateLimitAdapter {
    * @param input The input parameters for checking rate limit
    * @returns The rate limit status (always unlimited)
    */
-  check(input: RateLimitSchemas.CheckRateLimitInput): Effect.Effect<RateLimitSchemas.RateLimitStatus, Error> {
+  check(
+    _input: RateLimitSchemas.CheckRateLimitInput,
+  ): Effect.Effect<RateLimitSchemas.RateLimitStatus, Error> {
     return Effect.succeed({
       limit: Number.MAX_SAFE_INTEGER,
       remaining: Number.MAX_SAFE_INTEGER,

@@ -1,12 +1,10 @@
-import { Effect } from 'effect';
-import { ClientFactory } from '../client-factory';
-import * as ProfileSchemas from '@crosspost/plugin/platform-contract';
-import { mapNeynarError } from '../utils/error-mapping';
+import type * as ProfileSchemas from "@crosspost/plugin/platform-contract";
+import { Effect } from "effect";
+import type { ClientFactory } from "../client-factory";
+import { mapNeynarError } from "../utils/error-mapping";
 
 export class ProfileAdapter {
-  constructor(
-    private clientFactory: ClientFactory
-  ) {}
+  constructor(private clientFactory: ClientFactory) {}
 
   /**
    * Get user profile
@@ -22,7 +20,7 @@ export class ProfileAdapter {
         try: async () => {
           // Convert userId (FID) to number
           const fid = parseInt(input.userId, 10);
-          if (isNaN(fid)) {
+          if (Number.isNaN(fid)) {
             throw new Error(`Invalid FID: ${input.userId}`);
           }
 
@@ -31,11 +29,12 @@ export class ProfileAdapter {
           });
 
           // fetchBulkUsers returns an object with 'users' array property
-          const users = 'users' in response && Array.isArray(response.users) 
-            ? response.users 
-            : Array.isArray(response) 
-              ? response 
-              : [];
+          const users =
+            "users" in response && Array.isArray(response.users)
+              ? response.users
+              : Array.isArray(response)
+                ? response
+                : [];
 
           if (!users || users.length === 0 || !users[0]) {
             throw new Error(`User not found: ${input.userId}`);
@@ -45,10 +44,10 @@ export class ProfileAdapter {
 
           return {
             id: String(user.fid),
-            username: user.username || '',
-            displayName: user.display_name || user.username || '',
-            bio: user.profile?.bio?.text || '',
-            avatar: user.pfp_url || '',
+            username: user.username || "",
+            displayName: user.display_name || user.username || "",
+            bio: user.profile?.bio?.text || "",
+            avatar: user.pfp_url || "",
             verified: user.verified || false,
             followersCount: user.follower_count,
             followingCount: user.following_count,
@@ -59,7 +58,7 @@ export class ProfileAdapter {
         },
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return result;

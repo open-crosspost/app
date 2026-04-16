@@ -12,7 +12,11 @@ import { sessionQueryOptions, signOut } from "@/lib/session";
 export function ConnectToNearButton(): ReactElement {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { data: session, refetch: refetchSession, isPending: sessionLoading } = authClient.useSession();
+  const {
+    data: session,
+    refetch: refetchSession,
+    isPending: sessionLoading,
+  } = authClient.useSession();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const displayAccountId = getNearWalletDisplayFromSession(session);
   const isSignedIn = !!session?.user;

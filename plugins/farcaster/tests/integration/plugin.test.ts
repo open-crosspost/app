@@ -34,7 +34,7 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       registry: TEST_REGISTRY,
       secrets: {},
     },
-    TEST_PLUGIN_MAP
+    TEST_PLUGIN_MAP,
   );
 
   beforeAll(async () => {
@@ -60,7 +60,7 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       try {
         const result = await client.auth.getAuthUrl({
           redirectUri: "https://example.com/callback",
-          state: "test-state-" + Date.now(),
+          state: `test-state-${Date.now()}`,
           scopes: ["read", "write"],
         });
 
@@ -71,8 +71,14 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         console.log("Auth URL:", result);
       } catch (error: any) {
         // Handle 402 Payment Required (signer creation requires paid plan)
-        if (error?.response?.status === 402 || error?.message?.includes("402") || error?.message?.includes("Payment")) {
-          console.log("Note: Signer creation requires a paid Neynar plan. This is expected on free tier.");
+        if (
+          error?.response?.status === 402 ||
+          error?.message?.includes("402") ||
+          error?.message?.includes("Payment")
+        ) {
+          console.log(
+            "Note: Signer creation requires a paid Neynar plan. This is expected on free tier.",
+          );
           return; // Skip test gracefully
         }
         throw error; // Re-throw other errors
@@ -87,7 +93,7 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
           code: "test-code",
           redirectUri: "https://example.com/callback",
           scopes: [],
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -97,7 +103,7 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       await expect(
         client.auth.refreshToken({
           refreshToken: "test-refresh-token",
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -150,10 +156,7 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       const result = await client.post.create({
         userId: "test-user",
         accessToken: TEST_SIGNER_UUID,
-        content: [
-          { text: "First cast in thread" },
-          { text: "Second cast in thread" },
-        ],
+        content: [{ text: "First cast in thread" }, { text: "Second cast in thread" }],
       });
 
       expect(result.id).toBeDefined();
@@ -171,14 +174,17 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       }
 
       // Check if JWT looks valid (should start with 'eyJ' and be longer)
-      if (!process.env.PINATA_JWT.startsWith('eyJ') || process.env.PINATA_JWT.length < 50) {
+      if (!process.env.PINATA_JWT.startsWith("eyJ") || process.env.PINATA_JWT.length < 50) {
         console.log("Skipping: PINATA_JWT appears to be incomplete or invalid");
         return;
       }
 
       const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
 
-      const testImageData = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+      const testImageData = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
 
       try {
         const result = await client.media.upload({
@@ -229,7 +235,7 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       }
 
       // Check if JWT looks valid
-      if (!process.env.PINATA_JWT.startsWith('eyJ') || process.env.PINATA_JWT.length < 50) {
+      if (!process.env.PINATA_JWT.startsWith("eyJ") || process.env.PINATA_JWT.length < 50) {
         console.log("Skipping: PINATA_JWT appears to be incomplete or invalid");
         return;
       }
@@ -237,7 +243,10 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
       const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
 
       // First upload a file
-      const testImageData = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+      const testImageData = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
 
       try {
         const uploadResult = await client.media.upload({
@@ -288,7 +297,6 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
           break; // Success, exit loop
         } catch (error) {
           lastError = error as Error;
-          continue; // Try next FID
         }
       }
 

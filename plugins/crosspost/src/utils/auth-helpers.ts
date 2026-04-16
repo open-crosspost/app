@@ -30,7 +30,7 @@ export function createAuthHeaders(
     headers["X-Near-Account"] = nearAuthData.account_id;
   } else {
     // For POST/PUT/DELETE requests, use Bearer token
-    headers["Authorization"] = `Bearer ${generateAuthToken(nearAuthData)}`;
+    headers.Authorization = `Bearer ${generateAuthToken(nearAuthData)}`;
   }
 
   return headers;

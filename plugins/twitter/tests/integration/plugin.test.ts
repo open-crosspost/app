@@ -31,7 +31,7 @@ describe("Template Plugin Integration Tests", () => {
       registry: TEST_REGISTRY,
       secrets: { API_KEY: "test-api-key" },
     },
-    TEST_PLUGIN_MAP
+    TEST_PLUGIN_MAP,
   );
 
   beforeAll(async () => {
@@ -56,9 +56,9 @@ describe("Template Plugin Integration Tests", () => {
     it("should handle not found error", async () => {
       const { client } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
 
-      await expect(
-        client.getById({ id: "not-found" })
-      ).rejects.toThrow("Failed to fetch item: Item not found");
+      await expect(client.getById({ id: "not-found" })).rejects.toThrow(
+        "Failed to fetch item: Item not found",
+      );
     });
   });
 

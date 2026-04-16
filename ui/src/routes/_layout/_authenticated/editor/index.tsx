@@ -94,7 +94,7 @@ function EditorPage() {
 
   // Load auto-saved content on mount and handle cleanup
   useEffect(() => {
-    if (autosave && autosave.posts && autosave.posts.length > 0) {
+    if (autosave?.posts && autosave.posts.length > 0) {
       setPosts(autosave.posts);
     }
 
@@ -121,7 +121,7 @@ function EditorPage() {
 
   // Helper function to extract MIME type from data URL
   function getMimeTypeFromDataUrl(dataUrl: string): string {
-    if (!dataUrl || !dataUrl.startsWith("data:")) return "application/octet-stream";
+    if (!dataUrl?.startsWith("data:")) return "application/octet-stream";
     const match = dataUrl.match(/^data:([^;]+);/);
     return match ? match[1] : "application/octet-stream";
   }
@@ -208,6 +208,7 @@ function EditorPage() {
       <div className="lg:hidden border-b border-gray-200  mb-6">
         <div className="flex">
           <button
+            type="button"
             className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "editor"
                 ? "border-black dark:border-white text-black dark:text-white bg-gray-50 dark:bg-gray-800"
@@ -218,6 +219,7 @@ function EditorPage() {
             Editor
           </button>
           <button
+            type="button"
             className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "scheduled"
                 ? "border-black dark:border-white text-black dark:text-white bg-gray-50 dark:bg-gray-800"

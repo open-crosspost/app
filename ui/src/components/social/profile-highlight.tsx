@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Avatar } from '@/components/social/avatar';
+import { Avatar } from "@/components/social/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProfileHighlightProps {
   accountId: string;
@@ -16,7 +16,8 @@ export function ProfileHighlight({ accountId, tooltipContent, size = 64 }: Profi
       <TooltipProvider>
         <Tooltip open>
           <TooltipTrigger asChild>
-            <div
+            <button
+              type="button"
               className="cursor-pointer flex-shrink-0"
               onClick={() => navigate({ to: `/profile/${accountId}` })}
             >
@@ -25,7 +26,7 @@ export function ProfileHighlight({ accountId, tooltipContent, size = 64 }: Profi
                 size={size}
                 className="hover:opacity-80 transition-opacity"
               />
-            </div>
+            </button>
           </TooltipTrigger>
           <TooltipContent
             side="top"

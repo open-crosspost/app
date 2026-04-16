@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { hasShitzuNft } from '@/lib/nft';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { BadgeProps } from '@/components/badges/inline-badges';
+import type { BadgeProps } from "@/components/badges/inline-badges";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { hasShitzuNft } from "@/lib/nft";
 
 export function ShitzuBadge({ accountId }: BadgeProps) {
   const { data: hasNft, isLoading } = useQuery({

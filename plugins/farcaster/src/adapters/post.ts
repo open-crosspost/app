@@ -1,15 +1,15 @@
-import { Effect } from 'effect';
-import { ClientFactory } from '../client-factory';
-import { MediaAdapter } from './media';
-import * as PostSchemas from '@crosspost/plugin/platform-contract';
-import { FarcasterCastParams, FarcasterEmbed, cidEmbeds } from '../types';
-import { mapNeynarError } from '../utils/error-mapping';
+import type * as PostSchemas from "@crosspost/plugin/platform-contract";
+import { Effect } from "effect";
+import type { ClientFactory } from "../client-factory";
+import { cidEmbeds, type FarcasterCastParams, type FarcasterEmbed } from "../types";
+import { mapNeynarError } from "../utils/error-mapping";
+import type { MediaAdapter } from "./media";
 
 export class PostAdapter {
   constructor(
     private clientFactory: ClientFactory,
     private mediaAdapter: MediaAdapter,
-    private ipfsGatewayUrl: string
+    private ipfsGatewayUrl: string,
   ) {}
 
   /**
@@ -53,12 +53,12 @@ export class PostAdapter {
         },
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
         success: true,
-        id: targetHash
+        id: targetHash,
       };
     });
   }
@@ -79,13 +79,13 @@ export class PostAdapter {
         try: async () => {
           return await client.publishReaction({
             signerUuid,
-            reactionType: 'recast',
+            reactionType: "recast",
             target,
           });
         },
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
@@ -152,18 +152,18 @@ export class PostAdapter {
         try: async () => {
           return await client.publishReaction({
             signerUuid,
-            reactionType: 'like',
+            reactionType: "like",
             target,
           });
         },
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
         success: result?.success || false,
-        id: input.postId
+        id: input.postId,
       };
     });
   }
@@ -184,18 +184,18 @@ export class PostAdapter {
         try: async () => {
           return await client.deleteReaction({
             signerUuid,
-            reactionType: 'like',
+            reactionType: "like",
             target,
           });
         },
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
         success: result?.success || false,
-        id: input.postId
+        id: input.postId,
       };
     });
   }
@@ -205,17 +205,17 @@ export class PostAdapter {
   private createSinglePost(
     client: any,
     signerUuid: string,
-    content: PostSchemas.PostContent
+    content: PostSchemas.PostContent,
   ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
       const cast: FarcasterCastParams = {
         signerUuid,
-        text: content?.text || '',
+        text: content?.text || "",
       };
 
       // Handle media if present
-      let mediaIds: string[] = [];
+      const mediaIds: string[] = [];
       if (content.media?.length) {
         // Upload media files
         for (const media of content.media) {
@@ -226,7 +226,7 @@ export class PostAdapter {
           });
           mediaIds.push(uploadResult.mediaId);
         }
-        
+
         // Add embeds (max 2)
         const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
         if (embeds) {
@@ -238,12 +238,12 @@ export class PostAdapter {
         try: async () => await client.publishCast(cast),
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
         id: result.cast.hash,
-        text: result.cast.text ?? cast.text ?? '',
+        text: result.cast.text ?? cast.text ?? "",
         createdAt: new Date().toISOString(),
         mediaIds,
       };
@@ -253,13 +253,13 @@ export class PostAdapter {
   private createThread(
     client: any,
     signerUuid: string,
-    contentArray: PostSchemas.PostContent[]
+    contentArray: PostSchemas.PostContent[],
   ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
       const threadIds: string[] = [];
-      let firstHash = '';
-      let firstText = '';
+      let firstHash = "";
+      let firstText = "";
       let firstMediaIds: string[] = [];
       let parentHash: string | undefined;
 
@@ -269,11 +269,11 @@ export class PostAdapter {
 
         const cast: FarcasterCastParams = {
           signerUuid,
-          text: item.text || '',
+          text: item.text || "",
           ...(parentHash ? { parent: parentHash } : {}),
         };
 
-        let mediaIds: string[] = [];
+        const mediaIds: string[] = [];
         if (item.media?.length) {
           for (const media of item.media) {
             const uploadResult = yield* self.mediaAdapter.upload({
@@ -283,7 +283,7 @@ export class PostAdapter {
             });
             mediaIds.push(uploadResult.mediaId);
           }
-          
+
           const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
           if (embeds) {
             cast.embeds = embeds;
@@ -294,14 +294,14 @@ export class PostAdapter {
           try: async () => await client.publishCast(cast),
           catch: (error) => {
             throw mapNeynarError(error);
-          }
+          },
         });
 
         const hash = res.cast.hash;
 
         if (i === 0) {
           firstHash = hash;
-          firstText = res.cast.text ?? cast.text ?? '';
+          firstText = res.cast.text ?? cast.text ?? "";
           firstMediaIds = mediaIds;
         }
 
@@ -323,14 +323,14 @@ export class PostAdapter {
     client: any,
     signerUuid: string,
     postId: string,
-    content: PostSchemas.PostContent
+    content: PostSchemas.PostContent,
   ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
       // Build quote cast (embed target cast; not a reply)
       const cast: FarcasterCastParams = {
         signerUuid,
-        text: content.text ?? '',
+        text: content.text ?? "",
       };
 
       // Build the cast embed (needs fid). Try to resolve it
@@ -338,7 +338,7 @@ export class PostAdapter {
       cast.embeds = [quoteEmbed];
 
       // Handle media if present (CIDs -> { url } embeds, obey max 2 total)
-      let mediaIds: string[] = [];
+      const mediaIds: string[] = [];
       if (content.media?.length) {
         for (const media of content.media) {
           const uploadResult = yield* self.mediaAdapter.upload({
@@ -348,12 +348,12 @@ export class PostAdapter {
           });
           mediaIds.push(uploadResult.mediaId);
         }
-        
+
         // Merge media embeds with quote embed (max 2 total)
         const mediaEmbeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
         if (mediaEmbeds) {
           const allEmbeds: FarcasterEmbed[] = [quoteEmbed, ...mediaEmbeds].slice(0, 2);
-          cast.embeds = allEmbeds as FarcasterCastParams['embeds'];
+          cast.embeds = allEmbeds as FarcasterCastParams["embeds"];
         }
       }
 
@@ -361,12 +361,12 @@ export class PostAdapter {
         try: async () => await client.publishCast(cast),
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
         id: res.cast.hash,
-        text: res.cast.text ?? cast.text ?? '',
+        text: res.cast.text ?? cast.text ?? "",
         createdAt: new Date().toISOString(),
         mediaIds,
         quotedPostId: postId,
@@ -378,7 +378,7 @@ export class PostAdapter {
     client: any,
     signerUuid: string,
     postId: string,
-    contentArray: PostSchemas.PostContent[]
+    contentArray: PostSchemas.PostContent[],
   ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
@@ -395,7 +395,7 @@ export class PostAdapter {
 
         const cast: FarcasterCastParams = {
           signerUuid,
-          text: item.text ?? '',
+          text: item.text ?? "",
         };
 
         // First cast quotes the target; subsequent casts reply to previous
@@ -405,7 +405,7 @@ export class PostAdapter {
           cast.parent = parentHash; // chain the thread
         }
 
-        let mediaIds: string[] = [];
+        const mediaIds: string[] = [];
         if (item.media?.length) {
           for (const media of item.media) {
             const uploadResult = yield* self.mediaAdapter.upload({
@@ -415,12 +415,12 @@ export class PostAdapter {
             });
             mediaIds.push(uploadResult.mediaId);
           }
-          
+
           // Merge media embeds with quote embed (max 2 total)
           const mediaEmbeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
           if (mediaEmbeds && i === 0) {
             const allEmbeds: FarcasterEmbed[] = [quoteEmbed, ...mediaEmbeds].slice(0, 2);
-            cast.embeds = allEmbeds as FarcasterCastParams['embeds'];
+            cast.embeds = allEmbeds as FarcasterCastParams["embeds"];
           } else if (mediaEmbeds) {
             cast.embeds = mediaEmbeds;
           }
@@ -430,7 +430,7 @@ export class PostAdapter {
           try: async () => await client.publishCast(cast),
           catch: (error) => {
             throw mapNeynarError(error);
-          }
+          },
         });
 
         const hash = res.cast.hash;
@@ -438,7 +438,7 @@ export class PostAdapter {
         if (i === 0) {
           first = {
             hash,
-            text: res.cast.text ?? cast.text ?? '',
+            text: res.cast.text ?? cast.text ?? "",
             mediaIds,
           };
         }
@@ -448,8 +448,8 @@ export class PostAdapter {
       }
 
       return {
-        id: first?.hash ?? '',
-        text: first?.text ?? '',
+        id: first?.hash ?? "",
+        text: first?.text ?? "",
         createdAt: new Date().toISOString(),
         quotedPostId: postId,
         mediaIds: first?.mediaIds ?? [],
@@ -462,18 +462,18 @@ export class PostAdapter {
     client: any,
     signerUuid: string,
     postId: string,
-    content: PostSchemas.PostContent
+    content: PostSchemas.PostContent,
   ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
       const cast: FarcasterCastParams = {
         signerUuid,
-        text: content.text || '',
+        text: content.text || "",
         parent: postId, // parent is the cast hash you're replying to
       };
 
       // Handle media
-      let mediaIds: string[] = [];
+      const mediaIds: string[] = [];
       if (content.media?.length) {
         for (const media of content.media) {
           const uploadResult = yield* self.mediaAdapter.upload({
@@ -483,7 +483,7 @@ export class PostAdapter {
           });
           mediaIds.push(uploadResult.mediaId);
         }
-        
+
         const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
         if (embeds) {
           cast.embeds = embeds;
@@ -494,12 +494,12 @@ export class PostAdapter {
         try: async () => await client.publishCast(cast),
         catch: (error) => {
           throw mapNeynarError(error);
-        }
+        },
       });
 
       return {
         id: res.cast.hash,
-        text: res.cast.text ?? cast.text ?? '',
+        text: res.cast.text ?? cast.text ?? "",
         createdAt: new Date().toISOString(),
         mediaIds,
         inReplyToId: postId,
@@ -511,7 +511,7 @@ export class PostAdapter {
     client: any,
     signerUuid: string,
     postId: string,
-    contentArray: PostSchemas.PostContent[]
+    contentArray: PostSchemas.PostContent[],
   ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
@@ -526,11 +526,11 @@ export class PostAdapter {
 
         const cast: FarcasterCastParams = {
           signerUuid,
-          text: item.text || '',
+          text: item.text || "",
           parent: parentHash,
         };
 
-        let mediaIds: string[] = [];
+        const mediaIds: string[] = [];
         if (item.media?.length) {
           for (const media of item.media) {
             const uploadResult = yield* self.mediaAdapter.upload({
@@ -540,7 +540,7 @@ export class PostAdapter {
             });
             mediaIds.push(uploadResult.mediaId);
           }
-          
+
           const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
           if (embeds) {
             cast.embeds = embeds;
@@ -551,13 +551,13 @@ export class PostAdapter {
           try: async () => await client.publishCast(cast),
           catch: (error) => {
             throw mapNeynarError(error);
-          }
+          },
         });
 
         const hash = res.cast.hash;
 
         if (i === 0) {
-          firstRes = { hash, text: res.cast.text ?? cast.text ?? '' };
+          firstRes = { hash, text: res.cast.text ?? cast.text ?? "" };
           firstMediaIds = mediaIds;
         }
 
@@ -566,8 +566,8 @@ export class PostAdapter {
       }
 
       return {
-        id: firstRes?.hash ?? '',
-        text: firstRes?.text ?? '',
+        id: firstRes?.hash ?? "",
+        text: firstRes?.text ?? "",
         createdAt: new Date().toISOString(),
         inReplyToId: postId,
         mediaIds: firstMediaIds,
@@ -577,13 +577,10 @@ export class PostAdapter {
   }
 
   /** Resolve a cast embed using hash → fid lookup; throws if fid can't be found */
-  private buildQuoteEmbed(
-    client: any,
-    castHash: string
-  ): Effect.Effect<FarcasterEmbed, Error> {
+  private buildQuoteEmbed(client: any, castHash: string): Effect.Effect<FarcasterEmbed, Error> {
     return Effect.gen(function* () {
       // If caller passed a URL, just use a URL embed
-      if (castHash.startsWith('http://') || castHash.startsWith('https://')) {
+      if (castHash.startsWith("http://") || castHash.startsWith("https://")) {
         return { url: castHash };
       }
 
@@ -593,25 +590,28 @@ export class PostAdapter {
           // Try to fetch cast by hash
           const result = await client.lookUpCastByHash({ hash: castHash });
           if (!result?.cast?.author?.fid) {
-            throw new Error('Cast not found or missing author FID');
+            throw new Error("Cast not found or missing author FID");
           }
           return result;
         },
         catch: (error) => {
           // If we can't resolve, fall back to URL embed
-          console.warn('Could not resolve cast hash, using URL embed:', error);
+          console.warn("Could not resolve cast hash, using URL embed:", error);
           throw error;
-        }
+        },
       }).pipe(
-        Effect.catchAll(() => 
-          Effect.succeed({ url: `https://warpcast.com/~/conversations/${castHash}` } as FarcasterEmbed)
-        )
+        Effect.catchAll(() =>
+          Effect.succeed({
+            url: `https://warpcast.com/~/conversations/${castHash}`,
+          } as FarcasterEmbed),
+        ),
       );
 
       if (cast?.cast?.author?.fid) {
-        const fid = typeof cast.cast.author.fid === 'string' 
-          ? parseInt(cast.cast.author.fid, 10)
-          : cast.cast.author.fid;
+        const fid =
+          typeof cast.cast.author.fid === "string"
+            ? parseInt(cast.cast.author.fid, 10)
+            : cast.cast.author.fid;
         return { cast_id: { hash: castHash, fid } };
       }
 
@@ -622,7 +622,7 @@ export class PostAdapter {
 
   /** Accepts a hash or a Warpcast URL and returns the cast hash */
   private extractCastHash(input: string): string {
-    if (input.startsWith('0x')) return input;
+    if (input.startsWith("0x")) return input;
     const m = input.match(/0x[a-fA-F0-9]+/);
     return m ? m[0] : input;
   }

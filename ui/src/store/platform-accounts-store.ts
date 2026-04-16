@@ -156,8 +156,7 @@ export const useConnectAccount = () => {
         const response: any = await client.auth.loginToPlatform(platform?.toLowerCase() as any);
 
         if (
-          response &&
-          response.status &&
+          response?.status &&
           typeof response.status === "object" &&
           response.status.code === "AUTH_SUCCESS"
         ) {

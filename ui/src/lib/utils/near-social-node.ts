@@ -38,7 +38,7 @@ export async function getProfile(accountId: string): Promise<Profile | null> {
 
     const data = await response.json();
 
-    if (data && data[accountId] && data[accountId].profile) {
+    if (data?.[accountId]?.profile) {
       return data[accountId].profile as Profile;
     } else {
       return null;
@@ -52,10 +52,7 @@ export async function getProfile(accountId: string): Promise<Profile | null> {
 export const FALLBACK_URL =
   "https://ipfs.near.social/ipfs/bafkreidn5fb2oygegqaldx7ycdmhu4owcrmoxd7ekbzfmeakkobz2ja7qy";
 
-export const getImageUrl = (
-  image: SocialImage | undefined,
-  fallback?: string,
-): string => {
+export const getImageUrl = (image: SocialImage | undefined, fallback?: string): string => {
   if (image?.url) return image.url;
   if (image?.ipfs_cid) return `https://ipfs.near.social/ipfs/${image.ipfs_cid}`;
   return fallback || FALLBACK_URL;

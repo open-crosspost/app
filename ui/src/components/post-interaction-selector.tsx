@@ -1,8 +1,8 @@
-import React from "react";
-import { cn } from '@/lib/utils';
-import { detectPlatformFromUrl } from '@/lib/utils/url-utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import type React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { detectPlatformFromUrl } from "@/lib/utils/url-utils";
 
 export type PostType = "post" | "quote" | "reply";
 
@@ -47,9 +47,7 @@ export function PostInteractionSelector({
         <div className="flex-1 min-w-0">
           <Input
             value={targetUrl}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              onTargetUrlChange(e.target.value)
-            }
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onTargetUrlChange(e.target.value)}
             placeholder={`Enter URL to ${postType} (e.g., https://x.com/user/status/123)`}
             className={cn(
               "w-full border-2",

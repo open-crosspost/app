@@ -106,7 +106,7 @@ export function createAuthenticatedMutation<
             readyForAuth: !!walletInstance && !!walletInstance.signMessage,
           });
 
-          if (!walletInstance || !walletInstance.signMessage) {
+          if (!walletInstance?.signMessage) {
             throw new Error(
               "Wallet signMessage function not available. Please reconnect your wallet and try again.",
             );
@@ -124,7 +124,7 @@ export function createAuthenticatedMutation<
           console.log("Authentication message:", message);
 
           // Use new signMessage helper with retry logic
-          let authToken;
+          let authToken: { signature: string; publicKey: string } | undefined;
           let lastError: Error | null = null;
           const maxRetries = 2;
 
@@ -140,7 +140,7 @@ export function createAuthenticatedMutation<
                 // Re-check wallet instance
                 const { getWalletInstance } = await import("./near");
                 const walletInstance = getWalletInstance();
-                if (!walletInstance || !walletInstance.signMessage) {
+                if (!walletInstance?.signMessage) {
                   throw new Error(
                     "Wallet not ready. Please ensure your wallet is connected and unlocked.",
                   );
@@ -199,7 +199,7 @@ export function createAuthenticatedMutation<
             throw lastError || new Error("Authentication failed: No token received");
           }
 
-          if (!authToken || !authToken.signature || !authToken.publicKey) {
+          if (!authToken?.signature || !authToken.publicKey) {
             console.error("Invalid auth token received:", authToken);
             throw new Error(
               "NEAR authentication failed: Invalid authentication token (missing signature or publicKey)",
@@ -224,9 +224,9 @@ export function createAuthenticatedMutation<
               client as unknown as { setAuthentication: (payload: Record<string, unknown>) => void }
             ).setAuthentication(authToken as unknown as Record<string, unknown>);
           } catch {
-            (client as unknown as { setAuthentication: (payload: string) => void }).setAuthentication(
-              JSON.stringify(authToken),
-            );
+            (
+              client as unknown as { setAuthentication: (payload: string) => void }
+            ).setAuthentication(JSON.stringify(authToken));
           }
 
           const response = await clientMethod(client, variables);

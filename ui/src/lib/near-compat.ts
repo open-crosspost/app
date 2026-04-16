@@ -61,7 +61,7 @@ export async function signOut(): Promise<void> {
 
 // Helper to get wallet instance
 export async function getWallet() {
-  if (!walletInstance || !walletInstance.connector) {
+  if (!walletInstance?.connector) {
     throw new Error("Wallet not initialized. Make sure WalletProvider is set up.");
   }
   return await walletInstance.connector.wallet();
@@ -99,7 +99,7 @@ export const near = {
     return signedIn ? "SignedIn" : "SignedOut";
   },
   publicKey: async () => {
-    if (!walletInstance || !walletInstance.connector) {
+    if (!walletInstance?.connector) {
       return null;
     }
     try {

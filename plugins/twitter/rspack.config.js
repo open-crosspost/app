@@ -6,7 +6,7 @@ import { EmitPluginManifest, EveryPluginDevServer } from "every-plugin/build/rsp
 import { withZephyr } from "zephyr-rspack-plugin";
 
 const require = createRequire(import.meta.url);
-const pkg = require("./package.json");
+const _pkg = require("./package.json");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -13,9 +13,9 @@ export function mapNeynarError(error: unknown): Error {
   }
 
   // Status code based mapping
-  if (typeof status === 'number') {
+  if (typeof status === "number") {
     const detail = buildErrorMessage(message, data);
-    
+
     switch (status) {
       case 401:
         return new Error(`Unauthorized with Neynar: ${detail}`);
@@ -23,9 +23,10 @@ export function mapNeynarError(error: unknown): Error {
         return new Error(`Forbidden by Neynar (signer may be pending approval): ${detail}`);
       case 404:
         return new Error(`Resource not found on Neynar: ${detail}`);
-      case 429:
-        const retryAfter = info.retryAfter ? `, retry after ${info.retryAfter}s` : '';
+      case 429: {
+        const retryAfter = info.retryAfter ? `, retry after ${info.retryAfter}s` : "";
         return new Error(`Rate limited by Neynar${retryAfter}: ${detail}`);
+      }
       case 400:
         return new Error(`Invalid request to Neynar: ${detail}`);
       case 402:
@@ -39,7 +40,7 @@ export function mapNeynarError(error: unknown): Error {
   }
 
   // Unknown error
-  return new Error(`Unknown Neynar error: ${message || 'Unknown error'}`);
+  return new Error(`Unknown Neynar error: ${message || "Unknown error"}`);
 }
 
 /**
@@ -61,30 +62,30 @@ function extractErrorInfo(error: unknown): {
   const status = resp?.status ?? (error as any)?.status ?? (error as any)?.statusCode;
   const headers = resp?.headers ?? (error as any)?.headers;
   const data = resp?.data ?? (error as any)?.data;
-  const url = req?.url ?? (error as any)?.url;
-  const method = req?.method ?? (error as any)?.method;
+  const _url = req?.url ?? (error as any)?.url;
+  const _method = req?.method ?? (error as any)?.method;
 
-  const retryAfterHeader = headers?.['retry-after'] ?? headers?.['Retry-After'];
-  const retryAfter = typeof retryAfterHeader === 'string'
-    ? parseInt(retryAfterHeader, 10)
-    : undefined;
+  const retryAfterHeader = headers?.["retry-after"] ?? headers?.["Retry-After"];
+  const retryAfter =
+    typeof retryAfterHeader === "string" ? parseInt(retryAfterHeader, 10) : undefined;
 
   // Network error detection
   const name = (error as any)?.name;
   const code = (error as any)?.code;
-  const msg = (error as any)?.message || resp?.statusText || 'Unknown error';
+  const msg = (error as any)?.message || resp?.statusText || "Unknown error";
 
-  const isNetwork = (error as any)?.type === 'system' ||
-    code === 'ECONNREFUSED' ||
-    code === 'ETIMEDOUT' ||
-    code === 'ENOTFOUND' ||
-    code === 'EAI_AGAIN' ||
-    name === 'FetchError' ||
-    msg?.toLowerCase?.().includes('network') ||
-    msg?.toLowerCase?.().includes('fetch failed');
+  const isNetwork =
+    (error as any)?.type === "system" ||
+    code === "ECONNREFUSED" ||
+    code === "ETIMEDOUT" ||
+    code === "ENOTFOUND" ||
+    code === "EAI_AGAIN" ||
+    name === "FetchError" ||
+    msg?.toLowerCase?.().includes("network") ||
+    msg?.toLowerCase?.().includes("fetch failed");
 
   return {
-    status: typeof status === 'number' ? status : undefined,
+    status: typeof status === "number" ? status : undefined,
     message: msg,
     data,
     headers,
@@ -98,9 +99,8 @@ function extractErrorInfo(error: unknown): {
  */
 function buildErrorMessage(message?: string, data?: any): string {
   const detail =
-    (typeof data === 'object' && data
-      ? (data.message || data.detail || data.error || data.reason || JSON.stringify(data))
-      : undefined) || '';
-  return [message, detail].filter(Boolean).join(' — ');
+    (typeof data === "object" && data
+      ? data.message || data.detail || data.error || data.reason || JSON.stringify(data)
+      : undefined) || "";
+  return [message, detail].filter(Boolean).join(" — ");
 }
-

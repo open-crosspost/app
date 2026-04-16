@@ -56,10 +56,7 @@ export async function checkNFTOwnership({
 
     return validationFn(result);
   } catch (error) {
-    console.error(
-      `Error calling ${methodName} on ${contractId} for ${accountId}:`,
-      error,
-    );
+    console.error(`Error calling ${methodName} on ${contractId} for ${accountId}:`, error);
     return false;
   }
 }

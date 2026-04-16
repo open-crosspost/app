@@ -2,8 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   onImageUpload?: (file: File) => void;
   acceptImages?: boolean;
 }
@@ -52,9 +51,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         if (!acceptImages || !onImageUpload) return;
 
         const files = Array.from(e.dataTransfer.files);
-        const imageFiles = files.filter((file) =>
-          file.type.startsWith("image/"),
-        );
+        const imageFiles = files.filter((file) => file.type.startsWith("image/"));
 
         if (imageFiles.length > 0) {
           // Upload the first image file

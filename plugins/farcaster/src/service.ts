@@ -1,10 +1,10 @@
-import { AuthAdapter } from './adapters/auth';
-import { PostAdapter } from './adapters/post';
-import { MediaAdapter } from './adapters/media';
-import { ProfileAdapter } from './adapters/profile';
-import { RateLimitAdapter } from './adapters/rate-limit';
-import { ClientFactory } from './client-factory';
-import * as PlatformContract from '@crosspost/plugin/platform-contract';
+import type * as PlatformContract from "@crosspost/plugin/platform-contract";
+import { AuthAdapter } from "./adapters/auth";
+import { MediaAdapter } from "./adapters/media";
+import { PostAdapter } from "./adapters/post";
+import { ProfileAdapter } from "./adapters/profile";
+import { RateLimitAdapter } from "./adapters/rate-limit";
+import { ClientFactory } from "./client-factory";
 
 export class FarcasterService {
   private clientFactory: ClientFactory;
@@ -15,11 +15,11 @@ export class FarcasterService {
   private rateLimitAdapter: RateLimitAdapter;
 
   constructor(
-    private neynarApiKey: string,
-    private farcasterDeveloperMnemonic: string,
-    private pinataJwt: string,
-    private ipfsGatewayUrl: string,
-    private timeout: number = 10000
+    neynarApiKey: string,
+    farcasterDeveloperMnemonic: string,
+    pinataJwt: string,
+    ipfsGatewayUrl: string,
+    _timeout: number = 10000,
   ) {
     this.clientFactory = new ClientFactory(neynarApiKey);
     this.authAdapter = new AuthAdapter(neynarApiKey, farcasterDeveloperMnemonic);

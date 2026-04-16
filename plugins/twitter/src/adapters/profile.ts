@@ -1,11 +1,9 @@
-import { Effect } from 'effect';
-import { ClientFactory } from '../client-factory';
-import * as ProfileSchemas from '@crosspost/plugin/platform-contract';
+import type * as ProfileSchemas from "@crosspost/plugin/platform-contract";
+import { Effect } from "effect";
+import type { ClientFactory } from "../client-factory";
 
 export class ProfileAdapter {
-  constructor(
-    private clientFactory: ClientFactory
-  ) {}
+  constructor(private clientFactory: ClientFactory) {}
 
   /**
    * Get user profile
@@ -20,14 +18,14 @@ export class ProfileAdapter {
       const result = yield* Effect.tryPromise({
         try: async () => {
           const { data: user } = await client.v2.user(input.userId, {
-            'user.fields': [
-              'profile_image_url',
-              'username',
-              'name',
-              'description',
-              'verified',
-              'public_metrics',
-              'created_at'
+            "user.fields": [
+              "profile_image_url",
+              "username",
+              "name",
+              "description",
+              "verified",
+              "public_metrics",
+              "created_at",
             ],
           });
 
@@ -45,9 +43,9 @@ export class ProfileAdapter {
           };
         },
         catch: (error) => {
-          console.error('Error getting user profile:', error);
-          throw new Error('Failed to get user profile');
-        }
+          console.error("Error getting user profile:", error);
+          throw new Error("Failed to get user profile");
+        },
       });
 
       return result;

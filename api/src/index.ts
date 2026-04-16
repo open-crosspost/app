@@ -18,7 +18,6 @@ import {
   getRegistryStatus,
   listRegistryApps,
   prepareRegistryMetadataWrite,
-  RegistryService,
   relayRegistryMetadataWrite,
 } from "./services/registry";
 

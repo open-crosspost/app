@@ -1,16 +1,11 @@
-import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-
-import { cn } from "@/lib/utils";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { Label } from "./label";
 
 interface DateTimePickerProps {
@@ -26,9 +21,7 @@ export function DatePicker({
   placeholder = "Pick a date and time",
   disabled = false,
 }: DateTimePickerProps) {
-  const [timeValue, setTimeValue] = React.useState(
-    date ? format(date, "HH:mm") : "00:00",
-  );
+  const [timeValue, setTimeValue] = React.useState(date ? format(date, "HH:mm") : "00:00");
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (!selectedDate) {
@@ -69,12 +62,7 @@ export function DatePicker({
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <div className="p-3">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleDateSelect}
-            initialFocus
-          />
+          <Calendar mode="single" selected={date} onSelect={handleDateSelect} initialFocus />
           <div className="mt-3">
             <Label className="text-sm font-medium">Time:</Label>
             <Input

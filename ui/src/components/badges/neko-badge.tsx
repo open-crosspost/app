@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { hasNekoCookie } from '@/lib/token';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { BadgeProps } from '@/components/badges/inline-badges';
+import type { BadgeProps } from "@/components/badges/inline-badges";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { hasNekoCookie } from "@/lib/token";
 
 export function NekoBadge({ accountId }: BadgeProps) {
   const { data: hasBadge, isLoading } = useQuery({

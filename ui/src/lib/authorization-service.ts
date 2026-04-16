@@ -1,7 +1,7 @@
 import { CrosspostClient } from "@crosspost/sdk";
 import { getCrosspostApiBaseUrl } from "@/config";
-import { toast } from '@/hooks/use-toast';
-import { getAccountId, signMessage } from '@/lib/near';
+import { toast } from "@/hooks/use-toast";
+import { getAccountId, signMessage } from "@/lib/near";
 
 let clientInstance: CrosspostClient | null = null;
 let clientBaseUrl: string | null = null;
@@ -37,28 +37,28 @@ export async function authorize(): Promise<boolean> {
   try {
     const client = getClient();
     const accountId = await getAccountId();
-    
+
     if (!accountId) {
       throw new Error("Wallet not connected");
     }
 
     const message = `I authorize crosspost to post on my behalf to connected social platforms using my NEAR account: ${accountId}`;
-    
+
     console.log("Starting authorization for account:", accountId);
     const authToken = await signMessage(message, "crosspost.near");
-    
-    if (!authToken || !authToken.signature || !authToken.publicKey) {
+
+    if (!authToken?.signature || !authToken.publicKey) {
       console.error("Invalid auth token received:", authToken);
       throw new Error("Failed to sign message: Invalid token received");
     }
-    
+
     console.log("Auth token received:", {
       hasSignature: !!authToken.signature,
       hasPublicKey: !!authToken.publicKey,
       signatureLength: authToken.signature.length,
       publicKeyLength: authToken.publicKey.length,
     });
-    
+
     // Some SDK versions expect object auth payload while older ones accepted a JSON string.
     // Try object first, then fallback to string for compatibility.
     try {
@@ -74,7 +74,7 @@ export async function authorize(): Promise<boolean> {
     // Call the SDK method to verify with the backend
     console.log("Calling authorizeNearAccount...");
     const response = await client.auth.authorizeNearAccount();
-    
+
     console.log("Authorization response:", {
       success: response.success,
       errors: response.errors,
@@ -135,10 +135,7 @@ export async function unauthorize(): Promise<void> {
   } catch (error) {
     toast({
       title: "Revocation Failed",
-      description:
-        error instanceof Error
-          ? error.message
-          : "Failed to revoke authorization",
+      description: error instanceof Error ? error.message : "Failed to revoke authorization",
       variant: "destructive",
     });
     console.error("Unauthorization error:", error);

@@ -27,8 +27,7 @@ const evmWalletChains: EVMWalletChains = {
 export const NETWORK_ID = "mainnet";
 export const EVMWalletChain = evmWalletChains[NETWORK_ID];
 
-const RAW_OPEN_CROSSPOST_PROXY_API =
-  process.env.OPEN_CROSSPOST_PROXY_API ?? "/api/crosspost";
+const RAW_OPEN_CROSSPOST_PROXY_API = process.env.OPEN_CROSSPOST_PROXY_API ?? "/api/crosspost";
 
 export const OPEN_CROSSPOST_PROXY_API = RAW_OPEN_CROSSPOST_PROXY_API;
 
