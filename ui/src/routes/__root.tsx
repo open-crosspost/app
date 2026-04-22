@@ -26,7 +26,9 @@ const rootSearchSchema = z.object({
 export const Route = createRootRouteWithContext<RouterContext>()({
   validateSearch: (search) => rootSearchSchema.parse(search),
   beforeLoad: async ({ context }) => {
-    const session = context.session as SessionData | undefined | null;
+    const { queryClient } = context;
+    const initialSession = context.session as SessionData | undefined | null;
+    const session = await queryClient.ensureQueryData(sessionQueryOptions(initialSession));
 
     return {
       assetsUrl: context.assetsUrl || "",
@@ -34,18 +36,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       session,
     };
   },
-  loader: async ({ context }) => {
-    const { queryClient } = context;
-    const session = context.session as SessionData | undefined | null;
-
-    if (session && queryClient) {
-      queryClient.setQueryData(sessionQueryOptions(session).queryKey, session);
-    }
-
+  loader: ({ context }) => {
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
-      session,
     };
   },
   head: ({ loaderData }) => {

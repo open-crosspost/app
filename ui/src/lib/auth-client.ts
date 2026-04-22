@@ -10,15 +10,21 @@ import { createAuthClient as createBetterAuthClient } from "better-auth/react";
 import { siwnClient } from "better-near-auth/client";
 import { getAccount, getHostUrl, getNetworkId } from "@/app";
 
+const isBrowser = typeof window !== "undefined";
+
 function createAuthClient() {
   return createBetterAuthClient({
     baseURL: getHostUrl(),
     fetchOptions: { credentials: "include" },
     plugins: [
-      siwnClient({
-        recipient: getAccount(),
-        networkId: getNetworkId(),
-      }),
+      ...(isBrowser
+        ? [
+            siwnClient({
+              recipient: getAccount(),
+              networkId: getNetworkId(),
+            }),
+          ]
+        : []),
       adminClient(),
       anonymousClient(),
       phoneNumberClient(),

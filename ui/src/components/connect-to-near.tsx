@@ -1,68 +1,54 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
 import type { ReactElement } from "react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
 import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
-import { sessionQueryOptions, signOut } from "@/lib/session";
+import {
+  NEAR_ERROR_MESSAGES,
+  NearAuthError,
+  type NearAuthErrorCode,
+  type SessionData,
+  sessionQueryOptions,
+  signInWithNear,
+  signOutAndNavigate,
+} from "@/lib/session";
 
 export function ConnectToNearButton(): ReactElement {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const {
-    data: session,
-    refetch: refetchSession,
-    isPending: sessionLoading,
-  } = authClient.useSession();
-  const [isSigningIn, setIsSigningIn] = useState(false);
+  const { data: session, isPending: sessionLoading } = useQuery(sessionQueryOptions());
   const displayAccountId = getNearWalletDisplayFromSession(session);
   const isSignedIn = !!session?.user;
 
-  const handleSignIn = () => {
-    setIsSigningIn(true);
-    authClient.signIn.near({
-      onSuccess: async () => {
-        try {
-          await refetchSession();
-          await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-          await router.invalidate();
-          toast.success("Signed in with NEAR");
-        } finally {
-          setIsSigningIn(false);
-        }
-      },
-      onError: (error) => {
-        setIsSigningIn(false);
-        if (error.code === "UNAUTHORIZED_NONCE_REPLAY") {
-          toast.error("Sign-in already used");
-        } else if (error.code === "UNAUTHORIZED_INVALID_SIGNATURE") {
-          toast.error("Invalid signature");
-        } else if (error.code === "SIGNER_NOT_AVAILABLE") {
-          toast.error("NEAR wallet not available");
-        } else {
-          toast.error(error.message || "Failed to sign in");
-        }
-      },
-    });
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = "/";
-  };
+  const nearMutation = useMutation({
+    mutationFn: signInWithNear,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+      const fresh = queryClient.getQueryData<SessionData | null>(sessionQueryOptions().queryKey);
+      if (!fresh?.user) return;
+      await router.invalidate();
+      toast.success("Signed in with NEAR");
+    },
+    onError: (error) => {
+      if (error instanceof NearAuthError && error.code in NEAR_ERROR_MESSAGES) {
+        toast.error(NEAR_ERROR_MESSAGES[error.code as NearAuthErrorCode]);
+      } else {
+        toast.error(error.message || "Failed to sign in");
+      }
+    },
+  });
 
   const handleClick = () => {
     if (isSignedIn) {
-      void handleSignOut();
+      void signOutAndNavigate(queryClient, router);
     } else {
-      handleSignIn();
+      nearMutation.mutate();
     }
   };
 
-  const busy = isSigningIn || sessionLoading;
+  const busy = nearMutation.isPending || sessionLoading;
 
   return (
     <Button onClick={handleClick} disabled={busy} className="text-sm sm:text-base">

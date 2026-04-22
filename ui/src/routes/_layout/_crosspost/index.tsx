@@ -1,15 +1,16 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ManageAccountsButton } from "@/components/manage-accounts-button";
-import { authClient } from "@/lib/auth-client";
 import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
+import { sessionQueryOptions } from "@/lib/session";
 
 export const Route = createFileRoute("/_layout/_crosspost/")({
   component: CrosspostHomePage,
 });
 
 function CrosspostHomePage() {
-  const { data: session } = authClient.useSession();
+  const { data: session } = useQuery(sessionQueryOptions());
   const walletDisplay = getNearWalletDisplayFromSession(session);
 
   return (

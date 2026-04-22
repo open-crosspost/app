@@ -193,10 +193,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@orpc/contract": "^1.13.4",
-        "@orpc/experimental-publisher": "^1.13.14",
         "@orpc/server": "^1.13.4",
-        "effect": "^3.21.0",
-        "zod": "^4.3.6",
       },
       "devDependencies": {
         "@effect/language-service": "^0.84.3",
@@ -209,7 +206,7 @@
         "everything-dev": "workspace:*",
         "vite-tsconfig-paths": "^5.1.4",
         "vitest": "catalog:",
-        "zephyr-rspack-plugin": "^1.0.1",
+        "zephyr-rspack-plugin": "0.1.4",
       },
       "peerDependencies": {
         "typescript": "catalog:",
@@ -412,7 +409,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "better-auth": "^1.5.4",
-    "better-near-auth": "0.5.1",
+    "better-near-auth": "0.5.2",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",
     "effect": "^3.21.0",
@@ -1682,7 +1679,7 @@
 
     "better-call": ["better-call@1.3.2", "", { "dependencies": { "@better-auth/utils": "^0.3.1", "@better-fetch/fetch": "^1.1.21", "rou3": "^0.7.12", "set-cookie-parser": "^3.0.1" }, "peerDependencies": { "zod": "^4.0.0" }, "optionalPeers": ["zod"] }, "sha512-4cZIfrerDsNTn3cm+MhLbUePN0gdwkhSXEuG7r/zuQ8c/H7iU0/jSK5TD3FW7U0MgKHce/8jGpPYNO4Ve+4NBw=="],
 
-    "better-near-auth": ["better-near-auth@0.5.1", "", { "dependencies": { "@hot-labs/near-connect": "^0.11.0", "nanostores": "^1.1.0", "near-kit": "^0.12.0", "near-sign-verify": "^0.4.5", "zod": "^4.3.5" }, "peerDependencies": { "better-auth": "^1.5.4", "typescript": "^5.9.3" } }, "sha512-5CjrBDfgQd1qisUA8NpD/xjSsi6uroxt9E9nWIjlN3sT+uWldzODTqaszpJkCJHx85ey2by1CW/emouD8PW9AQ=="],
+    "better-near-auth": ["better-near-auth@0.5.2", "", { "dependencies": { "@hot-labs/near-connect": "^0.11.0", "nanostores": "^1.1.0", "near-kit": "^0.12.0", "near-sign-verify": "^0.4.5", "zod": "^4.3.5" }, "peerDependencies": { "better-auth": "^1.5.4", "typescript": "^5.9.3" } }, "sha512-XXQld4nQRWK80vqDZ9cW+2K4LZJckEYsBHPTV9wZYENkPw9UjeTNAjsVdUHaxBm1RIH9PCKOkUU5cLIW52+kkQ=="],
 
     "better-path-resolve": ["better-path-resolve@1.0.0", "", { "dependencies": { "is-windows": "^1.0.0" } }, "sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g=="],
 
@@ -3230,8 +3227,6 @@
 
     "@every-plugin/template/vite-tsconfig-paths": ["vite-tsconfig-paths@5.1.4", "", { "dependencies": { "debug": "^4.1.1", "globrex": "^0.1.2", "tsconfck": "^3.0.3" }, "peerDependencies": { "vite": "*" }, "optionalPeers": ["vite"] }, "sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w=="],
 
-    "@every-plugin/template/zephyr-rspack-plugin": ["zephyr-rspack-plugin@1.0.1", "", { "dependencies": { "tslib": "^2.8.1", "zephyr-agent": "1.0.1", "zephyr-xpack-internal": "1.0.1" }, "peerDependencies": { "@rspack/core": "^1.0.0 || ^2.0.0-0" } }, "sha512-tV36y6ZjvhTbFNBQ4YmLeP7pAovnJ+RlQkefTj0duuZLwGZHYLSTO2RQmGFFEiZkpnqD2dPDx7Ah9uLBZm4caQ=="],
-
     "@inquirer/core/@types/node": ["@types/node@20.19.39", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw=="],
 
     "@inquirer/core/ansi-escapes": ["ansi-escapes@4.3.2", "", { "dependencies": { "type-fest": "^0.21.3" } }, "sha512-gKXj5ALrKWQLsYG9jlTRmR/xKluxHV+Z9QEwNIgCfM1/uwPMCuzVVnh5mwTd+OuBZcwSIMbqssNWRm1lE51QaQ=="],
@@ -3844,10 +3839,6 @@
 
     "@esbuild-kit/core-utils/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.18.20", "", { "os": "win32", "cpu": "x64" }, "sha512-kTdfRcSiDfQca/y9QIkng02avJ+NCaQvrMejlsB3RRv5sE9rRoeBPISaZpKxHELzRxZyLvNts1P27W3wV+8geQ=="],
 
-    "@every-plugin/template/zephyr-rspack-plugin/zephyr-agent": ["zephyr-agent@1.0.1", "", { "dependencies": { "@toon-format/toon": "^0.9.0", "axios": "^1.12.0", "axios-retry": "^4.5.0", "debug": "^4.3.4", "eventsource": "^4.0.0", "git-url-parse": "^15.0.0", "is-ci": "^4.1.0", "jose": "^5.10.0", "node-persist": "^4.0.1", "open": "^10.1.0", "proper-lockfile": "^4.1.2", "tslib": "^2.8.1", "zephyr-edge-contract": "1.0.1" }, "peerDependencies": { "https-proxy-agent": "^7.0.6" } }, "sha512-WKkPvAT7L0iAvJDq0JR+GpvF0FYxAgc/0F3zY5oxgc+CBvvLFNyyZrsj0Hef2ytum9+LFudFbfZJqETKdYonxg=="],
-
-    "@every-plugin/template/zephyr-rspack-plugin/zephyr-xpack-internal": ["zephyr-xpack-internal@1.0.1", "", { "dependencies": { "@module-federation/automatic-vendor-federation": "^1.2.1", "tslib": "^2.8.1", "zephyr-agent": "1.0.1", "zephyr-edge-contract": "1.0.1" } }, "sha512-NxFzIiCi6ii/p227Oio7nanSMLkeNoDy6k+xfLeLKnzPBi0IY5FSukT/Naj9hSA9NSPAH7U7sUH3SIR34NLOVA=="],
-
     "@inquirer/core/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@inquirer/core/ansi-escapes/type-fest": ["type-fest@0.21.3", "", {}, "sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w=="],
@@ -4153,12 +4144,6 @@
     "zephyr-rsbuild-plugin/zephyr-rspack-plugin/zephyr-agent": ["zephyr-agent@1.0.1", "", { "dependencies": { "@toon-format/toon": "^0.9.0", "axios": "^1.12.0", "axios-retry": "^4.5.0", "debug": "^4.3.4", "eventsource": "^4.0.0", "git-url-parse": "^15.0.0", "is-ci": "^4.1.0", "jose": "^5.10.0", "node-persist": "^4.0.1", "open": "^10.1.0", "proper-lockfile": "^4.1.2", "tslib": "^2.8.1", "zephyr-edge-contract": "1.0.1" }, "peerDependencies": { "https-proxy-agent": "^7.0.6" } }, "sha512-WKkPvAT7L0iAvJDq0JR+GpvF0FYxAgc/0F3zY5oxgc+CBvvLFNyyZrsj0Hef2ytum9+LFudFbfZJqETKdYonxg=="],
 
     "zephyr-rsbuild-plugin/zephyr-rspack-plugin/zephyr-xpack-internal": ["zephyr-xpack-internal@1.0.1", "", { "dependencies": { "@module-federation/automatic-vendor-federation": "^1.2.1", "tslib": "^2.8.1", "zephyr-agent": "1.0.1", "zephyr-edge-contract": "1.0.1" } }, "sha512-NxFzIiCi6ii/p227Oio7nanSMLkeNoDy6k+xfLeLKnzPBi0IY5FSukT/Naj9hSA9NSPAH7U7sUH3SIR34NLOVA=="],
-
-    "@every-plugin/template/zephyr-rspack-plugin/zephyr-agent/jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
-
-    "@every-plugin/template/zephyr-rspack-plugin/zephyr-agent/zephyr-edge-contract": ["zephyr-edge-contract@1.0.1", "", { "dependencies": { "tslib": "^2.8.1" } }, "sha512-2GHmmpY1PCr98sZykiPOsR0KCoHhT5ch0YnQL1WZhKcJ7wvTqEfwKJ9SshflrqCoXYlQ0QDtmUrCuO7YEkrIPA=="],
-
-    "@every-plugin/template/zephyr-rspack-plugin/zephyr-xpack-internal/zephyr-edge-contract": ["zephyr-edge-contract@1.0.1", "", { "dependencies": { "tslib": "^2.8.1" } }, "sha512-2GHmmpY1PCr98sZykiPOsR0KCoHhT5ch0YnQL1WZhKcJ7wvTqEfwKJ9SshflrqCoXYlQ0QDtmUrCuO7YEkrIPA=="],
 
     "@inquirer/core/wrap-ansi/string-width/emoji-regex": ["emoji-regex@8.0.0", "", {}, "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A=="],
 

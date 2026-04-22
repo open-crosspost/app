@@ -1,10 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import type * as React from "react";
-import { authClient } from "@/lib/auth-client";
 import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
-import { signOut } from "@/lib/session";
+import { sessionQueryOptions, signOutAndNavigate } from "@/lib/session";
 import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
 import {
@@ -15,17 +15,16 @@ import {
 } from "./ui/dropdown-menu";
 
 export const Header: React.FC = () => {
-  const { data: session } = authClient.useSession();
+  const { data: session } = useQuery(sessionQueryOptions());
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const profileAccountId = getNearWalletDisplayFromSession(session);
   const isSignedIn = !!session?.user;
   const { theme, setTheme, systemTheme } = useTheme();
   const isDarkMode = theme === "dark" || (theme === "system" && systemTheme === "dark");
   const toggleDarkMode = () => setTheme(isDarkMode ? "light" : "dark");
 
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = "/";
-  };
+  const handleSignOut = () => signOutAndNavigate(queryClient, router);
 
   return (
     <div className="relative border-b-2 border-primary bg-white dark:bg-black p-4 sm:p-6">

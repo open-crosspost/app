@@ -20,7 +20,7 @@
       "drizzle-orm": "^0.45.1",
       "drizzle-kit": "^0.31.8",
       "better-auth": "^1.5.4",
-      "better-near-auth": "0.5.1",
+      "better-near-auth": "0.5.2",
       "every-plugin": "workspace:*",
       "typescript": "^5.9.3",
       "vitest": "^4.0.17",
