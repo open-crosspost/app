@@ -93,6 +93,8 @@ function createClientConfig() {
         index: "./src/dev-entry.tsx",
       },
       define: {
+        "import.meta.env.APP_NAME": JSON.stringify(bosConfig.domain),
+        "import.meta.env.APP_ACCOUNT": JSON.stringify(bosConfig.account),
         "import.meta.env.PUBLIC_DEV_HOST_URL": JSON.stringify(
           process.env.PUBLIC_DEV_HOST_URL ?? "",
         ),
@@ -129,6 +131,14 @@ function createClientConfig() {
         },
         resolve: {
           fallback: { bufferutil: false, "utf-8-validate": false },
+          ...(!isDevClient
+            ? {
+                alias: {
+                  "@tanstack/react-devtools": false,
+                  "@tanstack/react-router-devtools": false,
+                },
+              }
+            : {}),
         },
         infrastructureLogging: { level: "error" },
         stats: "errors-warnings",

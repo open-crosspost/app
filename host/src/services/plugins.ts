@@ -8,7 +8,6 @@ export interface LoadedPlugin {
   key: string;
   name: string;
   createClient: (ctx?: unknown) => unknown;
-  api: unknown;
   router: unknown;
   metadata: {
     remoteUrl: string;
@@ -84,7 +83,7 @@ function buildRegistryEntries(config: RuntimeConfig): RuntimePluginEntry[] {
   return entries;
 }
 
-function collectSecrets(config: RuntimePluginInput): Record<string, string> {
+function collectSecrets(config: { secrets?: string[] }): Record<string, string> {
   return secretsFromEnv(config.secrets ?? []);
 }
 
@@ -125,17 +124,16 @@ export const initializePlugins = Effect.gen(function* () {
         secrets: {},
       });
 
-      const loaded = await Promise.allSettled(
-        registryEntries.map(async (entry) => {
+      const pluginEntries = registryEntries.filter((e) => e.key !== "api");
+      const apiEntry = registryEntries.find((e) => e.key === "api");
+
+      const pluginResults = await Promise.allSettled(
+        pluginEntries.map(async (entry) => {
           validatePluginConfig(entry.key, entry.config);
 
           const variables: Record<string, unknown> = {
             ...entry.config.variables,
           };
-
-          if (entry.key === "api") {
-            variables.registryNamespace = config.account;
-          }
 
           const plugin = await runtime.usePlugin(entry.runtimeId as never, {
             // @ts-expect-error dynamic runtime config
@@ -148,7 +146,6 @@ export const initializePlugins = Effect.gen(function* () {
             key: entry.key,
             name: entry.config.name,
             createClient: plugin.createClient as unknown as (ctx?: unknown) => unknown,
-            api: plugin.createClient(),
             router: plugin.router,
             metadata: {
               remoteUrl: entry.config.url,
@@ -158,20 +155,18 @@ export const initializePlugins = Effect.gen(function* () {
         }),
       );
 
-      const plugins: Record<string, LoadedPlugin> = {};
-      const loadedPlugins: string[] = [];
-      let baseApi: LoadedPlugin | null = null;
+      const loadedPlugins: Record<string, LoadedPlugin> = {};
+      const loadedPluginKeys: string[] = [];
+      const pluginsClient: Record<string, unknown> = {};
       const errors: string[] = [];
 
-      loaded.forEach((result, index) => {
-        const entry = registryEntries[index];
+      pluginResults.forEach((result, index) => {
+        const entry = pluginEntries[index];
         const key = entry?.key ?? "unknown";
         if (result.status === "fulfilled") {
-          plugins[key] = result.value;
-          loadedPlugins.push(key);
-          if (key === "api") {
-            baseApi = result.value;
-          }
+          loadedPlugins[key] = result.value;
+          loadedPluginKeys.push(key);
+          pluginsClient[key] = result.value.createClient;
         } else {
           const error = result.reason;
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -199,16 +194,62 @@ export const initializePlugins = Effect.gen(function* () {
         }
       });
 
+      let baseApi: LoadedPlugin | null = null;
+
+      if (apiEntry) {
+        try {
+          validatePluginConfig(apiEntry.key, apiEntry.config);
+
+          if (apiEntry.config.integrity) {
+            const { verifySriForUrl } = await import("everything-dev/integrity");
+            await verifySriForUrl(apiEntry.config.url, apiEntry.config.integrity);
+          }
+
+          const apiVariables: Record<string, unknown> = {
+            ...apiEntry.config.variables,
+          };
+
+          const apiPlugin = await runtime.usePlugin(
+            apiEntry.runtimeId as never,
+            {
+              // @ts-expect-error dynamic runtime config
+              variables: apiVariables,
+              // @ts-expect-error dynamic runtime config
+              secrets: collectSecrets(apiEntry.config),
+            },
+            pluginsClient,
+          );
+
+          baseApi = {
+            key: "api",
+            name: apiEntry.config.name,
+            createClient: apiPlugin.createClient as unknown as (ctx?: unknown) => unknown,
+            router: apiPlugin.router,
+            metadata: {
+              remoteUrl: apiEntry.config.url,
+              version: apiPlugin.metadata.version,
+            },
+          } satisfies LoadedPlugin;
+
+          loadedPlugins["api"] = baseApi;
+          loadedPluginKeys.unshift("api");
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`[Plugins] ❌ api: ${errorMessage}`);
+          errors.push(errorMessage);
+        }
+      }
+
       return {
         runtime,
         api: baseApi,
-        plugins,
+        plugins: loadedPlugins,
         status: {
           available: Boolean(baseApi),
           pluginName: config.api.name,
           error: errors.length > 0 ? errors.join("; ") : null,
           errorDetails: errors.length > 0 ? errors.join("\n") : null,
-          loadedPlugins,
+          loadedPlugins: loadedPluginKeys,
         },
       } satisfies PluginResult;
     },
@@ -261,17 +302,17 @@ export class PluginsService extends Context.Tag("host/PluginsService")<
   );
 }
 
-export function createAggregateApiClient(result: PluginResult, context?: unknown): unknown {
-  const baseClient = (result.api?.createClient ? result.api.createClient(context) : {}) as Record<
-    string,
-    unknown
-  >;
-  const pluginClients: Record<string, unknown> = {};
+export function createPluginsClient(result: PluginResult, context?: unknown): unknown {
+  const client: Record<string, unknown> = {};
+
+  if (result.api?.createClient) {
+    Object.assign(client, result.api.createClient(context) as Record<string, unknown>);
+  }
 
   for (const [key, plugin] of Object.entries(result.plugins)) {
     if (key === "api") continue;
-    pluginClients[key] = plugin.createClient(context);
+    client[key] = plugin.createClient(context);
   }
 
-  return { ...baseClient, ...pluginClients };
+  return client;
 }

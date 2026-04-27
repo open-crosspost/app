@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Lowercase repository name
         run: echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
@@ -53,7 +53,7 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "## 🚀 Docker Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## Docker Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`ghcr.io/${{ env.REPO }}:${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

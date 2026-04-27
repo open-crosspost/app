@@ -1,7 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
-import { authClient, type SessionData } from "./auth-client";
+import { authClient } from "./auth-client";
 
-export type { SessionData };
+export type SessionData = typeof authClient.$Infer.Session;
+export type User = SessionData["user"];
+export type SessionInfo = SessionData["session"];
 
 export type NearAuthErrorCode =
   | "UNAUTHORIZED_NONCE_REPLAY"
@@ -25,15 +27,12 @@ export class NearAuthError extends Error {
   }
 }
 
-export type User = NonNullable<SessionData["user"]>;
-export type SessionInfo = NonNullable<SessionData["session"]>;
-
 export const sessionQueryOptions = (initialSession?: SessionData | null) =>
   queryOptions({
     queryKey: ["session"],
     queryFn: async () => {
       const { data: session } = await authClient.getSession();
-      return session;
+      return session ?? null;
     },
     staleTime: 15 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -53,13 +52,15 @@ export function getSessionFromData(session: SessionData | null | undefined) {
     };
   }
 
-  const orgSession = session.session as SessionInfo & { activeOrganizationId?: string | null };
+  const activeOrgId =
+    (session.session as SessionInfo & { activeOrganizationId?: string | null })
+      ?.activeOrganizationId ?? null;
 
   return {
     isAuthenticated: true,
     user: session.user,
     session: session.session,
-    activeOrganizationId: orgSession.activeOrganizationId ?? null,
+    activeOrganizationId: activeOrgId,
     isAnonymous: session.user.isAnonymous || false,
     isAdmin: session.user.role === "admin",
     isBanned: session.user.banned || false,

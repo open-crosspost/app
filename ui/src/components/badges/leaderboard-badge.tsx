@@ -1,6 +1,15 @@
+import bronzePng from "@/assets/badges/leaderboard-bronze.png";
+import goldPng from "@/assets/badges/leaderboard-gold.png";
+import silverPng from "@/assets/badges/leaderboard-silver.png";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLeaderboardQuery } from "@/lib/api/leaderboard";
+
+const badgeImages: Record<number, string> = {
+  1: goldPng,
+  2: silverPng,
+  3: bronzePng,
+};
 
 export function LeaderboardBadge({ accountId }: BadgeProps) {
   const { data: leaderboard } = useLeaderboardQuery(3);
@@ -21,15 +30,15 @@ export function LeaderboardBadge({ accountId }: BadgeProps) {
 
   switch (rank) {
     case 1:
-      badgeImage = "/badges/leaderboard-gold.png";
+      badgeImage = badgeImages[1];
       tooltipText = "Leaderboard #1";
       break;
     case 2:
-      badgeImage = "/badges/leaderboard-silver.png";
+      badgeImage = badgeImages[2];
       tooltipText = "Leaderboard #2";
       break;
     case 3:
-      badgeImage = "/badges/leaderboard-bronze.png";
+      badgeImage = badgeImages[3];
       tooltipText = "Leaderboard #3";
       break;
     default:

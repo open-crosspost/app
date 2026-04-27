@@ -38,8 +38,8 @@
     "@rspack/core": "^1.6.8",
     "@types/node": "catalog:",
     "dotenv": "^17.2.3",
-    "everything-dev": "workspace:*",
-    "every-plugin": "workspace:*",
+    "everything-dev": "catalog:",
+    "every-plugin": "catalog:",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "catalog:",
     "zephyr-rspack-plugin": "0.1.4"

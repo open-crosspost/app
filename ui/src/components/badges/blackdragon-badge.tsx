@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import blackdragonBadgePng from "@/assets/badges/blackdragon-badge.png";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { hasBlackdragonNft } from "@/lib/nft";
@@ -20,11 +21,7 @@ export function BlackdragonBadge({ accountId }: BadgeProps) {
       <Tooltip>
         <TooltipTrigger>
           <div className={`inline-flex items-center justify-center w-6 h-6 rounded-full`}>
-            <img
-              src="/badges/blackdragon-badge.png"
-              alt="Blackdragon NFT"
-              className="w-5 h-5 rounded-full"
-            />
+            <img src={blackdragonBadgePng} alt="Blackdragon NFT" className="w-5 h-5 rounded-full" />
           </div>
         </TooltipTrigger>
         <TooltipContent className="rounded-none">

@@ -1,4 +1,5 @@
 import { ArrowRight, Calendar, Shield, Zap } from "lucide-react";
+import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { ConnectToNearButton } from "@/components/connect-to-near";
 import { Button } from "@/components/ui/button";
 
@@ -109,7 +110,7 @@ export function LandingPage() {
             <span>Twitter</span>
           </div>
           <div className="flex items-center gap-2 text-sm sm:text-base font-medium">
-            <img src="/platforms/farcaster.svg" alt="Farcaster" className="w-5 h-5" />
+            <img src={farcasterSvg} alt="Farcaster" className="w-5 h-5" />
             <span>Farcaster</span>
           </div>
           <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">

@@ -8,6 +8,13 @@
       "when": 1773890396928,
       "tag": "0000_long_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1776866824431,
+      "tag": "0001_cool_hardball",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import type { PlatformName } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import { Twitter } from "lucide-react";
 import React from "react";
+import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -90,7 +91,7 @@ export function ConnectPlatform({
                 <Twitter size={size === "sm" ? 18 : 24} />
               ) : platform === Platform.FARCASTER ? (
                 <img
-                  src="/platforms/farcaster.svg"
+                  src={farcasterSvg}
                   alt="Farcaster"
                   width={size === "sm" ? 18 : 24}
                   height={size === "sm" ? 18 : 24}

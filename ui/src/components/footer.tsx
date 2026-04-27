@@ -1,8 +1,10 @@
+import blackDotSvg from "@/assets/black-dot.svg";
+import builtOnNearSvg from "@/assets/built-on-near.svg";
 import { Button } from "./ui/button";
 
 export function Footer() {
   return (
-    <footer className="flex justify-between m-2 sm:m-4 font-mono text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+    <footer className="flex justify-between m-2 mb-4 pb-4 sm:m-4 sm:mb-6 sm:pb-4 font-mono text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
       <div className="flex gap-2">
         <Button asChild>
           <a
@@ -29,14 +31,14 @@ export function Footer() {
             className="flex items-center"
           >
             <img
-              src="/black-dot.svg"
+              src={blackDotSvg}
               alt="everything"
               className="w-[16px] h-[16px] sm:w-[24px] sm:h-[24px] dark:invert"
             />
           </a>
         </div>
         <div className="w-28 sm:w-36">
-          <img src="/built-on-near.svg" alt="built on near" className="w-full h-auto dark:invert" />
+          <img src={builtOnNearSvg} alt="built on near" className="w-full h-auto dark:invert" />
         </div>
       </div>
     </footer>

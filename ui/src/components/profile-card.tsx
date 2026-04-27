@@ -1,6 +1,7 @@
 import type { ConnectedAccount } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import { Twitter } from "lucide-react";
+import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { capitalize } from "@/lib/utils/string";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
@@ -51,7 +52,7 @@ export function ProfileCard({ account, className = "", size = "md" }: ProfileCar
             )}
             {platform === Platform.FARCASTER && (
               <img
-                src="/platforms/farcaster.svg"
+                src={farcasterSvg}
                 alt="Farcaster"
                 width={size === "sm" ? 14 : size === "md" ? 18 : 22}
                 height={size === "sm" ? 14 : size === "md" ? 18 : 22}

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Link as LinkIcon, Trash2, Twitter } from "lucide-react";
 import type React from "react";
+import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { InlineBadges } from "@/components/badges/inline-badges";
 import { Button } from "@/components/ui/button";
 import { useDeletePost } from "@/hooks/use-post-mutations";
@@ -66,11 +67,7 @@ const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({
       return <Twitter className={className} />;
     case Platform.FARCASTER:
       return (
-        <img
-          src="/platforms/farcaster.svg"
-          alt="Farcaster Logo"
-          className={`text-gray-400 ${className}`}
-        />
+        <img src={farcasterSvg} alt="Farcaster Logo" className={`text-gray-400 ${className}`} />
       );
     default:
       return <LinkIcon className={className} />; // Default icon

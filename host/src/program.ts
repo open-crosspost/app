@@ -18,7 +18,7 @@ import { type ClientRuntimeConfig, ConfigService, type RuntimeConfig } from "./s
 import { createRequestContext } from "./services/context";
 import { type Database, DatabaseService } from "./services/database";
 import { loadRouterModule, type RouterModule } from "./services/federation.server";
-import { createAggregateApiClient, type PluginResult, PluginsService } from "./services/plugins";
+import { createPluginsClient, type PluginResult, PluginsService } from "./services/plugins";
 import { createRouterMounts } from "./services/router";
 import { logger } from "./utils/logger";
 
@@ -477,7 +477,7 @@ export const createStartServer = (onReady?: () => void) =>
             <head>
               <meta charset="utf-8" />
               <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-              <title>everything.dev</title>
+              <title>${config.domain || "App"}</title>
               <link rel="icon" type="image/x-icon" href="${clientUrl}/favicon.ico" />
               <link rel="icon" type="image/svg+xml" href="${clientUrl}/icon.svg" />
               <link rel="manifest" href="${clientUrl}/manifest.json" />
@@ -575,7 +575,7 @@ export const createStartServer = (onReady?: () => void) =>
         const assetsUrl = uiConfig.url;
 
         const requestContext = await createRequestContext(c.req.raw, auth, db);
-        const ssrApiClient = createAggregateApiClient(plugins, requestContext);
+        const ssrApiClient = createPluginsClient(plugins, requestContext);
 
         const render = () =>
           ssrRouterModule?.renderToStream(c.req.raw, {

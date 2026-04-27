@@ -1,6 +1,7 @@
 import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import { RefreshCw, Twitter } from "lucide-react";
+import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { ConnectPlatform } from "@/components/connect-platform";
 import { PlatformAccountItem } from "@/components/platform-account";
 
@@ -32,7 +33,7 @@ export function PlatformAccountList({ platform, accounts, isLoading }: PlatformA
           {platform === Platform.TWITTER && <Twitter className="mx-auto h-12 w-12 text-gray-400" />}
           {platform === Platform.FARCASTER && (
             <img
-              src="/platforms/farcaster.svg"
+              src={farcasterSvg}
               alt="Farcaster Logo"
               className="mx-auto h-12 w-12 text-gray-400"
             />
