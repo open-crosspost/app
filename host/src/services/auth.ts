@@ -144,7 +144,25 @@ export function createAuthInstance(config: RuntimeConfig, db: Database) {
       },
     },
     plugins: [
-      siwn({ recipient: config.account }),
+      siwn({
+        recipient: config.account,
+        ...(process.env.RELAYER_ACCOUNT_ID || process.env.FASTNEAR_API_KEY
+          ? {
+              relayer: {
+                ...(process.env.RELAYER_ACCOUNT_ID && process.env.RELAYER_PRIVATE_KEY
+                  ? {
+                      accountId: process.env.RELAYER_ACCOUNT_ID,
+                      privateKey: process.env.RELAYER_PRIVATE_KEY,
+                    }
+                  : {}),
+                whitelistedContracts: ["social.near"],
+                maxGasPerTransaction: "300 Tgas",
+                maxDepositPerTransaction: "0",
+              },
+              fastnearApiKey: process.env.FASTNEAR_API_KEY,
+            }
+          : {}),
+      } as Parameters<typeof siwn>[0]),
       admin({ defaultRole: "user", adminRoles: ["admin"] }),
       anonymous({ emailDomainName: config.account }),
       phoneNumber({
