@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { ComingSoonOverlay } from "@/components/coming-soon-overlay";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 
@@ -9,7 +10,7 @@ export const Route = createFileRoute("/_layout")({
 
 function LayoutComponent() {
   return (
-    <>
+    <ComingSoonOverlay>
       <div className="min-h-screen p-2 relative">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -24,6 +25,6 @@ function LayoutComponent() {
         </motion.div>
       </div>
       <Footer />
-    </>
+    </ComingSoonOverlay>
   );
 }

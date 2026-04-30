@@ -15,6 +15,15 @@
     "twitter": {
       "development": "local:plugins/twitter",
       "production": ""
+    },
+    "relayer": {
+      "development": "local:plugins/relayer",
+      "production": "",
+      "variables": {
+        "network": "mainnet",
+        "contractId": "social.near"
+      },
+      "secrets": ["RELAYER_ACCOUNT_ID", "RELAYER_PRIVATE_KEY"]
     }
   },
   "app": {

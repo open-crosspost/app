@@ -23,6 +23,7 @@
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
     "effect": "^3.21.0",
+    "near-sign-verify": "^0.3.6",
     "zod": "^4.3.6"
   },
   "devDependencies": {

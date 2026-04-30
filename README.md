@@ -5,15 +5,15 @@
 
 <div align="center">
 
-<h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">everything.dev</h1>
+<h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">crosspost</h1>
 
 <img src="ui/src/assets/under-construction.gif" alt="Under construction" width="380" />
 
 </div>
 
-[Module Federation](https://module-federation.io/) monorepo with runtime-loaded configuration, demonstrating [every-plugin](https://plugin.everything.dev/) architecture, [**everything-dev**](https://github.com/NEARBuilders/everything-dev/blob/main/packages/everything-dev/README.md) api & cli, and [NEAR Protocol](https://near.dev/) integration.
+Social media crossposting engine built on [Module Federation](https://module-federation.io/) with runtime-loaded configuration, [every-plugin](https://plugin.everything.dev/) architecture, and [NEAR Protocol](https://near.dev/) authentication. Post to Twitter, Farcaster, and more — all at once, from one place.
 
-Built with [Tanstack Start](https://tanstack.com/start/latest/docs/framework/react/quick-start), [Hono.js](https://hono.dev/), [oRPC](https://orpc.dev/), [better-auth](https://better-auth.com/), and [rsbuild](https://rsbuild.rs/).
+Built with [TanStack Router](https://tanstack.com/router/latest), [Hono.js](https://hono.dev/), [oRPC](https://orpc.dev/), [better-auth](https://better-auth.com/), and [rsbuild](https://rsbuild.rs/).
 
 ## Quick Start
 
@@ -27,8 +27,6 @@ This will start serving the UI, the API, and mounting it on a universally shared
 Visit through the host: http://localhost:3000
 Visit the api: http://localhost:3000/api
 
-This maintains a flexible, well-typed architecture that connects the entirity of the application, it's operating system, and a cli to interact with it. It is a perpetually in-development model for the [Blockchain Operating System (BOS)](https://near.social/#/)
-
 ## CLI Commands
 
 `everything-dev` is the canonical runtime package and CLI. `bos` is a command alias for the same tool. See [.agent/skills/bos/SKILL.md](.agent/skills/bos/SKILL.md) for the full reference.
@@ -39,7 +37,7 @@ This maintains a flexible, well-typed architecture that connects the entirity of
 everything-dev dev --host remote   # Remote host, local UI + API (typical)
 everything-dev dev --ui remote     # Isolate API work
 everything-dev dev --api remote    # Isolate UI work
-           |/ --proxy              # Use a proxy
+            |/ --proxy              # Use a proxy
 everything-dev dev                 # Full local, client shell by default
 
 # `bos` is an alias for the same commands
@@ -59,7 +57,7 @@ bos build               # Build all packages (updates bos.config.json)
 bos publish             # Publish config to the temporary dev.everything.near registry
 bos publish --deploy    # Build/deploy all workspaces, then publish
 bun run publish         # Same publish command via root script
-bos sync                # Sync from production (every.near/everything.dev)
+bos sync                # Sync from production
 ```
 
 ### Project Management
@@ -78,6 +76,7 @@ bos clean                   # Clean build artifacts
 - **UI Changes**: Edit `ui/src/` → hot reload automatically → publish with `bos publish --deploy`
 - **API Changes**: Edit `api/src/` → hot reload automatically → publish with `bos publish --deploy`
 - **Host Changes**: Edit `host/src/` or `bos.config.json` → publish with `bos publish --deploy`
+- **Plugin Changes**: Add/edit platform plugins in `plugins/` (twitter, farcaster, etc.)
 
 ### Before Committing
 
@@ -148,15 +147,18 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines in
 ┌───────────────────────┐ ┌───────────────────────┐
 │    ui/ (Runtime)      │ │   api/ (Plugin)       │
 │  React + TanStack     │ │  oRPC + Effect        │
-│  ui/src/app.ts        │ │  remoteEntry.js       │
+│  Post editor, drafts, │ │  Crosspost dispatch,  │
+│  platform management  │ │  platform plugins     │
 └───────────────────────┘ └───────────────────────┘
 ```
+
+**Platform plugins** live in `plugins/` — each social platform (Twitter, Farcaster, etc.) is an independent every-plugin that handles auth, posting, and result retrieval. Add a new platform by creating a plugin and registering it in `bos.config.json`.
 
 **Key Features:**
 - ✅ **Runtime Configuration** - All URLs from `bos.config.json` (no rebuild needed)
 - ✅ **Independent Deployment** - UI, API, and Host deploy separately
 - ✅ **Type Safety** - End-to-end with oRPC contracts
-- ✅ **UI Runtime Boundary** - `everything-dev/ui/client` and `/server` own router/runtime glue
+- ✅ **Plugin-Based Platforms** - Each social platform is an independent every-plugin
 - ✅ **CDN-Ready** - Module Federation with [Zephyr Cloud](https://zephyr-cloud.io/)
 
 ## Configuration
@@ -165,34 +167,27 @@ All runtime configuration lives in `bos.config.json`:
 
 ```json
 {
-  "account": "dev.everything.near",
-  "domain": "everything.dev",
-  "repository": "https://github.com/nearbuilders/everything-dev",
-  "testnet": "dev.allthethings.testnet",
+  "account": "crosspost.near",
+  "domain": "opencrosspost.com",
+  "repository": "https://github.com/open-crosspost/app",
   "plugins": {
-    "template": {
-      "development": "local:plugins/_template"
+    "crosspost": {
+      "development": "local:plugins/crosspost",
+      "production": ""
+    },
+    "farcaster": {
+      "development": "local:plugins/farcaster",
+      "production": ""
+    },
+    "twitter": {
+      "development": "local:plugins/twitter",
+      "production": ""
     }
   },
   "app": {
-    "host": {
-      "name": "host",
-      "development": "local:host",
-      "production": "https://..."
-    },
-    "ui": {
-      "name": "ui",
-      "development": "local:ui",
-      "production": "https://...",
-      "ssr": "https://..."
-    },
-    "api": {
-      "name": "api",
-      "development": "local:api",
-      "production": "https://...",
-      "variables": {},
-      "secrets": []
-    }
+    "host": { "development": "local:host", "production": "https://..." },
+    "ui": { "development": "local:ui", "production": "https://..." },
+    "api": { "development": "local:api", "production": "https://...", "secrets": [] }
   }
 }
 ```
@@ -208,8 +203,8 @@ Use the repo `Dockerfile` for the service, and treat the GHCR image as the deplo
 - Code updates: GHCR build workflow
 
 Required runtime vars:
-- `BOS_ACCOUNT=dev.everything.near`
-- `GATEWAY_DOMAIN=everything.dev`
+- `BOS_ACCOUNT=crosspost.near`
+- `GATEWAY_DOMAIN=opencrosspost.com`
 
 See [.agent/skills/bos/docs/types.md](.agent/skills/bos/docs/types.md) for the complete schema.
 
@@ -239,16 +234,22 @@ Biome is configured in `biome.json` at the project root. Generated files (like `
 
 **Backend:**
 - Hono.js server + oRPC (type-safe RPC + OpenAPI)
-- [every-plugin](https://plugin.everything.dev/) architecture for modular APIs
+- [every-plugin](https://plugin.everything.dev/) architecture for modular platform APIs
 - Effect-TS for service composition
 
 **Database & Auth:**
 - SQLite (libsql) + Drizzle ORM
-- Better-Auth with NEAR Protocol support
+- Better-Auth with NEAR Protocol support (SIWN)
+
+**Platform Plugins:**
+- Twitter (via plugins/twitter)
+- Farcaster (via plugins/farcaster)
+- Extensible — add any platform as an every-plugin
 
 ## Related Projects
 
-- **[[every-plugin](https://plugin.everything.dev/)](https://github.com/near-everything/[every-plugin](https://plugin.everything.dev/))** - Plugin framework for modular APIs
+- **[everything-dev](https://github.com/NEARBuilders/everything-dev)** - Runtime, CLI, and Module Federation framework
+- **[every-plugin](https://plugin.everything.dev/)** - Plugin framework for modular APIs
 - **[near-kit](https://kit.near.tools)** - Unified NEAR Protocol SDK
 - **[better-near-auth](https://github.com/elliotBraem/better-near-auth)** - NEAR authentication for Better-Auth
 
