@@ -6,35 +6,38 @@
   "plugins": {
     "crosspost": {
       "development": "local:plugins/crosspost",
-      "production": ""
+      "production": "https://elliot-braem-2855-crosspost-plugin-app-open-cross-be274b273-ze.zephyrcloud.app"
     },
     "farcaster": {
       "development": "local:plugins/farcaster",
-      "production": ""
+      "production": "https://elliot-braem-2856-crosspost-farcaster-app-open-cr-90f6f3754-ze.zephyrcloud.app"
     },
     "twitter": {
       "development": "local:plugins/twitter",
-      "production": ""
+      "production": "https://elliot-braem-2857-crosspost-twitter-app-open-cros-b97ea74a6-ze.zephyrcloud.app"
     }
   },
   "app": {
     "host": {
       "name": "host",
       "development": "local:host",
-      "production": "https://elliot-braem-2609-host-everything-dev-nearbuilder-5203086a8-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2858-host-app-open-crosspost-81e97c44e-ze.zephyrcloud.app",
+      "productionIntegrity": "sha384-HO4zT03FrUP9zEyT12VrZLE1hmymc2vyTDDbslXn85Q/fJtDKzLletqomrxCyQvn"
     },
     "ui": {
       "name": "ui",
       "development": "local:ui",
-      "production": "https://elliot-braem-2605-ui-everything-dev-nearbuilders-9ad58e6dc-ze.zephyrcloud.app",
-      "ssr": "https://elliot-braem-2606-ui-everything-dev-nearbuilders-480725fcd-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2852-ui-app-open-crosspost-08b7e6f13-ze.zephyrcloud.app",
+      "ssr": "https://elliot-braem-2853-ui-app-open-crosspost-27356f50a-ze.zephyrcloud.app",
+      "productionIntegrity": "sha384-7l3ACM+KXPsXnRVP/y14DVPUg52NdImmBfyg7+ftUb44wlPN2QOKzDD4OEjX34+T"
     },
     "api": {
       "name": "api",
       "development": "local:api",
       "variables": {},
       "secrets": [],
-      "production": "https://elliot-braem-2616-api-everything-dev-nearbuilders-9f203cd13-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
+      "productionIntegrity": "sha384-WNyle3IORCrje3h4PslSAJBD8zNrPiRie7+Ofn9p+EG7l2Q0XX3JVMmWtZ0/X5sH"
     }
   },
   "testnet": "crosspost.testnet",
