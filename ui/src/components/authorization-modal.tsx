@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { APP_NAME } from "@/config";
 import { toast } from "@/hooks/use-toast";
-import { authClient } from "@/lib/auth-client";
+import { getAuthClient } from "@/app";
 import { authorize } from "@/lib/authorization-service";
 
 interface AuthorizationModalProps {
@@ -29,7 +29,7 @@ export function AuthorizationModal({
   message,
 }: AuthorizationModalProps) {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
-  const { data: session } = authClient.useSession();
+  const { data: session } = getAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
 
   const handleRequestAuthorization = async () => {

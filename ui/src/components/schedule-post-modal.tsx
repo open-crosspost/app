@@ -3,7 +3,7 @@ import { Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { authClient } from "@/lib/auth-client";
+import { getAuthClient } from "@/app";
 import type { EditorContent } from "@/store/drafts-store";
 import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
 
@@ -26,7 +26,7 @@ export function SchedulePostModal({
   const [selectedTime, setSelectedTime] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { saveScheduledPost } = useScheduledPostsStore();
-  const { data: session } = authClient.useSession();
+  const { data: session } = getAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const isSignedIn = !!session?.user;
 

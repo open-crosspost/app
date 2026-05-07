@@ -9,10 +9,12 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
 import { siwnClient } from "better-near-auth/client";
-import type { createAuthInstance } from "host/src/services/auth";
-import { getAccount, getHostUrl, getNetworkId } from "@/app";
+import { getAccount, getHostUrl, getNetworkId, getRuntimeConfig } from "@/app";
+import type { createAuthInstance } from "../../../host/src/services/auth";
 
-const isBrowser = typeof window !== "undefined";
+export function isAuthAvailable(): boolean {
+  return getRuntimeConfig().authAvailable !== false;
+}
 
 function createAuthClient() {
   return createBetterAuthClient({
@@ -20,14 +22,10 @@ function createAuthClient() {
     fetchOptions: { credentials: "include" },
     plugins: [
       inferAdditionalFields<typeof createAuthInstance>(),
-      ...(isBrowser
-        ? [
-            siwnClient({
-              recipient: getAccount(),
-              networkId: getNetworkId(),
-            }),
-          ]
-        : []),
+      siwnClient({
+        recipient: getAccount(),
+        networkId: getNetworkId(),
+      }),
       adminClient(),
       anonymousClient(),
       phoneNumberClient(),
@@ -47,19 +45,20 @@ export function getAuthClient() {
   return _authClient;
 }
 
-export type SessionData =
-  ReturnType<typeof createAuthClient> extends {
-    $Infer: { Session: infer S };
-  }
-    ? S
-    : never;
+export type AuthClient = ReturnType<typeof createAuthClient>;
+export type SessionData = AuthClient["$Infer"]["Session"];
 
-export const authClient: ReturnType<typeof createAuthClient> = new Proxy(
-  {} as ReturnType<typeof createAuthClient>,
-  {
-    get(_target, prop) {
-      if (prop === "then") return undefined;
-      return Reflect.get(getAuthClient() as object, prop);
-    },
-  },
-);
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export interface Passkey {
+  id: string;
+  name?: string;
+  createdAt?: Date;
+}

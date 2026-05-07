@@ -1,7 +1,6 @@
-import { queryOptions } from "@tanstack/react-query";
-import { authClient } from "./auth-client";
+import { getAuthClient, type SessionData as _SessionData } from "@/app";
 
-export type SessionData = typeof authClient.$Infer.Session;
+export type SessionData = _SessionData;
 export type User = SessionData["user"];
 export type SessionInfo = SessionData["session"];
 
@@ -27,17 +26,18 @@ export class NearAuthError extends Error {
   }
 }
 
-export const sessionQueryOptions = (initialSession?: SessionData | null) =>
-  queryOptions({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data: session } = await authClient.getSession();
-      return session ?? null;
-    },
-    staleTime: 15 * 1000,
-    gcTime: 10 * 60 * 1000,
-    initialData: initialSession,
-  });
+export const sessionQueryKey = ["session"] as const;
+
+export const sessionQueryOptions = (initialSession?: SessionData | null) => ({
+  queryKey: sessionQueryKey,
+  queryFn: async () => {
+    const { data: session } = await getAuthClient().getSession();
+    return session ?? null;
+  },
+  staleTime: 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+  initialData: initialSession,
+});
 
 export function getSessionFromData(session: SessionData | null | undefined) {
   if (!session?.user) {
@@ -101,13 +101,13 @@ export function signInWithNear(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     let settled = false;
 
-    authClient.signIn.near({
+    getAuthClient().signIn.near({
       onSuccess: () => {
         if (settled) return;
         settled = true;
         resolve();
       },
-      onError: (error) => {
+      onError: (error: { code?: string; message?: string }) => {
         if (settled) return;
         const msg = error?.message ?? "";
 
@@ -125,22 +125,22 @@ export function signInWithNear(): Promise<void> {
 }
 
 export async function signInAnonymous() {
-  const { error } = await authClient.signIn.anonymous();
+  const { error } = await getAuthClient().signIn.anonymous();
   if (error) throw new Error(error.message || "Failed to sign in anonymously");
 }
 
 export async function signOut() {
-  await authClient.signOut();
-  await authClient.near.disconnect().catch(() => {});
+  await getAuthClient().signOut();
+  await getAuthClient().near.disconnect().catch(() => {});
 }
 
 export async function updateProfile(name: string) {
-  const { error } = await authClient.updateUser({ name });
+  const { error } = await getAuthClient().updateUser({ name });
   if (error) throw new Error(error.message);
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {
-  const { error } = await authClient.changePassword({
+  const { error } = await getAuthClient().changePassword({
     currentPassword,
     newPassword,
   });
@@ -148,7 +148,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 export async function revokeOtherSessions() {
-  const { error } = await authClient.revokeSessions();
+  const { error } = await getAuthClient().revokeSessions();
   if (error) throw new Error(error.message);
 }
 

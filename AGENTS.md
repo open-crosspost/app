@@ -1,53 +1,116 @@
-# Agent Instructions for everything-dev
+<!-- intent-skills:start -->
+# Skill mappings - load `use` with `npx @tanstack/intent@latest load <use>`.
+skills:
+  - when: "Install TanStack Devtools, pick framework adapter (React/Vue/Solid/Preact), register plugins via plugins prop, configure shell (position, hotkeys, theme, hideUntilHover, requireUrlFlag, eventBusConfig). TanStackDevtools component, defaultOpen, localStorage persistence."
+    use: "@tanstack/devtools#devtools-app-setup"
+  - when: "Publish plugin to npm and submit to TanStack Devtools Marketplace. PluginMetadata registry format, plugin-registry.ts, pluginImport (importName, type), requires (packageName, minVersion), framework tagging, multi-framework submissions, featured plugins."
+    use: "@tanstack/devtools#devtools-marketplace"
+  - when: "Build devtools panel components that display emitted event data. Listen via EventClient.on(), handle theme (light/dark), use @tanstack/devtools-ui components. Plugin registration (name, render, id, defaultOpen), lifecycle (mount, activate, destroy), max 3 active plugins. Two paths: Solid.js core with devtools-ui for multi-framework support, or framework-specific panels."
+    use: "@tanstack/devtools#devtools-plugin-panel"
+  - when: "Handle devtools in production vs development. removeDevtoolsOnBuild, devDependency vs regular dependency, conditional imports, NoOp plugin variants for tree-shaking, non-Vite production exclusion patterns."
+    use: "@tanstack/devtools#devtools-production"
+  - when: "Two-way event patterns between devtools panel and application. App-to-devtools observation, devtools-to-app commands, time-travel debugging with snapshots and revert. structuredClone for snapshot safety, distinct event suffixes for observation vs commands, serializable payloads only."
+    use: "@tanstack/devtools-event-client#devtools-bidirectional"
+  - when: "Create typed EventClient for a library. Define event maps with typed payloads, pluginId auto-prepend namespacing, emit()/on()/onAll()/onAllPluginEvents() API. Connection lifecycle (5 retries, 300ms), event queuing, enabled/disabled state, SSR fallbacks, singleton pattern. Unique pluginId requirement to avoid event collisions."
+    use: "@tanstack/devtools-event-client#devtools-event-client"
+  - when: "Analyze library codebase for critical architecture and debugging points, add strategic event emissions. Identify middleware boundaries, state transitions, lifecycle hooks. Consolidate events (1 not 15), debounce high-frequency updates, DRY shared payload fields, guard emit() for production. Transparent server/client event bridging."
+    use: "@tanstack/devtools-event-client#devtools-instrumentation"
+  - when: "TanStack Router bundler plugin for route generation and automatic code splitting. Supports Vite, Webpack, Rspack, and esbuild. Configures autoCodeSplitting, routesDirectory, target framework, and code split groupings."
+    use: "@tanstack/router-plugin#router-plugin"
+  - when: "Load environment variables from a .env file into process.env for Node.js applications. Use when configuring apps with secrets, setting up local development environments, managing API keys and database uRLs, parsing .env file contents, or populating environment variables programmatically. Always use this skill when the user mentions .env, even for simple tasks like \"set up dotenv\" — the skill contains critical gotchas (encrypted keys, variable expansion, command substitution) that prevent common production issues."
+    use: "dotenv#dotenv"
+  - when: "Use dotenvx to run commands with environment variables, manage multiple .env files, expand variables, and encrypt env files for safe commits and CI/CD."
+    use: "dotenv#dotenvx"
+  - when: "Build every-plugin modules with oRPC contracts, Effect services, and Module Federation. Use when creating or modifying plugins under plugins/ or the _template scaffold."
+    use: "every-plugin#plugin-development"
+  - when: "Test every-plugin modules with vitest and the plugin runtime. Use when writing or modifying plugin tests under plugins/*/src/__tests__/ or plugins/*/tests/."
+    use: "every-plugin#plugin-testing"
+  - when: "Development workflow for everything-dev projects using bos dev, bos start, and the Module Federation runtime. Use when starting dev servers, debugging hot reload, or understanding the service-descriptor architecture."
+    use: "everything-dev#dev-workflow"
+  - when: "Publish bos.config.json to the FastKV registry, sync from upstream, and upgrade workspace packages. Use when deploying, syncing, or managing runtime configuration across projects."
+    use: "everything-dev#publish-sync"
+<!-- intent-skills:end -->
 
-This document provides operational guidance for AI agents working on the everything-dev codebase.
+# Agent Instructions
+
+This document provides operational guidance for AI agents working on a BOS project scaffolded via `bos init`.
 
 ## Quick Reference
 
 **Start Development:**
 ```bash
-everything-dev dev --host remote   # Typical: remote host, local UI + API
-# `bos` is an alias for the same CLI
+cp .env.example .env   # First time only
+bun install
+bun run dev
 ```
 
-**Production Preview:**
+**Sync from Parent:**
 ```bash
-everything-dev start --no-interactive   # All remotes, production URLs
+bos sync              # Pull updates from parent template
+bos upgrade           # Check for new versions, update, then sync
+bos status            # Show project health (extends, versions, .env, last sync)
 ```
 
 **Publish:**
 ```bash
-bos publish           # Publish config to the temporary dev.everything.near registry
+bos publish           # Publish config to the FastKV registry
 bos publish --deploy  # Build/deploy all workspaces, then publish
 ```
 
 **Check Status:**
 ```bash
 bos ps        # List running processes
-bos status    # Check remote health
+bos status    # Project health check
 bos info      # Show configuration
 ```
+
+## Architecture
+
+This is a **Module Federation monorepo** with runtime-loaded configuration. The host is **remote** — it is not in this repository. You work on `/ui`, `/api`, and `/plugins` (auth, registry, projects, opencode, etc.).
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Host (Remote)                        │
+│  - Hono.js + oRPC router                               │
+│  - Runtime config loader (bos.config.json)              │
+│  - Module Federation host                               │
+│  - every-plugin runtime                                │
+└─────────────────────────────────────────────────────────┘
+            ↓                ↓                ↓
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│    UI (Local)    │ │  Auth Plugin     │ │  API + Plugins   │
+│  - React 19      │ │  - every-plugin  │ │  - every-plugin  │
+│  - TanStack      │ │  - Better-Auth   │ │  - oRPC contract │
+│  - Module Fed.   │ │  - NEAR SIWN     │ │  - Effect svc    │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+```
+
+The host loads UI and API at runtime from URLs in `bos.config.json`. No rebuild is needed when URLs change.
+
+### Runtime Config
+
+All runtime configuration lives in `bos.config.json`. The UI reads `window.__RUNTIME_CONFIG__` to get account, gateway, API base URL, etc.
+
+Use these helpers from `@/app`:
+- `getAppName()` — active runtime title (falls back to account)
+- `getAccount()` — NEAR account from config
+- `getRepository()` — repository URL from config
+- `getActiveRuntime()` — active runtime info (accountId, gatewayId, title)
+- `getRuntimeConfig()` — full client config
 
 ## Development Workflow
 
 ### Typical Session
-1. Run `everything-dev dev --host remote` to start development
-2. UI available at http://localhost:3002, API at http://localhost:3014
+1. `bun run dev` to start development
+2. UI available at http://localhost:3003, API at http://localhost:3001, Auth at http://localhost:3002
 3. Check `.bos/logs/` for process logs if issues occur
 4. Use `bos kill` to clean up processes when done
-
-### Isolating Work
-- `everything-dev dev --api remote` - Work on UI only
-- `everything-dev dev --ui remote` - Work on API only
-- `everything-dev dev` - Full local (client shell by default)
-- `everything-dev dev --ssr` - Full local with SSR enabled
 
 ### Debugging Issues
 
 **API not responding:**
 - Check `bos ps` to see if API process is running
 - Check `.bos/logs/api.log` for errors
-- Run `bos status` to verify remote health
 
 **UI not loading:**
 - Verify host is running: `bos ps`
@@ -55,8 +118,8 @@ bos info      # Show configuration
 - Clear browser cache and retry
 
 **Type errors:**
-- Run `bun typecheck` (checks both ui and api)
-- Ensure api/src/contract.ts is in sync with UI usage
+- Run `bun typecheck`
+- Ensure `api/src/contract.ts` is in sync with UI usage
 
 ## Code Changes
 
@@ -73,19 +136,40 @@ bos info      # Show configuration
 - Follow existing patterns in neighboring files
 
 ### Adding API Endpoints
-1. Define in `api/src/contract.ts`
-2. Implement handler in `api/src/index.ts`
-3. Use in UI via `apiClient` from `@/app`
+1. Define in `api/src/contract.ts` — the oRPC route definitions and Zod schemas
+2. Implement in `api/src/index.ts` — the `createRouter` function
+3. Use in UI via `apiClient` from `useApiClient()` hook
 
-## Git Workflow
+### Plugin Architecture
 
-**Always follow CONTRIBUTING.md for git workflow:**
-- Create feature branches: `git checkout -b feature/description`
-- Use semantic commits: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
-- Run tests and typecheck before committing
-- Push to fork, open PR to main
+Business logic is organized into independent plugins loaded via Module Federation:
+- **`api/`** — Thin structural shell: ping, authHealth, error routes, middleware definitions
+- **`plugins/auth/`** — Authentication and authorization (Better-Auth, NEAR SIWN, organizations, API keys)
+- **`plugins/registry/`** — FastKV app discovery, metadata publish/relay (no database)
+- **`plugins/projects/`** — Project and organization management
+- **`plugins/opencode/`** — AI dev loop integration
+- **`plugins/_template/`** — Scaffold for creating new plugins
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for complete workflow details.
+Each plugin is self-contained with its own:
+- `contract.ts` — oRPC route definitions and Zod schemas
+- `index.ts` — `createPlugin` with variables, secrets, context, router
+- rspack config for independent deployment
+
+The UI accesses plugin routes via namespaced clients: `apiClient.registry.listRegistryApps()`, etc.
+
+### Plugin Client (pluginsClient)
+
+The API plugin receives typed client factories for all other plugins via `createPlugin.withPlugins<PluginsClient>()`, enabling in-process composition without HTTP roundtrips.
+
+**Two-phase loading**: The host loads non-API plugins first (Phase 1), creates a `pluginsClient` map, then loads the API with that map injected (Phase 2). The host is generic — no plugin-specific code.
+
+**Generated types**: `api/src/plugins-client.gen.ts` and `ui/src/api-contract.gen.ts` are generated by `bun run sync:api-contract` from `bos.config.json`. These files are gitignored and auto-regenerated on `bun install`, `typecheck`, `bos dev`, `bos build`, and `bos pluginAdd`/`pluginRemove`.
+
+Plugin types resolve in two ways:
+- `local:plugins/<name>` → reads `src/contract.ts` directly from disk
+- Remote URL → fetches bundled types from the deployed plugin manifest
+
+If you hand-edit `bos.config.json`, run `bun run sync:api-contract` or restart `bos dev` to regenerate.
 
 ## Changesets
 
@@ -100,46 +184,13 @@ bun run changeset
 # Follow prompts to select packages and describe changes
 ```
 
-**What happens in CI:**
-- Changesets are versioned automatically on merge to main
-- Releases published via `.github/workflows/release.yml`
-- GitHub releases created for api and ui packages
-
-## Documentation Hierarchy
-
-| File | Purpose | Use When |
-|------|---------|----------|
-| **AGENTS.md** | This file - agent operational guide | Starting work on this repo |
-| **README.md** | Human quick start, high-level overview | Understanding project basics |
-| **CONTRIBUTING.md** | Contribution guidelines, git workflow | Preparing to contribute |
-| **LLM.txt** | Deep technical reference | Implementing features, debugging |
-| **api/README.md** | API-specific docs | Working on API plugin |
-| **ui/README.md** | UI-specific docs | Working on frontend |
-| **host/README.md** | Host-specific docs | Working on server |
-
-## Available Skills
-
-When working on this project, check for the `bos` skill:
-
-```bash
-npx openskills read bos
-# Or read directly:
-# .agent/skills/bos/SKILL.md
-```
-
-The `bos` CLI skill covers:
-- Development workflows (`bos dev`, `bos start`)
-- Build and deploy processes
-- Project management commands
-- Troubleshooting common issues
-
 ## Testing & Quality
 
 **Before committing:**
 ```bash
 bun test        # Run all tests
 bun typecheck   # Type check all packages
-bun lint        # Run linting (after setup)
+bun lint        # Run linting
 ```
 
 ## Common Patterns
@@ -159,9 +210,25 @@ export const Route = createFileRoute('/_layout/_authenticated')({
 
 ### API Client Usage
 ```typescript
-import { apiClient } from '@/app';
+import { useApiClient } from "@/lib/use-api-client";
 
-const { data } = await apiClient.getData({ id: '123' });
+function MyComponent() {
+  const apiClient = useApiClient();
+  const { data } = await apiClient.ping();
+  const { data } = await apiClient.registry.listRegistryApps({ limit: 24 });
+}
+```
+
+### App Name in UI
+```typescript
+import { getAppName } from "@/app";
+
+// In a component (client-side only)
+const appName = useClientValue(() => getAppName(), "app");
+
+// In a head() function (server-side, from loaderData)
+const { runtimeConfig } = Route.useLoaderData();
+const appName = getActiveRuntime(runtimeConfig)?.title ?? getAccount(runtimeConfig);
 ```
 
 ## Troubleshooting
@@ -170,7 +237,7 @@ const { data } = await apiClient.getData({ id: '123' });
 ```bash
 bos kill        # Kill all tracked processes
 bun install     # Ensure dependencies
-bos dev --host remote   # Restart
+bun run dev     # Restart
 ```
 
 **Module Federation errors:**
@@ -191,12 +258,5 @@ bun run db:studio # Open Drizzle Studio
 - `bos.config.json` - Runtime configuration (committed)
 
 **Key ports:**
-- 3000 - Host (when running full local)
-- 3002 - UI dev server
-- 3014 - API dev server
-
-## Questions?
-
-- Check the relevant README in this hierarchy
-- Review LLM.txt for technical deep-dives
-- See CONTRIBUTING.md for contribution questions
+- 3003 - UI dev server
+- 3001 - API dev server

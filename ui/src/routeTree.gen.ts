@@ -9,12 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LayoutRouteRouteImport } from './routes/_layout/route'
+import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
-import { Route as LayoutCrosspostRouteImport } from './routes/_layout/_crosspost'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
-import { Route as LayoutCrosspostIndexRouteImport } from './routes/_layout/_crosspost/index'
+import { Route as LayoutAuthenticatedHomeRouteImport } from './routes/_layout/_authenticated/home'
 import { Route as LayoutAuthenticatedAdminRouteImport } from './routes/_layout/_authenticated/_admin'
+import { Route as LayoutAuthenticatedSettingsIndexRouteImport } from './routes/_layout/_authenticated/settings/index'
 import { Route as LayoutAuthenticatedResultsIndexRouteImport } from './routes/_layout/_authenticated/results/index'
 import { Route as LayoutAuthenticatedProfileIndexRouteImport } from './routes/_layout/_authenticated/profile/index'
 import { Route as LayoutAuthenticatedManageIndexRouteImport } from './routes/_layout/_authenticated/manage/index'
@@ -23,31 +24,38 @@ import { Route as LayoutAuthenticatedEditorIndexRouteImport } from './routes/_la
 import { Route as LayoutAuthenticatedProfileAccountIdRouteImport } from './routes/_layout/_authenticated/profile/$accountId'
 import { Route as LayoutAuthenticatedAdminDashboardRouteImport } from './routes/_layout/_authenticated/_admin/dashboard'
 
-const LayoutRouteRoute = LayoutRouteRouteImport.update({
+const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LayoutIndexRoute = LayoutIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutLoginRoute = LayoutLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => LayoutRouteRoute,
-} as any)
-const LayoutCrosspostRoute = LayoutCrosspostRouteImport.update({
-  id: '/_crosspost',
-  getParentRoute: () => LayoutRouteRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutAuthenticatedRoute = LayoutAuthenticatedRouteImport.update({
   id: '/_authenticated',
-  getParentRoute: () => LayoutRouteRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutCrosspostIndexRoute = LayoutCrosspostIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LayoutCrosspostRoute,
+const LayoutAuthenticatedHomeRoute = LayoutAuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => LayoutAuthenticatedRoute,
 } as any)
 const LayoutAuthenticatedAdminRoute =
   LayoutAuthenticatedAdminRouteImport.update({
     id: '/_admin',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
+const LayoutAuthenticatedSettingsIndexRoute =
+  LayoutAuthenticatedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
     getParentRoute: () => LayoutAuthenticatedRoute,
   } as any)
 const LayoutAuthenticatedResultsIndexRoute =
@@ -94,8 +102,9 @@ const LayoutAuthenticatedAdminDashboardRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof LayoutCrosspostIndexRoute
+  '/': typeof LayoutIndexRoute
   '/login': typeof LayoutLoginRoute
+  '/home': typeof LayoutAuthenticatedHomeRoute
   '/dashboard': typeof LayoutAuthenticatedAdminDashboardRoute
   '/profile/$accountId': typeof LayoutAuthenticatedProfileAccountIdRoute
   '/editor/': typeof LayoutAuthenticatedEditorIndexRoute
@@ -103,10 +112,12 @@ export interface FileRoutesByFullPath {
   '/manage/': typeof LayoutAuthenticatedManageIndexRoute
   '/profile/': typeof LayoutAuthenticatedProfileIndexRoute
   '/results/': typeof LayoutAuthenticatedResultsIndexRoute
+  '/settings/': typeof LayoutAuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof LayoutCrosspostIndexRoute
+  '/': typeof LayoutIndexRoute
   '/login': typeof LayoutLoginRoute
+  '/home': typeof LayoutAuthenticatedHomeRoute
   '/dashboard': typeof LayoutAuthenticatedAdminDashboardRoute
   '/profile/$accountId': typeof LayoutAuthenticatedProfileAccountIdRoute
   '/editor': typeof LayoutAuthenticatedEditorIndexRoute
@@ -114,15 +125,16 @@ export interface FileRoutesByTo {
   '/manage': typeof LayoutAuthenticatedManageIndexRoute
   '/profile': typeof LayoutAuthenticatedProfileIndexRoute
   '/results': typeof LayoutAuthenticatedResultsIndexRoute
+  '/settings': typeof LayoutAuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_layout': typeof LayoutRouteRouteWithChildren
+  '/_layout': typeof LayoutRouteWithChildren
   '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
-  '/_layout/_crosspost': typeof LayoutCrosspostRouteWithChildren
   '/_layout/login': typeof LayoutLoginRoute
+  '/_layout/': typeof LayoutIndexRoute
   '/_layout/_authenticated/_admin': typeof LayoutAuthenticatedAdminRouteWithChildren
-  '/_layout/_crosspost/': typeof LayoutCrosspostIndexRoute
+  '/_layout/_authenticated/home': typeof LayoutAuthenticatedHomeRoute
   '/_layout/_authenticated/_admin/dashboard': typeof LayoutAuthenticatedAdminDashboardRoute
   '/_layout/_authenticated/profile/$accountId': typeof LayoutAuthenticatedProfileAccountIdRoute
   '/_layout/_authenticated/editor/': typeof LayoutAuthenticatedEditorIndexRoute
@@ -130,12 +142,14 @@ export interface FileRoutesById {
   '/_layout/_authenticated/manage/': typeof LayoutAuthenticatedManageIndexRoute
   '/_layout/_authenticated/profile/': typeof LayoutAuthenticatedProfileIndexRoute
   '/_layout/_authenticated/results/': typeof LayoutAuthenticatedResultsIndexRoute
+  '/_layout/_authenticated/settings/': typeof LayoutAuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/home'
     | '/dashboard'
     | '/profile/$accountId'
     | '/editor/'
@@ -143,10 +157,12 @@ export interface FileRouteTypes {
     | '/manage/'
     | '/profile/'
     | '/results/'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/home'
     | '/dashboard'
     | '/profile/$accountId'
     | '/editor'
@@ -154,14 +170,15 @@ export interface FileRouteTypes {
     | '/manage'
     | '/profile'
     | '/results'
+    | '/settings'
   id:
     | '__root__'
     | '/_layout'
     | '/_layout/_authenticated'
-    | '/_layout/_crosspost'
     | '/_layout/login'
+    | '/_layout/'
     | '/_layout/_authenticated/_admin'
-    | '/_layout/_crosspost/'
+    | '/_layout/_authenticated/home'
     | '/_layout/_authenticated/_admin/dashboard'
     | '/_layout/_authenticated/profile/$accountId'
     | '/_layout/_authenticated/editor/'
@@ -169,10 +186,11 @@ export interface FileRouteTypes {
     | '/_layout/_authenticated/manage/'
     | '/_layout/_authenticated/profile/'
     | '/_layout/_authenticated/results/'
+    | '/_layout/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  LayoutRouteRoute: typeof LayoutRouteRouteWithChildren
+  LayoutRoute: typeof LayoutRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -181,42 +199,49 @@ declare module '@tanstack/react-router' {
       id: '/_layout'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof LayoutRouteRouteImport
+      preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_layout/': {
+      id: '/_layout/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
     }
     '/_layout/login': {
       id: '/_layout/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LayoutLoginRouteImport
-      parentRoute: typeof LayoutRouteRoute
-    }
-    '/_layout/_crosspost': {
-      id: '/_layout/_crosspost'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof LayoutCrosspostRouteImport
-      parentRoute: typeof LayoutRouteRoute
+      parentRoute: typeof LayoutRoute
     }
     '/_layout/_authenticated': {
       id: '/_layout/_authenticated'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof LayoutAuthenticatedRouteImport
-      parentRoute: typeof LayoutRouteRoute
+      parentRoute: typeof LayoutRoute
     }
-    '/_layout/_crosspost/': {
-      id: '/_layout/_crosspost/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof LayoutCrosspostIndexRouteImport
-      parentRoute: typeof LayoutCrosspostRoute
+    '/_layout/_authenticated/home': {
+      id: '/_layout/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof LayoutAuthenticatedHomeRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
     }
     '/_layout/_authenticated/_admin': {
       id: '/_layout/_authenticated/_admin'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof LayoutAuthenticatedAdminRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
+    '/_layout/_authenticated/settings/': {
+      id: '/_layout/_authenticated/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof LayoutAuthenticatedSettingsIndexRouteImport
       parentRoute: typeof LayoutAuthenticatedRoute
     }
     '/_layout/_authenticated/results/': {
@@ -288,16 +313,19 @@ const LayoutAuthenticatedAdminRouteWithChildren =
 
 interface LayoutAuthenticatedRouteChildren {
   LayoutAuthenticatedAdminRoute: typeof LayoutAuthenticatedAdminRouteWithChildren
+  LayoutAuthenticatedHomeRoute: typeof LayoutAuthenticatedHomeRoute
   LayoutAuthenticatedProfileAccountIdRoute: typeof LayoutAuthenticatedProfileAccountIdRoute
   LayoutAuthenticatedEditorIndexRoute: typeof LayoutAuthenticatedEditorIndexRoute
   LayoutAuthenticatedLeaderboardIndexRoute: typeof LayoutAuthenticatedLeaderboardIndexRoute
   LayoutAuthenticatedManageIndexRoute: typeof LayoutAuthenticatedManageIndexRoute
   LayoutAuthenticatedProfileIndexRoute: typeof LayoutAuthenticatedProfileIndexRoute
   LayoutAuthenticatedResultsIndexRoute: typeof LayoutAuthenticatedResultsIndexRoute
+  LayoutAuthenticatedSettingsIndexRoute: typeof LayoutAuthenticatedSettingsIndexRoute
 }
 
 const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
   LayoutAuthenticatedAdminRoute: LayoutAuthenticatedAdminRouteWithChildren,
+  LayoutAuthenticatedHomeRoute: LayoutAuthenticatedHomeRoute,
   LayoutAuthenticatedProfileAccountIdRoute:
     LayoutAuthenticatedProfileAccountIdRoute,
   LayoutAuthenticatedEditorIndexRoute: LayoutAuthenticatedEditorIndexRoute,
@@ -306,41 +334,29 @@ const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
   LayoutAuthenticatedManageIndexRoute: LayoutAuthenticatedManageIndexRoute,
   LayoutAuthenticatedProfileIndexRoute: LayoutAuthenticatedProfileIndexRoute,
   LayoutAuthenticatedResultsIndexRoute: LayoutAuthenticatedResultsIndexRoute,
+  LayoutAuthenticatedSettingsIndexRoute: LayoutAuthenticatedSettingsIndexRoute,
 }
 
 const LayoutAuthenticatedRouteWithChildren =
   LayoutAuthenticatedRoute._addFileChildren(LayoutAuthenticatedRouteChildren)
 
-interface LayoutCrosspostRouteChildren {
-  LayoutCrosspostIndexRoute: typeof LayoutCrosspostIndexRoute
-}
-
-const LayoutCrosspostRouteChildren: LayoutCrosspostRouteChildren = {
-  LayoutCrosspostIndexRoute: LayoutCrosspostIndexRoute,
-}
-
-const LayoutCrosspostRouteWithChildren = LayoutCrosspostRoute._addFileChildren(
-  LayoutCrosspostRouteChildren,
-)
-
-interface LayoutRouteRouteChildren {
+interface LayoutRouteChildren {
   LayoutAuthenticatedRoute: typeof LayoutAuthenticatedRouteWithChildren
-  LayoutCrosspostRoute: typeof LayoutCrosspostRouteWithChildren
   LayoutLoginRoute: typeof LayoutLoginRoute
+  LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
-const LayoutRouteRouteChildren: LayoutRouteRouteChildren = {
+const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAuthenticatedRoute: LayoutAuthenticatedRouteWithChildren,
-  LayoutCrosspostRoute: LayoutCrosspostRouteWithChildren,
   LayoutLoginRoute: LayoutLoginRoute,
+  LayoutIndexRoute: LayoutIndexRoute,
 }
 
-const LayoutRouteRouteWithChildren = LayoutRouteRoute._addFileChildren(
-  LayoutRouteRouteChildren,
-)
+const LayoutRouteWithChildren =
+  LayoutRoute._addFileChildren(LayoutRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  LayoutRouteRoute: LayoutRouteRouteWithChildren,
+  LayoutRoute: LayoutRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -10,7 +10,7 @@ bun db:migrate           # Run database migrations
 bos dev --host remote    # Start development (typical workflow)
 ```
 
-Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
+Visit http://localhost:3003 (UI), http://localhost:3001 (API), and http://localhost:3002 (Auth).
 
 **Need more details?** See [README.md](./README.md) for architecture overview and [LLM.txt](./LLM.txt) for technical deep-dive.
 
@@ -20,7 +20,28 @@ Visit http://localhost:3002 (UI) and http://localhost:3014 (API).
 
 - **UI Changes**: Edit `ui/src/` → hot reload automatically → deploy with `bun run build:ui`
 - **API Changes**: Edit `api/src/` → hot reload automatically → deploy with `bun run build:api`
+- **Plugin Changes**: Edit `plugins/*/src/` → hot reload automatically → deploy per plugin
 - **Host Changes**: Edit `host/src/` or `bos.config.json` → deploy with `bun run build:host`
+
+### Plugin Architecture
+
+Business logic lives in independent plugins under `plugins/`:
+
+- **`plugins/registry/`** — FastKV app discovery, metadata publish/relay (no database)
+- **`plugins/auth/`** — Authentication and authorization (Better-Auth, NEAR SIWN, organizations, API keys)
+- **`plugins/projects/`** — Projects CRUD, KV store, org management, API keys (SQLite via libsql)
+- **`plugins/opencode/`** — AI dev loop integration
+- **`plugins/_template/`** — Scaffold for new plugins
+
+Each plugin has its own `contract.ts`, `index.ts`, `rspack.config.js`, and `package.json`. Routes are namespaced in the UI: `apiClient.registry.*()` and `apiClient.projects.*()`.
+
+The `api/` package is a thin structural shell with only health/ping routes and shared auth middleware. It can compose across plugins in-process via `createPlugin.withPlugins<PluginsClient>()` — the API receives typed client factories for all other plugins and calls their routers directly without HTTP roundtrips.
+
+Plugin and API variables are configured in `bos.config.json`:
+- API variables: `app.api.variables` → `config.variables` in `initialize`
+- Plugin variables: `plugins.{key}.variables` → plugin's own `config.variables` in `initialize`
+
+Plugins are accessible both directly via HTTP (`/api/{key}/*`) and in-process via `services.plugins.{key}()`. The UI uses HTTP; the API uses in-process for composition.
 
 ### Environment Configuration
 
@@ -41,6 +62,7 @@ Secrets go in `.env` (see [.env.example](./.env.example) for required variables)
 - **[api/README.md](./api/README.md)** - API plugin documentation
 - **[ui/README.md](./ui/README.md)** - Frontend documentation
 - **[host/README.md](./host/README.md)** - Server host documentation
+- **[plugins/auth/README.md](./plugins/auth/README.md)** - Auth plugin documentation
 
 ## Git Workflow
 

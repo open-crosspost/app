@@ -5,30 +5,19 @@ import {
   HeadContent,
   Outlet,
   Scripts,
-  useSearch,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/router-devtools";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { getRemoteScripts } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
-import { z } from "zod";
-import { getBaseStyles, getRuntimeBasePath } from "@/app";
-import { APP_DESCRIPTION, APP_NAME, METADATA_IMAGE_ALT } from "@/lib/branding";
-import { type SessionData, sessionQueryOptions } from "@/lib/session";
-import type { RouterContext } from "@/types";
+import type { RouterContext } from "@/app";
+import { getAppName, getBaseStyles, getRuntimeBasePath } from "@/app";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
-const rootSearchSchema = z.object({
-  pretend: z.string().optional(),
-});
-
 export const Route = createRootRouteWithContext<RouterContext>()({
-  validateSearch: (search) => rootSearchSchema.parse(search),
   beforeLoad: async ({ context }) => {
-    const { queryClient } = context;
-    const initialSession = context.session as SessionData | undefined | null;
-    const session = await queryClient.ensureQueryData(sessionQueryOptions(initialSession));
+    const session = context.session;
 
     return {
       assetsUrl: context.assetsUrl || "",
@@ -36,10 +25,19 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       session,
     };
   },
-  loader: ({ context }) => {
+  loader: async ({ context }) => {
+    const { queryClient } = context;
+    const session = context.session;
+
+    // Pre-populate session cache from SSR data
+    if (session && queryClient) {
+      queryClient.setQueryData(["session"], session);
+    }
+
     return {
       assetsUrl: context.assetsUrl || "",
       runtimeConfig: context.runtimeConfig,
+      session,
     };
   },
   head: ({ loaderData }) => {
@@ -49,16 +47,17 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const siteUrl = runtimeConfig?.hostUrl
       ? `${runtimeConfig.hostUrl}${runtimeBasePath === "/" ? "" : runtimeBasePath}`
       : "";
-    const title = APP_NAME;
-    const description = APP_DESCRIPTION;
-    const siteName = APP_NAME;
-    const ogImage = `${assetsUrl}/og-image.png`;
+    const title = getAppName(runtimeConfig);
+    const description =
+      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.";
+    const siteName = title;
+    const ogImage = `${assetsUrl}/metadata.png`;
 
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: APP_NAME,
-      description: APP_DESCRIPTION,
+      name: title,
+      description,
       url: runtimeConfig?.hostUrl || undefined,
     };
 
@@ -87,7 +86,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           description,
           siteName,
           siteUrl,
-          alt: METADATA_IMAGE_ALT,
+          alt: "app preview",
         }),
       ],
       links: [
@@ -100,6 +99,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { rel: "shortcut icon", href: `${assetsUrl}/favicon.ico` },
         { rel: "icon", type: "image/svg+xml", href: `${assetsUrl}/icon.svg` },
+        { rel: "icon", type: "image/png", sizes: "32x32", href: `${assetsUrl}/favicon-32x32.png` },
+        { rel: "icon", type: "image/png", sizes: "16x16", href: `${assetsUrl}/favicon-16x16.png` },
+        {
+          rel: "apple-touch-icon",
+          sizes: "180x180",
+          href: `${assetsUrl}/apple-touch-icon.png`,
+        },
         { rel: "manifest", href: `${assetsUrl}/manifest.json` },
         ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
@@ -119,12 +125,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     };
   },
   component: RootComponent,
-  notFoundComponent: () => <>Not found</>,
 });
 
 function RootComponent() {
-  useSearch({ from: Route.id });
-
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
@@ -145,7 +148,7 @@ function RootComponent() {
               config={{ position: "bottom-right" }}
               plugins={[
                 {
-                  name: "Router",
+                  name: "Tanstack Router",
                   render: <TanStackRouterDevtoolsPanel />,
                 },
                 TanStackQueryDevtools,

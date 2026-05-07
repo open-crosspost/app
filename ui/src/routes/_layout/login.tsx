@@ -1,6 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Navigate, redirect, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { getAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import {
   getRedirectUrl,
@@ -18,27 +19,37 @@ type SearchParams = {
 };
 
 export const Route = createFileRoute("/_layout/login")({
+  ssr: false,
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
   beforeLoad: ({ context, search }) => {
-    const session = context.session as SessionData | null | undefined;
+    const initialSession = context.session as SessionData | null | undefined;
+    const session =
+      initialSession ?? context.queryClient.getQueryData(sessionQueryOptions(initialSession).queryKey);
+
     if (session?.user) {
       throw redirect({ to: getRedirectUrl(search.redirect), search: {} });
     }
   },
+  loader: ({ context }) => {
+    void context.queryClient.prefetchQuery(sessionQueryOptions(context.session));
+  },
   component: LoginPage,
-  ssr: false,
 });
 
 function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: session } = useQuery(sessionQueryOptions());
+  const { redirect } = Route.useSearch();
 
   const handleSuccess = async (message: string) => {
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-    const session = queryClient.getQueryData<SessionData | null>(sessionQueryOptions().queryKey);
-    if (!session?.user) return;
+    const { data: freshSession } = await getAuthClient().getSession();
+    if (freshSession) {
+      queryClient.setQueryData(["session"], freshSession);
+    }
+    await queryClient.invalidateQueries({ queryKey: ["session"] });
     await router.invalidate();
     toast.success(message);
   };
@@ -64,6 +75,11 @@ function LoginPage() {
   });
 
   const isPending = nearMutation.isPending || anonymousMutation.isPending;
+
+  if (session?.user) {
+    const redirectTo = redirect?.startsWith("/") ? redirect : "/";
+    return <Navigate to={redirectTo} replace search={{}} />;
+  }
 
   return (
     <div className="min-h-[70vh] w-full flex items-start justify-center px-6 pt-[15vh] animate-fade-in">

@@ -1,8 +1,52 @@
 {
-  "account": "crosspost.near",
   "extends": "bos://dev.everything.near/everything.dev",
+  "account": "crosspost.near",
   "domain": "opencrosspost.com",
+  "staging": {
+    "domain": "staging.dev.everything.dev"
+  },
   "repository": "https://github.com/open-crosspost/app",
+  "app": {
+    "host": {
+      "name": "host",
+      "development": "local:host",
+      "production": "https://elliot-braem-2858-host-app-open-crosspost-81e97c44e-ze.zephyrcloud.app",
+      "productionIntegrity": "sha384-HO4zT03FrUP9zEyT12VrZLE1hmymc2vyTDDbslXn85Q/fJtDKzLletqomrxCyQvn",
+      "integrity": "sha384-liiyiYdtieRsJ34satdsBAb0+MQQfRVF0Y2B68FoFlErpzTH3b9ORoZML276Dhvo"
+    },
+    "ui": {
+      "name": "ui",
+      "development": "local:ui",
+      "production": "https://elliot-braem-2852-ui-app-open-crosspost-08b7e6f13-ze.zephyrcloud.app",
+      "ssr": "https://elliot-braem-2853-ui-app-open-crosspost-27356f50a-ze.zephyrcloud.app",
+      "productionIntegrity": "sha384-7l3ACM+KXPsXnRVP/y14DVPUg52NdImmBfyg7+ftUb44wlPN2QOKzDD4OEjX34+T",
+      "integrity": "sha384-MKR+b2RadDVd/bFyjvYIZ/9JH9kZDaTeYXoKpyIb158e7pVyiFOihgx4cQC7zfCr"
+    },
+    "api": {
+      "name": "api",
+      "development": "local:api",
+      "variables": {},
+      "secrets": [],
+      "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
+      "productionIntegrity": "sha384-WNyle3IORCrje3h4PslSAJBD8zNrPiRie7+Ofn9p+EG7l2Q0XX3JVMmWtZ0/X5sH",
+      "integrity": "sha384-F/9XCsnI1OXvDAqCr19AgiZk143Lri7grrqhApt17kIQKz5VFqpEu1XduDm/gBgw"
+    },
+    "auth": {
+      "name": "everything-dev_auth-plugin",
+      "development": "local:plugins/auth",
+      "production": "https://elliot-braem-3045-everything-dev-auth-plugin-ever-1d1e434e4-ze.zephyrcloud.app",
+      "integrity": "sha384-E0ULDEFVUdqUyOgZIuMrDbPOynLEaxiDgKari0cfzzQYPcYdbeaYfdS3I3m7wzUo",
+      "variables": {
+        "account": "dev.everything.near",
+        "hostUrl": "http://localhost:3000",
+        "uiUrl": "http://localhost:3003"
+      },
+      "secrets": [
+        "AUTH_DATABASE_URL",
+        "BETTER_AUTH_SECRET"
+      ]
+    }
+  },
   "plugins": {
     "crosspost": {
       "development": "local:plugins/crosspost",
@@ -17,31 +61,37 @@
       "production": "https://elliot-braem-2857-crosspost-twitter-app-open-cros-b97ea74a6-ze.zephyrcloud.app"
     }
   },
-  "app": {
-    "host": {
-      "name": "host",
-      "development": "local:host",
-      "production": "https://elliot-braem-2858-host-app-open-crosspost-81e97c44e-ze.zephyrcloud.app",
-      "productionIntegrity": "sha384-HO4zT03FrUP9zEyT12VrZLE1hmymc2vyTDDbslXn85Q/fJtDKzLletqomrxCyQvn"
-    },
-    "ui": {
-      "name": "ui",
-      "development": "local:ui",
-      "production": "https://elliot-braem-2852-ui-app-open-crosspost-08b7e6f13-ze.zephyrcloud.app",
-      "ssr": "https://elliot-braem-2853-ui-app-open-crosspost-27356f50a-ze.zephyrcloud.app",
-      "productionIntegrity": "sha384-7l3ACM+KXPsXnRVP/y14DVPUg52NdImmBfyg7+ftUb44wlPN2QOKzDD4OEjX34+T"
-    },
-    "api": {
-      "name": "api",
-      "development": "local:api",
-      "variables": {},
-      "secrets": [],
-      "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
-      "productionIntegrity": "sha384-WNyle3IORCrje3h4PslSAJBD8zNrPiRie7+Ofn9p+EG7l2Q0XX3JVMmWtZ0/X5sH"
-    }
-  },
-  "testnet": "crosspost.testnet",
   "shared": {
-    "ui": {}
+    "ui": {
+      "effect": {
+        "version": "3.21.0",
+        "requiredVersion": "^3.21.0",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "zod": {
+        "version": "4.3.6",
+        "requiredVersion": "^4.3.6",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "@orpc/contract": {
+        "version": "1.13.14",
+        "requiredVersion": "^1.13.14",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "better-auth": {
+        "version": "1.6.9",
+        "requiredVersion": "^1.6.9",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      }
+    },
+    "plugins": {}
   }
 }

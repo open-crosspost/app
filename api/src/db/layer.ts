@@ -1,10 +1,13 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "every-plugin/effect";
 import { createDatabase, type Database } from "./index";
 
 export class DatabaseTag extends Context.Tag("Database")<DatabaseTag, Database>() {}
 
 export const DatabaseLive = (url: string, authToken?: string) =>
-  Layer.effect(
+  Layer.scoped(
     DatabaseTag,
-    Effect.sync(() => createDatabase(url, authToken)),
+    Effect.acquireRelease(
+      Effect.sync(() => createDatabase(url, authToken)),
+      (acquired) => Effect.sync(() => acquired.client.close()),
+    ).pipe(Effect.map((acquired) => acquired.db)),
   );
