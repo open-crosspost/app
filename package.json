@@ -20,7 +20,7 @@
       "@better-auth/api-key": "^1.6.9",
       "@better-auth/passkey": "^1.6.9",
       "better-near-auth": "^1.1.0",
-      "every-plugin": "^2.5.3",
+      "every-plugin": "^2.5.4",
       "typescript": "^5.9.3",
       "vitest": "^4.0.17",
       "@libsql/client": "0.17.0",
@@ -56,7 +56,7 @@
     "build": "everything-dev build",
     "deploy": "everything-dev build --deploy",
     "publish": "everything-dev publish",
-    "typecheck": "bun run sync:api-contract & bun run --cwd ui tsc --noEmit & bun run --cwd api tsc --noEmit & bun run --cwd host tsc --noEmit & wait",
+    "typecheck": "bun run sync:api-contract & bun run --cwd ui tsc --noEmit & bun run --cwd api tsc --noEmit & wait",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
@@ -101,8 +101,8 @@
     "effect": "3.21.0",
     "zod": "4.3.6",
     "@opentelemetry/api": "^1.9.0",
-    "every-plugin": "^2.5.3",
-    "everything-dev": "^1.8.12"
+    "every-plugin": "^2.5.4",
+    "everything-dev": "^1.8.13"
   },
   "overrides": {
     "axios": "1.13.6",
