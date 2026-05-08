@@ -23,7 +23,10 @@
       "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
       "integrity": "sha384-F/9XCsnI1OXvDAqCr19AgiZk143Lri7grrqhApt17kIQKz5VFqpEu1XduDm/gBgw",
       "variables": {},
-      "secrets": []
+      "secrets": [
+        "API_DATABASE_URL",
+        "API_DATABASE_AUTH_TOKEN"
+      ]
     },
     "host": {
       "development": "local:host",
@@ -33,13 +36,8 @@
     "auth": {
       "name": "everything-dev_auth-plugin",
       "development": "local:plugins/auth",
-      "production": "https://elliot-braem-3117-everything-dev-auth-plugin-ever-bcbd7fe28-ze.zephyrcloud.app",
-      "integrity": "sha384-k/2IehG987NgfryFdvxGSiMNJSSXu6FONWoh5Pht4uASOXqhLwWThx74wc1xOCLd",
-      "variables": {
-        "account": "dev.everything.near",
-        "hostUrl": "http://localhost:3000",
-        "uiUrl": "http://localhost:3003"
-      },
+      "production": "https://elliot-braem-3211-everything-dev-auth-plugin-bett-cb0b26277-ze.zephyrcloud.app",
+      "integrity": "sha384-jmrWhl5xocFIk6wdy+VoS9PfIZnb51SHS3zLzVK1rKsFP1Nc3nGBYgf+RdFQTGso",
       "secrets": [
         "AUTH_DATABASE_URL",
         "BETTER_AUTH_SECRET"
