@@ -26,7 +26,7 @@ export function UserNav() {
 
   if (!isAuthenticated) {
     return (
-      <Button variant="outline" size="sm" asChild>
+      <Button size="sm" asChild>
         <Link to="/login">Sign in</Link>
       </Button>
     );

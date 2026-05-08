@@ -111,7 +111,6 @@ function LoginPage() {
           </div>
 
           <Button
-            variant="outline"
             onClick={() => anonymousMutation.mutate()}
             disabled={isPending}
             className="w-full"
