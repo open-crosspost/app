@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 import { pluginModuleFederation } from "@module-federation/rsbuild-plugin";
 import { defineConfig } from "@rsbuild/core";
-import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { pluginReact } from "@rsbuild/plugin-react";
 import { TanStackRouterRspack } from "@tanstack/router-plugin/rspack";
 import { computeSriHashForUrl } from "everything-dev/integrity";
@@ -52,7 +51,6 @@ function updateBosConfig(field: "production" | "ssr", url: string, integrity?: s
 function createClientConfig() {
   const plugins = [
     pluginReact(),
-    pluginNodePolyfill(),
     pluginModuleFederation({
       name: normalizedName,
       filename: "remoteEntry.js",

@@ -1,5 +1,5 @@
 import { ActivityLeaderboardQuerySchema, type Platform, TimePeriod } from "@crosspost/plugin/types";
-import { getErrorMessage } from "@crosspost/sdk";
+import { getErrorMessage } from "@/lib/error-utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {

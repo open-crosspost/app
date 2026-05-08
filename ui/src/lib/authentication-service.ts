@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@crosspost/plugin/types";
-import { getErrorMessage } from "@crosspost/sdk";
+import { getErrorMessage } from "@/lib/error-utils";
 import {
   type QueryClient,
   type UseMutationOptions,

@@ -1,5 +1,5 @@
 import type { PostContent } from "@crosspost/plugin/types";
-import { getErrorMessage, isPlatformError } from "@crosspost/sdk";
+import { getErrorMessage, isPlatformError } from "@/lib/error-utils";
 import type { Network } from "near-kit";
 import * as NearSocialJS from "near-social-js";
 import { NETWORK_ID } from "@/config";

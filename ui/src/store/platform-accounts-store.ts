@@ -1,5 +1,5 @@
 import type { ConnectedAccount, Platform } from "@crosspost/plugin/types";
-import { getErrorMessage } from "@crosspost/sdk";
+import { getErrorMessage } from "@/lib/error-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -68,9 +68,9 @@ export function useConnectedAccounts() {
   const isSignedIn = !!session?.user;
   const { toast } = useToast();
 
-  return useQuery({
+  return useQuery<ConnectedAccount[]>({
     queryKey: ["connectedAccounts"],
-    queryFn: async () => {
+    queryFn: async (): Promise<ConnectedAccount[]> => {
       if (!currentAccountId) {
         throw new Error("Wallet not connected or account ID unavailable.");
       }

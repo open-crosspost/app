@@ -74,16 +74,16 @@ export const fetchLeaderboard = async ({
   meta?: { pagination: { total: number } };
 }> => {
   const client = getClient();
-  const response = await client.activity.getLeaderboard({
+  const response: any = await client.activity.getLeaderboard({
     limit,
     offset,
-    timeframe: timeframe as any,
+    timeframe,
     startDate,
     endDate,
-    platforms: platforms as any,
+    platforms,
   });
 
-  const normalized = normalizeLeaderboardResponse(response.data);
+  const normalized = normalizeLeaderboardResponse(response?.data);
   return normalized;
 };
 

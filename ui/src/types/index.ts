@@ -4,7 +4,7 @@ import type {
   RouterContextWithApi as BaseRouterContextWithApi,
 } from "everything-dev/ui/types";
 import type { ApiClient as BaseApiClient } from "@/lib/api-client";
-import type { SessionData } from "@/lib/session";
+import type { SessionData } from "@/app";
 
 export type {
   ClientRuntimeConfig,

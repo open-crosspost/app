@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@crosspost/sdk";
+import { getErrorMessage } from "@/lib/error-utils";
 
 // Client-side utility for fetching profile data from NEAR Social API
 // This is shared by the rspack.config.ts

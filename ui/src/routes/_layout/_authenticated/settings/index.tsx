@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { type SessionData } from "@/app";
-import { sessionQueryOptions, signOutAndNavigate } from "@/lib/session";
+import { type SessionData, getAuthClient } from "@/app";
+import { sessionQueryOptions } from "@/lib/session";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 
@@ -14,6 +14,13 @@ function SettingsPage() {
   const router = useRouter();
   const { data: session } = useQuery<SessionData | null>(sessionQueryOptions());
 
+  const handleSignOut = async () => {
+    await getAuthClient().signOut();
+    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    await router.invalidate();
+    await router.navigate({ to: "/" });
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
@@ -25,10 +32,7 @@ function SettingsPage() {
               {session?.user?.name || session?.user?.email || "Anonymous"}
             </p>
           </div>
-          <Button
-            variant="destructive"
-            onClick={() => signOutAndNavigate(queryClient, router)}
-          >
+          <Button variant="destructive" onClick={handleSignOut}>
             Sign Out
           </Button>
         </div>
