@@ -3,9 +3,6 @@
   "account": "crosspost.near",
   "domain": "opencrosspost.com",
   "testnet": "dev.allthethings.testnet",
-  "staging": {
-    "domain": "staging.dev.everything.dev"
-  },
   "repository": "https://github.com/open-crosspost/app",
   "app": {
     "ui": {
@@ -27,11 +24,6 @@
         "API_DATABASE_URL",
         "API_DATABASE_AUTH_TOKEN"
       ]
-    },
-    "host": {
-      "development": "local:host",
-      "production": "https://elliot-braem-3122-host-everything-dev-nearbuilder-d21b63e11-ze.zephyrcloud.app",
-      "integrity": "sha384-CrgD+/4aApnpq/fClbiV541MtacqEzTwpbgB7dZ2KhaHMfK7nZl2SuUsFJg7kYwB"
     },
     "auth": {
       "name": "everything-dev_auth-plugin",
