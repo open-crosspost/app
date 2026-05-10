@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useToast } from "@/hooks/use-toast";
-import { getAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import { createAuthenticatedMutation } from "@/lib/authentication-service";
 import { getClient } from "@/lib/authorization-service";
 import { signMessage } from "@/lib/near";
@@ -63,7 +63,7 @@ export const usePlatformAccountsStore = create<PlatformAccountsState>()(
 );
 
 export function useConnectedAccounts() {
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const isSignedIn = !!session?.user;
   const { toast } = useToast();
@@ -116,7 +116,7 @@ interface ConnectAccountVariables {
 // Connect a platform account
 export const useConnectAccount = () => {
   const queryClient = useQueryClient();
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const isSignedIn = !!session?.user;
   const { toast } = useToast();
@@ -275,7 +275,7 @@ export const useCheckAccountStatus = createAuthenticatedMutation<
 });
 
 export function useNearSocialAccount() {
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const isSignedIn = !!session?.user;
   return useQuery({

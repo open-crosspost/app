@@ -12,7 +12,7 @@ import type { PostType } from "@/components/post-interaction-selector";
 import { ToastAction } from "@/components/ui/toast";
 import { useCreatePost, useQuotePost, useReplyPost } from "@/hooks/use-post-mutations";
 import { toast } from "@/hooks/use-toast";
-import { getAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import { NearSocialService, transformNearSocialPost } from "@/lib/near-social-service";
 import { parseCrosspostError } from "@/lib/utils/error-utils";
 import { detectPlatformFromUrl, extractPostIdFromUrl } from "@/lib/utils/url-utils";
@@ -36,7 +36,7 @@ export interface SubmitResult {
  * Hook to manage the post submission process across platforms
  */
 export function useSubmitPost() {
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const isSignedIn = !!session?.user;
   const navigate = useNavigate();
   const { setSubmissionOutcome } = useSubmissionResultsStore();

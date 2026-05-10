@@ -3,8 +3,6 @@ import { useRouter } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
 import {
   NEAR_ERROR_MESSAGES,
   NearAuthError,
@@ -13,20 +11,24 @@ import {
   sessionQueryOptions,
   signInWithNear,
   signOutAndNavigate,
-} from "@/lib/session";
+  useAuthClient,
+} from "@/app";
+import { Button } from "@/components/ui/button";
+import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
 
 export function ConnectToNearButton(): ReactElement {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { data: session, isPending: sessionLoading } = useQuery(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session, isPending: sessionLoading } = useQuery(sessionQueryOptions(authClient));
   const displayAccountId = getNearWalletDisplayFromSession(session);
   const isSignedIn = !!session?.user;
 
   const nearMutation = useMutation({
-    mutationFn: signInWithNear,
+    mutationFn: () => signInWithNear(authClient),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
-      const fresh = queryClient.getQueryData<SessionData | null>(sessionQueryOptions().queryKey);
+      await queryClient.invalidateQueries({ queryKey: ["session"] });
+      const fresh = queryClient.getQueryData<SessionData | null>(["session"]);
       if (!fresh?.user) return;
       await router.invalidate();
       toast.success("Signed in with NEAR");
@@ -42,7 +44,7 @@ export function ConnectToNearButton(): ReactElement {
 
   const handleClick = () => {
     if (isSignedIn) {
-      void signOutAndNavigate(queryClient, router);
+      void signOutAndNavigate(authClient, queryClient, router);
     } else {
       nearMutation.mutate();
     }

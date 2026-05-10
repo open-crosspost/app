@@ -4,12 +4,13 @@ import { Users } from "lucide-react";
 import type * as React from "react";
 import { useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
-import { sessionQueryOptions } from "@/lib/session";
+import { sessionQueryOptions, useAuthClient } from "@/app";
 import { Button } from "./ui/button";
 
 export function ManageAccountsButton(): React.ReactElement {
   const navigate = useNavigate();
-  const { data: session } = useQuery(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session } = useQuery(sessionQueryOptions(authClient));
 
   const handleClick = useCallback(() => {
     if (!session?.user) {

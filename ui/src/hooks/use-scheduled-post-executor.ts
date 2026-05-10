@@ -2,7 +2,7 @@ import type { ConnectedAccount } from "@crosspost/plugin/types";
 import { useEffect, useRef } from "react";
 import { useSubmitPost } from "@/hooks/use-submit-post";
 import { toast } from "@/hooks/use-toast";
-import { getAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import { getClient } from "@/lib/authorization-service";
 import { signMessage } from "@/lib/near";
 import { useAllAccounts } from "@/store/platform-accounts-store";
@@ -14,7 +14,7 @@ export function useScheduledPostExecutor() {
 
   const { submitPost } = useSubmitPost();
   const connectedAccounts = useAllAccounts();
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const isSignedIn = !!session?.user;
   const intervalRef = useRef<NodeJS.Timeout | null>(null);

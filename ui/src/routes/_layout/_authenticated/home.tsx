@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { getAuthClient, type Organization, type Passkey, type SessionData } from "@/app";
+import { type Organization, type Passkey, type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
 import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
-import { sessionQueryOptions } from "@/lib/session";
 
 export const Route = createFileRoute("/_layout/_authenticated/home")({
   head: () => ({
@@ -16,8 +15,8 @@ export const Route = createFileRoute("/_layout/_authenticated/home")({
 });
 
 function Home() {
-  const auth = getAuthClient();
-  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions());
+  const auth = useAuthClient();
+  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions(auth));
   const { data: organizations = [] } = useQuery({
     queryKey: ["organizations"],
     queryFn: async () => {

@@ -69,8 +69,18 @@ import type { AuthClient as AuthClientType } from "./lib/auth";
 
 export type { ApiClient } from "./lib/api";
 export { createApiClient, useApiClient } from "./lib/api";
-export type { AuthClient, Organization, Passkey, SessionData } from "./lib/auth";
-export { createAuthClient, sessionQueryOptions, useAuthClient } from "./lib/auth";
+export type { AuthClient, NearAuthErrorCode, Organization, Passkey, SessionData } from "./lib/auth";
+export {
+  createAuthClient,
+  getRedirectUrl,
+  NEAR_ERROR_MESSAGES,
+  NearAuthError,
+  sessionQueryOptions,
+  signInAnonymous,
+  signInWithNear,
+  signOutAndNavigate,
+  useAuthClient,
+} from "./lib/auth";
 
 export function getAppName(config?: Parameters<typeof getAccount>[0]): string {
   return getActiveRuntime(config)?.title ?? getAccount(config);

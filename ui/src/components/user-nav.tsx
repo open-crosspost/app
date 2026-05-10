@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { LogOut, User } from "lucide-react";
-import { getAuthClient } from "@/app";
+import { sessionQueryOptions, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,17 +9,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { sessionQueryOptions } from "@/lib/session";
 
 export function UserNav() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session } = useQuery(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session } = useQuery(sessionQueryOptions(authClient));
   const isAuthenticated = !!session?.user;
 
   const handleSignOut = async () => {
-    await getAuthClient().signOut();
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    await authClient.signOut();
+    await queryClient.invalidateQueries({ queryKey: ["session"] });
     await router.invalidate();
     await router.navigate({ to: "/" });
   };

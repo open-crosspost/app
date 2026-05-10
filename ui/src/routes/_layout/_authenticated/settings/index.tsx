@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { type SessionData, getAuthClient } from "@/app";
-import { sessionQueryOptions } from "@/lib/session";
+import { type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 
@@ -12,11 +11,12 @@ export const Route = createFileRoute("/_layout/_authenticated/settings/")({
 function SettingsPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions(authClient));
 
   const handleSignOut = async () => {
-    await getAuthClient().signOut();
-    await queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
+    await authClient.signOut();
+    await queryClient.invalidateQueries({ queryKey: ["session"] });
     await router.invalidate();
     await router.navigate({ to: "/" });
   };

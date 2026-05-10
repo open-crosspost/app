@@ -3,7 +3,7 @@ import type {
   RenderOptions as BaseRenderOptions,
   RouterContextWithApi as BaseRouterContextWithApi,
 } from "everything-dev/ui/types";
-import type { ApiClient as BaseApiClient } from "@/lib/api-client";
+import type { ApiClient as BaseApiClient } from "@/lib/api";
 import type { SessionData } from "@/app";
 
 export type {

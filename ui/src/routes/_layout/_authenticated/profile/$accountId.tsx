@@ -9,7 +9,7 @@ import { InlineBadges } from "@/components/badges/inline-badges";
 import { Button } from "@/components/ui/button";
 import { useDeletePost } from "@/hooks/use-post-mutations";
 import { toast } from "@/hooks/use-toast";
-import { getAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import { getClient } from "@/lib/authorization-service";
 import { getProfile } from "@/lib/utils/near-social-node";
 
@@ -89,7 +89,7 @@ const fetchAccountPosts = async (accountId: string): Promise<AccountPost[]> => {
 };
 
 const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const {
     data: posts,

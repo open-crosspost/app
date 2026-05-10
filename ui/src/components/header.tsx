@@ -4,7 +4,7 @@ import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-
 import { useTheme } from "next-themes";
 import type * as React from "react";
 import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
-import { sessionQueryOptions, signOutAndNavigate } from "@/lib/session";
+import { sessionQueryOptions, signOutAndNavigate, useAuthClient } from "@/app";
 import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
 import {
@@ -15,7 +15,8 @@ import {
 } from "./ui/dropdown-menu";
 
 export const Header: React.FC = () => {
-  const { data: session } = useQuery(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session } = useQuery(sessionQueryOptions(authClient));
   const queryClient = useQueryClient();
   const router = useRouter();
   const profileAccountId = getNearWalletDisplayFromSession(session);
@@ -24,7 +25,7 @@ export const Header: React.FC = () => {
   const isDarkMode = theme === "dark" || (theme === "system" && systemTheme === "dark");
   const toggleDarkMode = () => setTheme(isDarkMode ? "light" : "dark");
 
-  const handleSignOut = () => signOutAndNavigate(queryClient, router);
+  const handleSignOut = () => signOutAndNavigate(authClient, queryClient, router);
 
   return (
     <div className="relative border-b-2 border-primary bg-white dark:bg-black p-4 sm:p-6">

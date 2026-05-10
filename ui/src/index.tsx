@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import React from "react";
 import * as ReactDOMClient from "react-dom/client";
-import { createApiClient, getAssetsUrl, getRuntimeConfig } from "./app";
+import { createApiClient, createAuthClient, getAssetsUrl, getRuntimeConfig } from "./app";
 import { createRouter } from "./router";
 
 // Handle wallet extension conflicts and cross-origin errors
@@ -83,6 +83,7 @@ const { router } = createRouter({
       hostUrl: runtimeConfig.hostUrl!,
       rpcBase: runtimeConfig.rpcBase!,
     }),
+    authClient: createAuthClient(runtimeConfig),
   },
 });
 

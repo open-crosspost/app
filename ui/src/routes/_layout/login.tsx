@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate, redirect, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { getAuthClient } from "@/app";
-import { Button } from "@/components/ui/button";
 import {
   getRedirectUrl,
   NEAR_ERROR_MESSAGES,
@@ -12,7 +10,9 @@ import {
   sessionQueryOptions,
   signInAnonymous,
   signInWithNear,
-} from "@/lib/session";
+  useAuthClient,
+} from "@/app";
+import { Button } from "@/components/ui/button";
 
 type SearchParams = {
   redirect?: string;
@@ -26,14 +26,14 @@ export const Route = createFileRoute("/_layout/login")({
   beforeLoad: ({ context, search }) => {
     const initialSession = context.session as SessionData | null | undefined;
     const session =
-      initialSession ?? context.queryClient.getQueryData(sessionQueryOptions(initialSession).queryKey);
+      initialSession ?? context.queryClient.getQueryData(["session"]);
 
     if (session?.user) {
       throw redirect({ to: getRedirectUrl(search.redirect), search: {} });
     }
   },
   loader: ({ context }) => {
-    void context.queryClient.prefetchQuery(sessionQueryOptions(context.session));
+    void context.queryClient.prefetchQuery(sessionQueryOptions(context.authClient, context.session));
   },
   component: LoginPage,
 });
@@ -41,11 +41,12 @@ export const Route = createFileRoute("/_layout/login")({
 function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session } = useQuery(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session } = useQuery(sessionQueryOptions(authClient));
   const { redirect } = Route.useSearch();
 
   const handleSuccess = async (message: string) => {
-    const { data: freshSession } = await getAuthClient().getSession();
+    const { data: freshSession } = await authClient.getSession();
     if (freshSession) {
       queryClient.setQueryData(["session"], freshSession);
     }
@@ -55,7 +56,7 @@ function LoginPage() {
   };
 
   const nearMutation = useMutation({
-    mutationFn: signInWithNear,
+    mutationFn: () => signInWithNear(authClient),
     onSuccess: () => handleSuccess("Signed in with NEAR"),
     onError: (error) => {
       if (error instanceof NearAuthError && error.code in NEAR_ERROR_MESSAGES) {
@@ -67,7 +68,7 @@ function LoginPage() {
   });
 
   const anonymousMutation = useMutation({
-    mutationFn: signInAnonymous,
+    mutationFn: () => signInAnonymous(authClient),
     onSuccess: () => handleSuccess("Signed in anonymously"),
     onError: (error) => {
       toast.error(error.message || "Failed to sign in anonymously");

@@ -4,14 +4,15 @@ import { motion } from "framer-motion";
 import { LandingPage } from "@/components/landing-page";
 import { ManageAccountsButton } from "@/components/manage-accounts-button";
 import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
-import { sessionQueryOptions } from "@/lib/session";
+import { sessionQueryOptions, useAuthClient } from "@/app";
 
 export const Route = createFileRoute("/_layout/")({
   component: HomePage,
 });
 
 function HomePage() {
-  const { data: session } = useQuery(sessionQueryOptions());
+  const authClient = useAuthClient();
+  const { data: session } = useQuery(sessionQueryOptions(authClient));
   const isSignedIn = !!session?.user;
 
   if (!isSignedIn) {

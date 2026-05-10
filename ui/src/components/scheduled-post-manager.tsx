@@ -1,14 +1,14 @@
 import type React from "react";
 import { useEffect } from "react";
 import { useScheduledPostExecutor } from "@/hooks/use-scheduled-post-executor";
-import { getAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 
 /**
  * This component runs in the background to automatically execute scheduled posts
  * It should be included in the main app layout when user is signed in
  */
 export const ScheduledPostManager: React.FC = () => {
-  const { data: session } = getAuthClient().useSession();
+  const { data: session } = useAuthClient().useSession();
   const isSignedIn = !!session?.user;
   const { checkAndExecutePendingPosts } = useScheduledPostExecutor();
 

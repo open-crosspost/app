@@ -1,40 +1,65 @@
 {
-  "extends": "bos://dev.everything.near/everything.dev",
   "account": "crosspost.near",
+  "extends": "bos://auth.everything.near/everything.dev",
   "domain": "opencrosspost.com",
   "testnet": "dev.allthethings.testnet",
+  "staging": {
+    "domain": "staging.dev.everything.dev"
+  },
   "repository": "https://github.com/open-crosspost/app",
-  "app": {
+  "shared": {
     "ui": {
-      "name": "ui",
-      "development": "local:ui",
-      "production": "https://elliot-braem-2852-ui-app-open-crosspost-08b7e6f13-ze.zephyrcloud.app",
-      "ssr": "https://elliot-braem-2853-ui-app-open-crosspost-27356f50a-ze.zephyrcloud.app",
-      "integrity": "sha384-MKR+b2RadDVd/bFyjvYIZ/9JH9kZDaTeYXoKpyIb158e7pVyiFOihgx4cQC7zfCr",
-      "variables": {},
-      "secrets": []
+      "effect": {
+        "version": "3.21.0",
+        "requiredVersion": "^3.21.0",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "zod": {
+        "version": "4.3.6",
+        "requiredVersion": "^4.3.6",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "@orpc/contract": {
+        "version": "1.13.14",
+        "requiredVersion": "^1.13.14",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "better-auth": {
+        "version": "1.6.9",
+        "requiredVersion": "^1.6.9",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "better-near-auth": {
+        "version": "1.4.2",
+        "requiredVersion": "^1.4.2",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "@better-auth/api-key": {
+        "version": "1.6.9",
+        "requiredVersion": "^1.6.9",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      },
+      "@better-auth/passkey": {
+        "version": "1.6.9",
+        "requiredVersion": "^1.6.9",
+        "singleton": true,
+        "strictVersion": false,
+        "shareScope": "default"
+      }
     },
-    "api": {
-      "name": "api",
-      "development": "local:api",
-      "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
-      "integrity": "sha384-F/9XCsnI1OXvDAqCr19AgiZk143Lri7grrqhApt17kIQKz5VFqpEu1XduDm/gBgw",
-      "variables": {},
-      "secrets": [
-        "API_DATABASE_URL",
-        "API_DATABASE_AUTH_TOKEN"
-      ]
-    },
-    "auth": {
-      "name": "everything-dev_auth-plugin",
-      "development": "local:plugins/auth",
-      "production": "https://elliot-braem-3276-everything-dev-auth-plugin-bett-f446b4e3d-ze.zephyrcloud.app",
-      "integrity": "sha384-CSlaIO9iGCGCECzKLIHb1sBlDKBU/NQh7W3Msa4zTgPTowz4IjzNmm3ovScwWFJb",
-      "secrets": [
-        "AUTH_DATABASE_URL",
-        "BETTER_AUTH_SECRET"
-      ]
-    }
+    "plugins": {}
   },
   "plugins": {
     "crosspost": {
@@ -56,37 +81,40 @@
       "secrets": []
     }
   },
-  "shared": {
-    "ui": {
-      "effect": {
-        "version": "3.21.0",
-        "requiredVersion": "^3.21.0",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "@orpc/contract": {
-        "version": "1.13.14",
-        "requiredVersion": "^1.13.14",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "better-auth": {
-        "version": "1.6.9",
-        "requiredVersion": "^1.6.9",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "zod": {
-        "version": "4.3.6",
-        "requiredVersion": "^4.3.6",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      }
+  "app": {
+    "host": {
+      "development": "local:host",
+      "production": "https://elliot-braem-3498-host-everything-dev-nearbuilder-71d5f7f4d-ze.zephyrcloud.app",
+      "integrity": "sha384-Tsu6qanLw+Pn81PyT0VmuOM6bcae5ki20tZ09x1AUPMygsYj7QwoV2eGG299Zj+T"
     },
-    "plugins": {}
+    "ui": {
+      "name": "ui",
+      "development": "local:ui",
+      "production": "https://elliot-braem-2852-ui-app-open-crosspost-08b7e6f13-ze.zephyrcloud.app",
+      "integrity": "sha384-MKR+b2RadDVd/bFyjvYIZ/9JH9kZDaTeYXoKpyIb158e7pVyiFOihgx4cQC7zfCr",
+      "ssr": "https://elliot-braem-2853-ui-app-open-crosspost-27356f50a-ze.zephyrcloud.app"
+    },
+    "api": {
+      "name": "api",
+      "development": "local:api",
+      "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
+      "integrity": "sha384-F/9XCsnI1OXvDAqCr19AgiZk143Lri7grrqhApt17kIQKz5VFqpEu1XduDm/gBgw",
+      "variables": {},
+      "secrets": [
+        "API_DATABASE_URL",
+        "API_DATABASE_AUTH_TOKEN"
+      ]
+    },
+    "auth": {
+      "name": "everything-dev_auth-plugin",
+      "development": "local:plugins/auth",
+      "production": "https://elliot-braem-3503-everything-dev-auth-plugin-bett-7fee0d475-ze.zephyrcloud.app",
+      "integrity": "sha384-2/XoU0888rz8jb9s20IgzCP8buf3buTECG1fSAyzTLDwFMLNNKeAQ3KGEKbRlwh2",
+      "secrets": [
+        "AUTH_DATABASE_URL",
+        "BETTER_AUTH_SECRET",
+        "CORS_ORIGIN"
+      ]
+    }
   }
 }
