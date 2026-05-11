@@ -83,10 +83,6 @@ export {
   useAuthClient,
 } from "./lib/auth";
 
-export function getAppName(config?: Parameters<typeof getAccount>[0]): string {
-  return getActiveRuntime(config)?.title ?? getAccount(config);
-}
-
 import type {
   CreateRouterOptions as BaseCreateRouterOptions,
   RenderOptions as BaseRenderOptions,

@@ -12,7 +12,7 @@ import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import type { RouterContext } from "@/app";
-import { getAppName, getBaseStyles, getRuntimeBasePath, sessionQueryKey } from "@/app";
+import { getBaseStyles, getRuntimeBasePath, sessionQueryKey } from "@/app";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -47,18 +47,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const siteUrl = runtimeConfig?.hostUrl
       ? `${runtimeConfig.hostUrl}${runtimeBasePath === "/" ? "" : runtimeBasePath}`
       : "";
-    const title = getAppName(runtimeConfig);
-    const description =
-      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.";
+    const title = "Open Crosspost";
+    const description = "An open-source interface for seamless social media crossposting.";
     const siteName = title;
     const ogImage = `${assetsUrl}/metadata.png`;
+    const socialDescription = "The open source crossposting engine and SDK for agents and humans.";
 
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: title,
-      description,
-      url: runtimeConfig?.hostUrl || undefined,
+      description: socialDescription,
+      url: siteUrl || undefined,
     };
 
     return {
@@ -70,6 +70,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { title },
         { name: "description", content: description },
+        {
+          name: "keywords",
+          content: "crossposting, social media, publishing, sdk, automation, agents",
+        },
         { name: "theme-color", content: "#ffffff" },
         { name: "color-scheme", content: "light dark" },
         { name: "application-name", content: siteName },
@@ -80,13 +84,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { name: "format-detection", content: "telephone=no" },
         { name: "robots", content: "index, follow" },
+        { property: "og:type", content: "website" },
         ...getSocialImageMeta({
           imageUrl: ogImage,
           title,
-          description,
+          description: socialDescription,
           siteName,
           siteUrl,
-          alt: "app preview",
+          alt: "Open Crosspost preview",
         }),
       ],
       links: [

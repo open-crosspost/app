@@ -29,4 +29,3 @@ export const EVMWalletChain = evmWalletChains[NETWORK_ID];
 
 // Authentication configuration
 export const AUTH_STORAGE_PREFIX = "crosspost_auth_";
-export { APP_NAME } from "@/lib/branding";

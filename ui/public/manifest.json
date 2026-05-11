@@ -1,7 +1,7 @@
 {
-  "name": "open crosspost",
-  "short_name": "open crosspost",
-  "description": "open crosspost - Multi-platform posting",
+  "name": "Open Crosspost",
+  "short_name": "Open Crosspost",
+  "description": "An open-source interface for seamless social media crossposting.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
