@@ -21,7 +21,7 @@ const TEST_PLUGIN_MAP = {
 
 const TEST_CONFIG = {
   variables: {
-        baseUrl: "https://social.invalid",
+    baseUrl: "https://social.invalid",
     timeout: 5000,
   },
   secrets: {

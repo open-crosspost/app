@@ -25,12 +25,7 @@ export function ConnectPlatform({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            disabled
-            size={size}
-            variant={variant}
-            className={`gap-2 ${className}`}
-          >
+          <Button disabled size={size} variant={variant} className={`gap-2 ${className}`}>
             {showIcon &&
               (platform === Platform.TWITTER ? (
                 <Twitter size={size === "sm" ? 18 : 24} />
@@ -63,9 +58,7 @@ export function ConnectPlatform({
             {`Connect ${capitalize(platform)} Account`}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>
-          Account connection is coming soon
-        </TooltipContent>
+        <TooltipContent>Account connection is coming soon</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

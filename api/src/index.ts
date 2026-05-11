@@ -1,8 +1,8 @@
 import { createPlugin } from "every-plugin";
 import { Effect } from "every-plugin/effect";
 import { z } from "every-plugin/zod";
-import { createDatabaseDriver, type DatabaseDriver } from "./db";
 import { contract } from "./contract";
+import { createDatabaseDriver, type DatabaseDriver } from "./db";
 import { requireAuthContext } from "./lib/auth";
 import { SocialRepository } from "./social/repository";
 import { SocialService } from "./social/service";

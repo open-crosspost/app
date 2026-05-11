@@ -1,10 +1,10 @@
 import type { PlatformName } from "@crosspost/plugin/types";
-import { useQuery } from "@tanstack/react-query";
 import { SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Eye, FileText, MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useApiClient, useAuthClient } from "@/app";
+import { getNearAccountIdFromSession, useApiClient, useAuthClient } from "@/app";
 import { DraftsModal } from "@/components/drafts-modal";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { PlatformAccountsSelector } from "@/components/platform-accounts-selector";
@@ -43,6 +43,7 @@ export const Route = createFileRoute("/_layout/_authenticated/editor/")({
 function EditorPage() {
   const apiClient = useApiClient();
   const { data: session } = useAuthClient().useSession();
+  const nearAccountId = getNearAccountIdFromSession(session);
   const selectedAccountIds = usePlatformAccountsStore((state) => state.selectedAccountIds);
   const { data: connectedAccounts = [] } = useQuery({
     queryKey: socialAccountsQueryKey,
@@ -50,9 +51,9 @@ function EditorPage() {
     enabled: !!session?.user,
   });
   const { data: nearSocialAccount } = useQuery({
-    queryKey: nearSocialAccountQueryKey(session?.user?.id),
-    queryFn: () => getNearSocialAccount(session?.user?.id),
-    enabled: !!session?.user?.id,
+    queryKey: nearSocialAccountQueryKey(nearAccountId),
+    queryFn: () => getNearSocialAccount(nearAccountId),
+    enabled: !!nearAccountId,
   });
   const allAccounts = useMemo(
     () => mergeConnectedAccounts(connectedAccounts, nearSocialAccount ?? null),

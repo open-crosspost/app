@@ -1,6 +1,14 @@
 <!-- intent-skills:start -->
 # Skill mappings - load `use` with `npx @tanstack/intent@latest load <use>`.
 skills:
+  - when: "Set up the siwnClient plugin for Better Auth client, configure NEAR wallet connection via NearConnect, use authClient.near actions for sign-in, profile lookup, account management, delegate action building with TransactionBuilder, and relay submission."
+    use: "better-near-auth#client"
+  - when: "Configure the gasless NEP-366 delegate action relayer in ephemeral or explicit mode, relay signed delegate actions on-chain, enforce contract whitelisting and gas/deposit limits, check relay status and history, and use the contract view endpoint."
+    use: "better-near-auth#relay"
+  - when: "Set up the SIWN server plugin for Better Auth, configure NEP-413 authentication with recipient and API key, handle nonce generation, signature verification, account linking and unlinking, and NEAR profile lookup."
+    use: "better-near-auth#siwn"
+  - when: "Integrate better-near-auth with TanStack Router for SSR or CSR, wire auth client into router context, useAuthClient hook, session query options, inferred auth types, and ensureConnected before signing."
+    use: "better-near-auth#tanstack"
   - when: "Install TanStack Devtools, pick framework adapter (React/Vue/Solid/Preact), register plugins via plugins prop, configure shell (position, hotkeys, theme, hideUntilHover, requireUrlFlag, eventBusConfig). TanStackDevtools component, defaultOpen, localStorage persistence."
     use: "@tanstack/devtools#devtools-app-setup"
   - when: "Publish plugin to npm and submit to TanStack Devtools Marketplace. PluginMetadata registry format, plugin-registry.ts, pluginImport (importName, type), requires (packageName, minVersion), framework tagging, multi-framework submissions, featured plugins."
@@ -145,16 +153,16 @@ Use these helpers from `@/app`:
 Business logic is organized into independent plugins loaded via Module Federation:
 - **`api/`** — Thin structural shell: ping, authHealth, error routes, middleware definitions
 - **`plugins/auth/`** — Authentication and authorization (Better-Auth, NEAR SIWN, organizations, API keys)
-- **`plugins/registry/`** — FastKV app discovery, metadata publish/relay (no database)
-- **`plugins/projects/`** — Project and organization management
- - **`plugins/_template/`** — Scaffold for creating new plugins
+- **`plugins/crosspost/`** — Crossposting orchestration and social activity APIs
+- **`plugins/twitter/`** — Twitter/X platform integration
+- **`plugins/farcaster/`** — Farcaster platform integration
 
 Each plugin is self-contained with its own:
 - `contract.ts` — oRPC route definitions and Zod schemas
 - `index.ts` — `createPlugin` with variables, secrets, context, router
 - rspack config for independent deployment
 
-The UI accesses plugin routes via namespaced clients: `apiClient.registry.listRegistryApps()`, etc.
+The UI accesses plugin routes via namespaced clients such as `apiClient.social.posts.create()`.
 
 ### Plugin Client (pluginsClient)
 

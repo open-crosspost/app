@@ -83,6 +83,9 @@ export { createApiClient, useApiClient } from "./lib/api";
 export type { AuthClient, NearAuthErrorCode, Organization, Passkey, SessionData } from "./lib/auth";
 export {
   createAuthClient,
+  getNearAccountIdFromSession,
+  getNearActions,
+  getNearWalletDisplayFromSession,
   getRedirectUrl,
   NEAR_ERROR_MESSAGES,
   NearAuthError,

@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { TimePeriod } from "@crosspost/plugin/types";
+import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/app";
 import bronzePng from "@/assets/badges/leaderboard-bronze.png";
 import goldPng from "@/assets/badges/leaderboard-gold.png";

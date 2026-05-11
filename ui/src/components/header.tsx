@@ -3,8 +3,12 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import type * as React from "react";
-import { sessionQueryOptions, signOutAndNavigate, useAuthClient } from "@/app";
-import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
+import {
+  getNearWalletDisplayFromSession,
+  sessionQueryOptions,
+  signOutAndNavigate,
+  useAuthClient,
+} from "@/app";
 import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
 import {

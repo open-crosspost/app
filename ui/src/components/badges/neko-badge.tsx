@@ -1,13 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
+import BigNumber from "bignumber.js";
+import { getNearActions, useAuthClient } from "@/app";
 import nekoBadgePng from "@/assets/badges/neko-badge.png";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { hasNekoCookie } from "@/lib/token";
+import { convertAtomicToStandard } from "@/lib/utils/string";
+
+const NEKO_COOKIE_CONTRACT_ID = "cookie.nekotoken.near";
 
 export function NekoBadge({ accountId }: BadgeProps) {
+  const authClient = useAuthClient();
+  const near = getNearActions(authClient);
   const { data: hasBadge, isLoading } = useQuery({
     queryKey: ["nekoCookie", accountId],
-    queryFn: () => hasNekoCookie(accountId),
+    queryFn: async () => {
+      if (!accountId) return false;
+
+      try {
+        const balance = await near.client.view<string>(NEKO_COOKIE_CONTRACT_ID, "ft_balance_of", {
+          account_id: accountId,
+        });
+        const standardAmount = new BigNumber(convertAtomicToStandard(balance ?? "0", 24));
+        return standardAmount.gte(new BigNumber(100000));
+      } catch (error) {
+        console.error("Error checking $COOKIE balance:", error);
+        return false;
+      }
+    },
     enabled: !!accountId,
     staleTime: 5 * 60 * 1000, // cache for 5 mins
   });

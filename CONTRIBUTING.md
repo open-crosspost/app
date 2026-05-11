@@ -27,12 +27,12 @@ Visit http://localhost:3003 (UI), http://localhost:3001 (API), and http://localh
 
 Business logic lives in independent plugins under `plugins/`:
 
-- **`plugins/registry/`** — FastKV app discovery, metadata publish/relay (no database)
 - **`plugins/auth/`** — Authentication and authorization (Better-Auth, NEAR SIWN, organizations, API keys)
-- **`plugins/projects/`** — Projects CRUD, KV store, org management, API keys (SQLite via libsql)
- - **`plugins/_template/`** — Scaffold for new plugins
+- **`plugins/crosspost/`** — Crossposting orchestration and social activity APIs
+- **`plugins/twitter/`** — Twitter/X platform integration
+- **`plugins/farcaster/`** — Farcaster platform integration
 
-Each plugin has its own `contract.ts`, `index.ts`, `rspack.config.js`, and `package.json`. Routes are namespaced in the UI: `apiClient.registry.*()` and `apiClient.projects.*()`.
+Each plugin has its own `contract.ts`, `index.ts`, `rspack.config.js`, and `package.json`. Routes are namespaced in the UI, such as `apiClient.social.posts.*()`.
 
 The `api/` package is a thin structural shell with only health/ping routes and shared auth middleware. It can compose across plugins in-process via `createPlugin.withPlugins<PluginsClient>()` — the API receives typed client factories for all other plugins and calls their routers directly without HTTP roundtrips.
 

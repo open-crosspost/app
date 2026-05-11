@@ -1,12 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
+import { getNearActions, useAuthClient } from "@/app";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { hasShitzuNft } from "@/lib/nft";
+
+const SHITZU_REWARDS_CONTRACT_ID = "rewards.0xshitzu.near";
 
 export function ShitzuBadge({ accountId }: BadgeProps) {
+  const authClient = useAuthClient();
+  const near = getNearActions(authClient);
   const { data: hasNft, isLoading } = useQuery({
     queryKey: ["shitzuNft", accountId],
-    queryFn: () => hasShitzuNft(accountId),
+    queryFn: async () => {
+      if (!accountId) return false;
+
+      try {
+        const tokens = await near.client.view<unknown[]>(
+          SHITZU_REWARDS_CONTRACT_ID,
+          "primary_nft_of",
+          { account_id: accountId },
+        );
+        return Array.isArray(tokens) && tokens.length > 0;
+      } catch (error) {
+        console.error("Error checking Shitzu NFT:", error);
+        return false;
+      }
+    },
     enabled: !!accountId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

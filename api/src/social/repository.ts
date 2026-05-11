@@ -1,13 +1,8 @@
 import { and, desc, eq } from "drizzle-orm";
 import type { ApiDatabase } from "../db";
-import {
-  socialActivity,
-  socialConnectedAccounts,
-  socialPlatformCredentials,
-} from "../db/schema";
+import { socialActivity, socialConnectedAccounts, socialPlatformCredentials } from "../db/schema";
 import type {
   AccountPostsQuery,
-  ActivityLeaderboardQuery,
   ActivityType,
   ConnectedAccount,
   Platform,
@@ -23,19 +18,6 @@ interface ConnectedAccountRow {
   profileImageUrl: string | null;
   status: string;
   error: string | null;
-}
-
-interface ActivityRow {
-  ownerUserId: string;
-  platform: string;
-  platformUserId: string;
-  type: string;
-  content: string | null;
-  url: string | null;
-  metricsJson: string | null;
-  inReplyToId: string | null;
-  quotedPostId: string | null;
-  createdAt: string;
 }
 
 function mapConnectedAccount(row: ConnectedAccountRow): ConnectedAccount {
@@ -222,7 +204,11 @@ export class SocialRepository {
     return rows[0] ? mapConnectedAccount(rows[0]) : null;
   }
 
-  async deleteAccount(userId: string, platform: Platform, platformUserId: string): Promise<boolean> {
+  async deleteAccount(
+    userId: string,
+    platform: Platform,
+    platformUserId: string,
+  ): Promise<boolean> {
     const account = await this.db
       .select({ id: socialConnectedAccounts.id })
       .from(socialConnectedAccounts)
@@ -266,10 +252,7 @@ export class SocialRepository {
     return this.getAccount(userId, platform, platformUserId);
   }
 
-  async listAccountPosts(
-    ownerUserId: string,
-    query?: AccountPostsQuery,
-  ) {
+  async listAccountPosts(ownerUserId: string, query?: AccountPostsQuery) {
     const rows = await this.db
       .select({
         ownerUserId: socialActivity.ownerUserId,
@@ -410,5 +393,4 @@ export class SocialRepository {
       },
     };
   }
-
 }

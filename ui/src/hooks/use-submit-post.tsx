@@ -10,12 +10,13 @@ import {
   type SuccessDetail,
 } from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
+import { calculateRequiredDeposit, extractHashtags, extractMentions } from "near-social-js";
 import { useState } from "react";
-import { useApiClient, useAuthClient } from "@/app";
+import { getNearActions, useApiClient, useAuthClient } from "@/app";
 import type { PostType } from "@/components/post-interaction-selector";
 import { ToastAction } from "@/components/ui/toast";
+import { NETWORK_ID } from "@/config";
 import { toast } from "@/hooks/use-toast";
-import { NearSocialService, transformNearSocialPost } from "@/lib/near-social-service";
 import { detectPlatformFromUrl, extractPostIdFromUrl } from "@/lib/utils/url-utils";
 import type { EditorContent } from "@/store/drafts-store";
 import { useSubmissionResultsStore } from "@/store/submission-results-store";
@@ -33,17 +34,131 @@ export interface SubmitResult {
   errors?: ErrorDetail[];
 }
 
+const SOCIAL_CONTRACT_ID = NETWORK_ID === "mainnet" ? "social.near" : "v1.social08.testnet";
+
+type SocialStorageBalance = {
+  available: string;
+  total: string;
+} | null;
+
+function buildNearSocialPostData(
+  accountId: string,
+  text: string,
+): Record<string, Record<string, unknown>> {
+  const mentions = extractMentions(text);
+  const hashtags = extractHashtags(text);
+  const data: Record<string, Record<string, unknown>> = {
+    [accountId]: {
+      post: {
+        main: JSON.stringify({ text, type: "md" }),
+      },
+      index: {
+        post: JSON.stringify({
+          key: "main",
+          value: { type: "md" },
+        }),
+      },
+    },
+  };
+
+  if (hashtags.length > 0) {
+    const hashtagIndexes = hashtags.map((tag) => ({
+      key: tag,
+      value: {
+        type: "hashtag",
+        path: `${accountId}/post/main`,
+      },
+    }));
+
+    data[accountId].index = {
+      ...(data[accountId].index as Record<string, unknown>),
+      hashtag: JSON.stringify(hashtagIndexes.length === 1 ? hashtagIndexes[0] : hashtagIndexes),
+    };
+  }
+
+  for (const mentionedAccount of mentions) {
+    if (mentionedAccount === accountId) continue;
+
+    data[mentionedAccount] = {
+      index: {
+        notify: JSON.stringify({
+          key: mentionedAccount,
+          value: {
+            type: "mention",
+            accountId,
+            item: {
+              type: "social",
+              path: `${accountId}/post/main`,
+            },
+          },
+        }),
+      },
+    };
+  }
+
+  return data;
+}
+
+class NearSocialStorageRequiredError extends Error {
+  readonly requiredDeposit: bigint;
+
+  constructor(requiredDeposit: bigint) {
+    super("NEAR Social storage is required before relayed posts can be sent.");
+    this.name = "NearSocialStorageRequiredError";
+    this.requiredDeposit = requiredDeposit;
+  }
+}
+
 /**
  * Hook to manage the post submission process across platforms
  */
 export function useSubmitPost() {
   const apiClient = useApiClient();
-  const { data: session } = useAuthClient().useSession();
+  const authClient = useAuthClient();
+  const near = getNearActions(authClient);
+  const { data: session } = authClient.useSession();
   const isSignedIn = !!session?.user;
   const navigate = useNavigate();
   const { setSubmissionOutcome } = useSubmissionResultsStore();
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [result, setResult] = useState<SubmitResult>({ status: "idle" });
+
+  const relayNearSocialPost = async (text: string) => {
+    const connected = await near.ensureConnected();
+    const accountId = near.getAccountId();
+    if (!connected || !accountId) {
+      throw new Error("NEAR wallet not connected. Please connect your wallet first.");
+    }
+
+    const data = buildNearSocialPostData(accountId, text);
+    const storageBalance = await near.client.view<SocialStorageBalance>(
+      SOCIAL_CONTRACT_ID,
+      "storage_balance_of",
+      { account_id: accountId },
+    );
+    const requiredDeposit = BigInt(
+      calculateRequiredDeposit({
+        data,
+        storageBalance: storageBalance
+          ? {
+              available: BigInt(storageBalance.available),
+              total: BigInt(storageBalance.total),
+            }
+          : null,
+      }).toFixed(),
+    );
+
+    if (requiredDeposit > 0n) {
+      throw new NearSocialStorageRequiredError(requiredDeposit);
+    }
+
+    const payload = await near.buildSignedDelegateAction(
+      SOCIAL_CONTRACT_ID,
+      (builder, receiverId) =>
+        builder.functionCall(receiverId, "set", { data }, { gas: "100 Tgas", attachedDeposit: 0n }),
+    );
+    await near.relayTransaction({ payload });
+  };
 
   const submitPost = async (
     posts: EditorContent[],
@@ -157,12 +272,25 @@ export function useSubmitPost() {
     // --- Post to NEAR Social (only for regular posts) ---
     if (nearSocialAccounts.length > 0 && postType === "post") {
       try {
-        const nearSocialService = new NearSocialService();
-        const combinedText = transformNearSocialPost(nonEmptyPosts);
-        await nearSocialService.createPost([{ text: combinedText }]);
+        await relayNearSocialPost(nonEmptyPosts.map((post) => post.text).join("\n\n"));
       } catch (error) {
         nearSocialSuccess = false;
         nearSocialError = error;
+
+        if (error instanceof NearSocialStorageRequiredError) {
+          toast({
+            title: "NEAR Social storage required",
+            description:
+              "Add storage on your Manage Accounts page before sending relayed NEAR Social posts.",
+            variant: "destructive",
+            action: (
+              <ToastAction altText="Manage Accounts" onClick={() => navigate({ to: "/manage" })}>
+                Manage Accounts
+              </ToastAction>
+            ),
+          });
+        }
+
         console.error("NEAR Social post error:", error);
       }
     }
@@ -243,7 +371,8 @@ export function useSubmitPost() {
 
       if (otherAccounts.length > 0) {
         finalErrors = otherAccounts.map((acc) => ({
-          message: apiError instanceof Error ? apiError.message : "Posting failed for this account.",
+          message:
+            apiError instanceof Error ? apiError.message : "Posting failed for this account.",
           code: ApiErrorCode.PLATFORM_ERROR,
           recoverable: false,
           details: {

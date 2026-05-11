@@ -1,6 +1,6 @@
 import type { AccountPost, PlatformName } from "@crosspost/plugin/types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Platform } from "@crosspost/plugin/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Link as LinkIcon, Trash2, Twitter } from "lucide-react";
 import type React from "react";

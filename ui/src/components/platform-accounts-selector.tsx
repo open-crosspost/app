@@ -1,7 +1,7 @@
 import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useAuthClient, useApiClient } from "@/app";
+import { getNearAccountIdFromSession, useApiClient, useAuthClient } from "@/app";
 import { AccountItem } from "@/components/account-item";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,16 +23,21 @@ export function PlatformAccountsSelector({
   const navigate = useNavigate();
   const apiClient = useApiClient();
   const { data: session } = useAuthClient().useSession();
+  const nearAccountId = getNearAccountIdFromSession(session);
   const { toggleAccountSelection, isAccountSelected } = usePlatformAccountsStore();
-  const { data: connectedAccounts = [], isLoading, error: globalError } = useQuery({
+  const {
+    data: connectedAccounts = [],
+    isLoading,
+    error: globalError,
+  } = useQuery({
     queryKey: socialAccountsQueryKey,
     queryFn: () => listConnectedAccounts(apiClient),
     enabled: !!session?.user,
   });
   const { data: nearSocialAccount } = useQuery({
-    queryKey: nearSocialAccountQueryKey(session?.user?.id),
-    queryFn: () => getNearSocialAccount(session?.user?.id),
-    enabled: !!session?.user?.id,
+    queryKey: nearSocialAccountQueryKey(nearAccountId),
+    queryFn: () => getNearSocialAccount(nearAccountId),
+    enabled: !!nearAccountId,
   });
   const allAccounts = mergeConnectedAccounts(connectedAccounts, nearSocialAccount ?? null);
 

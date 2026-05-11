@@ -4,6 +4,7 @@ import { Wallet } from "lucide-react";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
 import {
+  getNearWalletDisplayFromSession,
   NEAR_ERROR_MESSAGES,
   NearAuthError,
   type NearAuthErrorCode,
@@ -15,7 +16,6 @@ import {
   useAuthClient,
 } from "@/app";
 import { Button } from "@/components/ui/button";
-import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
 
 export function ConnectToNearButton(): ReactElement {
   const queryClient = useQueryClient();

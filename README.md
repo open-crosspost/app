@@ -178,11 +178,6 @@ All runtime configuration lives in `bos.config.json`:
   "staging": { "domain": "staging.dev.yourapp.dev" },
   "repository": "https://github.com/nearbuilders/everything-dev",
   "testnet": "dev.allthethings.testnet",
-  "plugins": {
-    "template": {
-      "development": "local:plugins/_template"
-    }
-  },
   "app": {
     "host": {
       "name": "host",

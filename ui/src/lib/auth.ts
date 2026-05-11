@@ -2,6 +2,7 @@ import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
+import type { BetterAuthClientPlugin } from "better-auth/client";
 import {
   adminClient,
   anonymousClient,
@@ -10,8 +11,7 @@ import {
   phoneNumberClient,
 } from "better-auth/client/plugins";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
-
-import { siwnClient } from "better-near-auth/client";
+import { type SIWNClientActions, siwnClient } from "better-near-auth/client";
 import type { ClientRuntimeConfig } from "everything-dev/types";
 import { getRuntimeConfig } from "everything-dev/ui/runtime";
 import type { Auth } from "./auth-types.gen";
@@ -43,26 +43,31 @@ function getHostUrl(config?: Partial<ClientRuntimeConfig>) {
   return "";
 }
 
-export function createAuthClient(config?: Partial<ClientRuntimeConfig>) {
-  return createBetterAuthClient({
-    baseURL: getHostUrl(config),
-    fetchOptions: { credentials: "include" },
-    plugins: [
-      inferAdditionalFields<Auth>(),
-      siwnClient({
-        recipient: getAccountId(config),
-        networkId: getNetworkId(config),
-      }),
-      adminClient(),
-      anonymousClient(),
-      phoneNumberClient(),
-      passkeyClient(),
-      organizationClient(),
-      apiKeyClient(),
-    ],
-  });
+function withNearActions<T>(client: T): T & SIWNClientActions {
+  return client as T & SIWNClientActions;
 }
 
+export function createAuthClient(config?: Partial<ClientRuntimeConfig>) {
+  return withNearActions(
+    createBetterAuthClient({
+      baseURL: getHostUrl(config),
+      fetchOptions: { credentials: "include" },
+      plugins: [
+        inferAdditionalFields<Auth>(),
+        siwnClient({
+          recipient: getAccountId(config),
+          networkId: getNetworkId(config),
+        }) as unknown as BetterAuthClientPlugin,
+        adminClient(),
+        anonymousClient(),
+        phoneNumberClient(),
+        passkeyClient(),
+        organizationClient(),
+        apiKeyClient(),
+      ],
+    }),
+  );
+}
 export type AuthClient = ReturnType<typeof createAuthClient>;
 type OrganizationListResult = Awaited<ReturnType<AuthClient["organization"]["list"]>>;
 type PasskeyListResult = Awaited<ReturnType<AuthClient["passkey"]["listUserPasskeys"]>>;
@@ -70,6 +75,29 @@ type PasskeyListResult = Awaited<ReturnType<AuthClient["passkey"]["listUserPassk
 export type SessionData = AuthClient["$Infer"]["Session"];
 export type Organization = NonNullable<OrganizationListResult["data"]>[number];
 export type Passkey = NonNullable<PasskeyListResult["data"]>[number];
+export type NearActions = SIWNClientActions["near"];
+
+export function getNearActions(authClient: AuthClient): NearActions {
+  return authClient.near as NearActions;
+}
+
+export function getNearAccountIdFromSession(
+  session: { user?: unknown } | null | undefined,
+): string | null {
+  const user = session?.user as
+    | { nearAccount?: { accountId?: string }; name?: string; id?: string }
+    | undefined;
+  return user?.nearAccount?.accountId ?? null;
+}
+
+export function getNearWalletDisplayFromSession(
+  session: { user?: unknown } | null | undefined,
+): string | null {
+  const user = session?.user as
+    | { nearAccount?: { accountId?: string }; name?: string; id?: string }
+    | undefined;
+  return getNearAccountIdFromSession(session) ?? user?.name ?? user?.id ?? null;
+}
 
 export function useAuthClient(): AuthClient {
   return useRouter().options.context.authClient;
@@ -97,7 +125,7 @@ export function useRelayHistory(session: SessionData | null | undefined, authCli
   return useQuery({
     queryKey: ["relay-history"],
     queryFn: async () => {
-      const res = await (authClient as any).near.relayHistory();
+      const res = await getNearActions(authClient).relayHistory();
       return (res?.data?.transactions ?? []) as Array<{
         id: string;
         userId: string;

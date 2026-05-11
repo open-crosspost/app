@@ -1,4 +1,5 @@
 import { ORPCError } from "every-plugin/orpc";
+import type { SocialRepository } from "./repository";
 import type {
   AccountPostsQuery,
   ActivityLeaderboardQuery,
@@ -14,7 +15,6 @@ import type {
   SocialMultiStatusData,
 } from "./types";
 import { ApiErrorCode, makeUnsupportedPlatformResult } from "./types";
-import { SocialRepository } from "./repository";
 
 function unavailableMessage(subject: string, action: string): string {
   return `${action} for ${subject} is not implemented yet.`;
@@ -87,10 +87,7 @@ export class SocialService {
     return this.createUnsupportedPostResult(userId, request.targets, "posting");
   }
 
-  async replyToPost(
-    userId: string,
-    request: ReplyToPostRequest,
-  ): Promise<SocialMultiStatusData> {
+  async replyToPost(userId: string, request: ReplyToPostRequest): Promise<SocialMultiStatusData> {
     return this.createUnsupportedPostResult(userId, request.targets, "replies");
   }
 
