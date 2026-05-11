@@ -61,26 +61,7 @@
     },
     "plugins": {}
   },
-  "plugins": {
-    "crosspost": {
-      "development": "local:plugins/crosspost",
-      "production": "https://elliot-braem-2855-crosspost-plugin-app-open-cross-be274b273-ze.zephyrcloud.app",
-      "variables": {},
-      "secrets": []
-    },
-    "farcaster": {
-      "development": "local:plugins/farcaster",
-      "production": "https://elliot-braem-2856-crosspost-farcaster-app-open-cr-90f6f3754-ze.zephyrcloud.app",
-      "variables": {},
-      "secrets": []
-    },
-    "twitter": {
-      "development": "local:plugins/twitter",
-      "production": "https://elliot-braem-2857-crosspost-twitter-app-open-cros-b97ea74a6-ze.zephyrcloud.app",
-      "variables": {},
-      "secrets": []
-    }
-  },
+  "plugins": {},
   "app": {
     "host": {
       "development": "local:host",
@@ -90,15 +71,15 @@
     "ui": {
       "name": "ui",
       "development": "local:ui",
-      "production": "https://elliot-braem-2852-ui-app-open-crosspost-08b7e6f13-ze.zephyrcloud.app",
-      "integrity": "sha384-MKR+b2RadDVd/bFyjvYIZ/9JH9kZDaTeYXoKpyIb158e7pVyiFOihgx4cQC7zfCr",
-      "ssr": "https://elliot-braem-2853-ui-app-open-crosspost-27356f50a-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-3510-ui-app-open-crosspost-60cf73178-ze.zephyrcloud.app",
+      "integrity": "sha384-NCSzquayyDo2tGTEr+SYuzWyeUB+9Hwrc0fDl5R6eaewdAfRaYbM0TnOR11rHQhl",
+      "ssr": "https://elliot-braem-3511-ui-app-open-crosspost-083ad64e9-ze.zephyrcloud.app"
     },
     "api": {
       "name": "api",
       "development": "local:api",
-      "production": "https://elliot-braem-2854-api-app-open-crosspost-76a09b2f4-ze.zephyrcloud.app",
-      "integrity": "sha384-F/9XCsnI1OXvDAqCr19AgiZk143Lri7grrqhApt17kIQKz5VFqpEu1XduDm/gBgw",
+      "production": "https://elliot-braem-3512-api-app-open-crosspost-71e7b3551-ze.zephyrcloud.app",
+      "integrity": "sha384-35GFFfQJ8sKPgZ+ILuY8iAxPL4cb7rjnnasvKu/hioyY24EZwWEdWCYtANBvnG/d",
       "variables": {},
       "secrets": [
         "API_DATABASE_URL",
