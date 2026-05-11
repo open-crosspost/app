@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { sessionQueryOptions, useAuthClient } from "@/app";
 import { LandingPage } from "@/components/landing-page";
 import { ManageAccountsButton } from "@/components/manage-accounts-button";
 import { getNearWalletDisplayFromSession } from "@/lib/near-session-display";
-import { sessionQueryOptions, useAuthClient } from "@/app";
 
 export const Route = createFileRoute("/_layout/")({
   component: HomePage,

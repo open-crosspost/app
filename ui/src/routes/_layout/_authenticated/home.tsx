@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { type Organization, type Passkey, type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
+import {
+  type Organization,
+  type Passkey,
+  type SessionData,
+  sessionQueryOptions,
+  useAuthClient,
+} from "@/app";
 import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 
 export const Route = createFileRoute("/_layout/_authenticated/home")({

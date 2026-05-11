@@ -1,4 +1,4 @@
-import { oc, type AnyContractRouter } from "@orpc/contract";
+import { type AnyContractRouter, oc } from "@orpc/contract";
 import { CommonPluginErrors } from "every-plugin";
 import { z } from "zod";
 import * as Types from "./types";

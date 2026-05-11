@@ -8,7 +8,7 @@ export default {
   port: 3014,
   config: {
     variables: {
-      baseUrl: process.env.BASE_URL || "https://api.opencrosspost.com",
+      baseUrl: process.env.BASE_URL || "https://social.invalid",
       timeout: 10000,
     },
     secrets: {

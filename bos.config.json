@@ -1,5 +1,5 @@
 {
-  "account": "crosspost.near",
+  "account": "work.efiz.near",
   "extends": "bos://auth.everything.near/everything.dev",
   "domain": "opencrosspost.com",
   "testnet": "dev.allthethings.testnet",
@@ -71,15 +71,15 @@
     "ui": {
       "name": "ui",
       "development": "local:ui",
-      "production": "https://elliot-braem-3510-ui-app-open-crosspost-60cf73178-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-3516-ui-app-open-crosspost-57b90a4fe-ze.zephyrcloud.app",
       "integrity": "sha384-NCSzquayyDo2tGTEr+SYuzWyeUB+9Hwrc0fDl5R6eaewdAfRaYbM0TnOR11rHQhl",
-      "ssr": "https://elliot-braem-3511-ui-app-open-crosspost-083ad64e9-ze.zephyrcloud.app"
+      "ssr": "https://elliot-braem-3517-ui-app-open-crosspost-2cb3c5fbf-ze.zephyrcloud.app"
     },
     "api": {
       "name": "api",
       "development": "local:api",
-      "production": "https://elliot-braem-3512-api-app-open-crosspost-71e7b3551-ze.zephyrcloud.app",
-      "integrity": "sha384-35GFFfQJ8sKPgZ+ILuY8iAxPL4cb7rjnnasvKu/hioyY24EZwWEdWCYtANBvnG/d",
+      "production": "https://elliot-braem-3518-api-app-open-crosspost-407d58f4a-ze.zephyrcloud.app",
+      "integrity": "sha384-31serfFMNTVadlW3BL7+gpXk9K2ruIjSoYYB6YZbS3usc2i+mCK6/yDIMmZVNHK8",
       "variables": {},
       "secrets": [
         "API_DATABASE_URL",

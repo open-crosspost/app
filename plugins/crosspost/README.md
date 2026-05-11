@@ -33,7 +33,7 @@ const runtime = createPluginRuntime({
 
 const { client } = await runtime.usePlugin('@crosspost/plugin', {
   variables: {
-    baseUrl: 'https://api.opencrosspost.com',
+    baseUrl: 'https://social.invalid',
     timeout: 10000,
   },
   secrets: {
@@ -161,7 +161,7 @@ const postLimit = await client.system.getEndpointRateLimit('post');
 
 ### Variables
 
-- `baseUrl` (string): API base URL (default: "https://api.opencrosspost.com")
+- `baseUrl` (string): API base URL (default: "https://social.invalid")
 - `timeout` (number): Request timeout in milliseconds (default: 10000)
 
 ### Secrets

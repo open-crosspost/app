@@ -17,7 +17,7 @@ describe("CrosspostService", () => {
     recipient: "crosspost.near",
   };
 
-  const service = new CrosspostService("https://api.opencrosspost.com", mockNearAuthData, 5000);
+  const service = new CrosspostService("https://social.invalid", mockNearAuthData, 5000);
 
   beforeEach(() => {
     vi.clearAllMocks();

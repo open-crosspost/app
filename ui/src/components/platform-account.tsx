@@ -1,15 +1,18 @@
 import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCopy, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useApiClient } from "@/app";
 import { AccountItem } from "@/components/account-item";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { capitalize } from "@/lib/utils/string";
 import {
-  useDisconnectAccount,
-  usePlatformAccountsStore,
-  useRefreshAccount,
-} from "@/store/platform-accounts-store";
+  disconnectSocialAccount,
+  refreshSocialAccount,
+  socialAccountsQueryKey,
+} from "@/lib/social";
+import { capitalize } from "@/lib/utils/string";
+import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
 
 interface PlatformAccountProps {
   account: ConnectedAccount;
@@ -17,13 +20,31 @@ interface PlatformAccountProps {
 }
 
 export function PlatformAccountItem({ account, showActions = true }: PlatformAccountProps) {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
 
-  const disconnectAccount = useDisconnectAccount();
-  const refreshAccount = useRefreshAccount();
-  // checkAccountStatus removed = useCheckAccountStatus();
+  const disconnectAccount = useMutation({
+    mutationKey: ["disconnect-social-account", account.platform, account.userId],
+    mutationFn: async () =>
+      disconnectSocialAccount(apiClient, account.platform as PlatformName, account.userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey });
+      if (usePlatformAccountsStore.getState().selectedAccountIds.includes(account.userId)) {
+        usePlatformAccountsStore.getState().unselectAccount(account.userId);
+      }
+    },
+  });
+  const refreshAccount = useMutation({
+    mutationKey: ["refresh-social-account", account.platform, account.userId],
+    mutationFn: async () =>
+      refreshSocialAccount(apiClient, account.platform as PlatformName, account.userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey });
+    },
+  });
   const { toggleAccountSelection, isAccountSelected } = usePlatformAccountsStore();
 
   const isNearSocial = account.platform?.toLowerCase() === ("near social" as PlatformName);
@@ -34,14 +55,7 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
 
     setIsRefreshing(true);
     try {
-      await refreshAccount.mutateAsync({
-        platform: account.platform as PlatformName,
-        userId: account.userId,
-      });
-      // await checkAccountStatus.mutateAsync({
-      //   platform: account.platform as PlatformName,
-      //   userId: account.userId,
-      // });
+      await refreshAccount.mutateAsync();
     } catch (error) {
       toast({
         title: "Refresh Error",
@@ -61,10 +75,7 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
 
     setIsDisconnecting(true);
     try {
-      await disconnectAccount.mutateAsync({
-        platform: account.platform as PlatformName,
-        userId: account.userId,
-      });
+      await disconnectAccount.mutateAsync();
       toast({
         title: "Account Disconnected",
         description: `Successfully disconnected ${capitalize(account.platform)} account`,
@@ -76,31 +87,9 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
           ? error.message
           : `Failed to disconnect ${capitalize(account.platform)} account`;
 
-      // Provide more helpful error messages
-      let displayMessage = errorMessage;
-      if (
-        errorMessage.includes("cancelled") ||
-        errorMessage.includes("rejected") ||
-        errorMessage.includes("cancelled by user")
-      ) {
-        displayMessage =
-          "Authentication was cancelled. Please try again and approve the request in your wallet.";
-      } else if (
-        errorMessage.includes("not connected") ||
-        errorMessage.includes("not initialized") ||
-        errorMessage.includes("Wallet not connected")
-      ) {
-        displayMessage = "Wallet is not connected. Please connect your wallet first and try again.";
-      } else if (errorMessage.includes("authentication failed")) {
-        displayMessage =
-          "Authentication failed. Please ensure your wallet is connected and unlocked, then try again.";
-      } else if (errorMessage.includes("Invalid")) {
-        displayMessage = "Authentication failed due to invalid token. Please try again.";
-      }
-
       toast({
         title: "Disconnection Error",
-        description: displayMessage,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

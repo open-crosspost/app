@@ -1,16 +1,15 @@
 import type { AccountPost, PlatformName } from "@crosspost/plugin/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Platform } from "@crosspost/plugin/types";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Link as LinkIcon, Trash2, Twitter } from "lucide-react";
 import type React from "react";
+import { useApiClient, useAuthClient } from "@/app";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { InlineBadges } from "@/components/badges/inline-badges";
 import { Button } from "@/components/ui/button";
-import { useDeletePost } from "@/hooks/use-post-mutations";
 import { toast } from "@/hooks/use-toast";
-import { useAuthClient } from "@/app";
-import { getClient } from "@/lib/authorization-service";
+import { fetchSocialAccountPosts, socialAccountPostsQueryKey } from "@/lib/social";
 import { getProfile } from "@/lib/utils/near-social-node";
 
 export const Route = createFileRoute("/_layout/_authenticated/profile/$accountId")({
@@ -74,21 +73,8 @@ const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({
   }
 };
 
-const fetchAccountPosts = async (accountId: string): Promise<AccountPost[]> => {
-  if (!accountId) {
-    return [];
-  }
-  try {
-    const client = getClient();
-    const response = await client.activity.getAccountPosts(accountId);
-    return response.data?.posts || [];
-  } catch (err) {
-    console.error("Error fetching posts:", err);
-    throw new Error("Failed to load posts. Please try again later.");
-  }
-};
-
 const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
+  const apiClient = useApiClient();
   const { data: session } = useAuthClient().useSession();
   const currentAccountId = session?.user?.id ?? null;
   const {
@@ -98,13 +84,34 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
     error,
     refetch,
   } = useQuery<AccountPost[], Error>({
-    queryKey: ["accountPosts", accountId],
-    queryFn: () => fetchAccountPosts(accountId),
+    queryKey: socialAccountPostsQueryKey(accountId),
+    queryFn: () => fetchSocialAccountPosts(apiClient, accountId),
     enabled: !!accountId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   const queryClient = useQueryClient();
-  const deletePostMutation = useDeletePost();
+  const deletePostMutation = useMutation({
+    mutationKey: ["delete-social-post", accountId],
+    mutationFn: async (variables: {
+      postId: string;
+      platform: PlatformName;
+      platformUserId: string;
+    }) => {
+      return apiClient.social.posts.delete({
+        targets: [{ platform: variables.platform, userId: variables.platformUserId }],
+        posts: [
+          {
+            platform: variables.platform,
+            userId: variables.platformUserId,
+            postId: variables.postId,
+          },
+        ],
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: socialAccountPostsQueryKey(accountId) });
+    },
+  });
 
   const handleDeletePost = async (
     postId: string,
@@ -116,17 +123,11 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
     }
 
     try {
-      await deletePostMutation.mutateAsync({
-        targets: [{ platform, userId: platformUserId }],
-        posts: [{ platform, userId: platformUserId, postId }],
-      });
+      await deletePostMutation.mutateAsync({ postId, platform, platformUserId });
       toast({
         title: "Post Deleted",
         description: "The post has been successfully deleted.",
         variant: "success",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["accountPosts", accountId],
       });
     } catch (err) {
       toast({

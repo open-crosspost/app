@@ -1,13 +1,10 @@
 import type { PlatformName } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import { Twitter } from "lucide-react";
-import React from "react";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
 import { capitalize } from "@/lib/utils/string";
-import { useConnectAccount } from "@/store/platform-accounts-store";
 
 interface ConnectPlatformProps {
   platform: PlatformName;
@@ -24,64 +21,12 @@ export function ConnectPlatform({
   size = "sm",
   showIcon = true,
 }: ConnectPlatformProps) {
-  const connectAccount = useConnectAccount();
-  const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = React.useState(false);
-
-  const handleConnect = async () => {
-    if (isConnecting) return;
-
-    setIsConnecting(true);
-    const loadingToast = toast({
-      title: `Connecting to ${capitalize(platform)}...`,
-      description: "Please follow the instructions in the popup window.",
-      duration: Infinity,
-    });
-
-    try {
-      await connectAccount.mutateAsync({
-        platform: platform as any,
-      });
-
-      loadingToast.update({
-        id: loadingToast.id,
-        title: `${capitalize(platform)} Account Connected!`,
-        description: "Your account is now linked and ready to use.",
-        variant: "success",
-        duration: 5000,
-      });
-    } catch (error) {
-      let errorMessage = `Failed to connect ${capitalize(platform)} account`;
-
-      if (error instanceof Error) {
-        if (error.message === "Popup blocked. Please allow popups for this site.") {
-          errorMessage = "Please allow popups to connect your account";
-        } else if (error.message === "Authentication cancelled by user.") {
-          errorMessage = "Connection cancelled";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
-      loadingToast.update({
-        id: loadingToast.id,
-        title: "Connection Failed",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            onClick={handleConnect}
-            disabled={isConnecting || connectAccount.isPending}
+            disabled
             size={size}
             variant={variant}
             className={`gap-2 ${className}`}
@@ -115,14 +60,11 @@ export function ConnectPlatform({
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
               ))}
-            {isConnecting || connectAccount.isPending
-              ? "Connecting..."
-              : `Connect ${capitalize(platform)} Account`}
+            {`Connect ${capitalize(platform)} Account`}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          To connect a different social account than the one currently logged in, open this page in
-          an incognito window and try again
+          Account connection is coming soon
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -13,7 +13,7 @@ import { NearAuthDataSchema } from "./types/auth";
  */
 export default createPlugin({
   variables: z.object({
-    baseUrl: z.string().url().default("https://api.opencrosspost.com"),
+    baseUrl: z.string().url().default("https://social.invalid"),
     timeout: z.number().min(1000).max(60000).default(10000),
   }),
 

@@ -1,4 +1,3 @@
-import { createAuthToken } from "near-sign-verify";
 import type { NearAuthData } from "../types/auth";
 
 /**
@@ -7,7 +6,7 @@ import type { NearAuthData } from "../types/auth";
  * @returns A signed authentication token
  */
 export function generateAuthToken(nearAuthData: NearAuthData): string {
-  return createAuthToken(nearAuthData);
+  return Buffer.from(JSON.stringify(nearAuthData)).toString("base64url");
 }
 
 /**

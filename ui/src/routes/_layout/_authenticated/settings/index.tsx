@@ -1,8 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_layout/_authenticated/settings/")({
   component: SettingsPage,

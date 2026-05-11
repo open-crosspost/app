@@ -49,7 +49,10 @@ export function UserNav() {
             Settings
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-destructive">
+        <DropdownMenuItem
+          onClick={handleSignOut}
+          className="flex items-center gap-2 text-destructive"
+        >
           <LogOut size={14} />
           Sign out
         </DropdownMenuItem>

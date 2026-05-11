@@ -1,8 +1,10 @@
 import type { PlatformName } from "@crosspost/plugin/types";
+import { useQuery } from "@tanstack/react-query";
 import { SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { Eye, FileText, MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useApiClient, useAuthClient } from "@/app";
 import { DraftsModal } from "@/components/drafts-modal";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { PlatformAccountsSelector } from "@/components/platform-accounts-selector";
@@ -22,17 +24,44 @@ import { usePostManagement } from "@/hooks/use-post-management";
 import { usePostMedia } from "@/hooks/use-post-media";
 import { useSubmitPost } from "@/hooks/use-submit-post";
 import { toast } from "@/hooks/use-toast";
+import {
+  getNearSocialAccount,
+  listConnectedAccounts,
+  mergeConnectedAccounts,
+  nearSocialAccountQueryKey,
+  socialAccountsQueryKey,
+} from "@/lib/social";
 import { detectPlatformFromUrl } from "@/lib/utils/url-utils";
 import type { EditorContent, EditorMedia } from "@/store/drafts-store";
 import { useDraftsStore } from "@/store/drafts-store";
-import { useSelectedAccounts } from "@/store/platform-accounts-store";
+import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
 
 export const Route = createFileRoute("/_layout/_authenticated/editor/")({
   component: EditorPage,
 });
 
 function EditorPage() {
-  const selectedAccounts = useSelectedAccounts();
+  const apiClient = useApiClient();
+  const { data: session } = useAuthClient().useSession();
+  const selectedAccountIds = usePlatformAccountsStore((state) => state.selectedAccountIds);
+  const { data: connectedAccounts = [] } = useQuery({
+    queryKey: socialAccountsQueryKey,
+    queryFn: () => listConnectedAccounts(apiClient),
+    enabled: !!session?.user,
+  });
+  const { data: nearSocialAccount } = useQuery({
+    queryKey: nearSocialAccountQueryKey(session?.user?.id),
+    queryFn: () => getNearSocialAccount(session?.user?.id),
+    enabled: !!session?.user?.id,
+  });
+  const allAccounts = useMemo(
+    () => mergeConnectedAccounts(connectedAccounts, nearSocialAccount ?? null),
+    [connectedAccounts, nearSocialAccount],
+  );
+  const selectedAccounts = useMemo(
+    () => allAccounts.filter((account) => selectedAccountIds.includes(account.userId)),
+    [allAccounts, selectedAccountIds],
+  );
   const { submitPost, isPosting } = useSubmitPost();
   const { setModalOpen, autosave, saveAutoSave, clearAutoSave, saveDraft, isModalOpen } =
     useDraftsStore();

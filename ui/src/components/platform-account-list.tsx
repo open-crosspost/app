@@ -4,6 +4,7 @@ import { RefreshCw, Twitter } from "lucide-react";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { ConnectPlatform } from "@/components/connect-platform";
 import { PlatformAccountItem } from "@/components/platform-account";
+import { capitalize } from "@/lib/utils/string";
 
 interface PlatformAccountListProps {
   platform: PlatformName;
@@ -42,7 +43,7 @@ export function PlatformAccountList({ platform, accounts, isLoading }: PlatformA
             No {platform} accounts connected
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Connect your {platform} accounts to start crossposting
+            {capitalize(platform)} account connection is coming soon
           </p>
           <div className="mt-6">
             <ConnectPlatform platform={platform} size="default" showIcon={true} />

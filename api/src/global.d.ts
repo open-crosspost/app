@@ -10,3 +10,5 @@ declare module "virtual:drizzle-migrations.sql" {
   const migrations: Migration[];
   export default migrations;
 }
+
+declare module "pg";

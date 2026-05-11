@@ -1,20 +1,21 @@
 import {
   ApiErrorCode,
   type ConnectedAccount,
+  type CreatePostRequest,
   type ErrorDetail,
   type MultiStatusData,
   type PlatformName,
+  type QuotePostRequest,
+  type ReplyToPostRequest,
   type SuccessDetail,
 } from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useApiClient, useAuthClient } from "@/app";
 import type { PostType } from "@/components/post-interaction-selector";
 import { ToastAction } from "@/components/ui/toast";
-import { useCreatePost, useQuotePost, useReplyPost } from "@/hooks/use-post-mutations";
 import { toast } from "@/hooks/use-toast";
-import { useAuthClient } from "@/app";
 import { NearSocialService, transformNearSocialPost } from "@/lib/near-social-service";
-import { parseCrosspostError } from "@/lib/utils/error-utils";
 import { detectPlatformFromUrl, extractPostIdFromUrl } from "@/lib/utils/url-utils";
 import type { EditorContent } from "@/store/drafts-store";
 import { useSubmissionResultsStore } from "@/store/submission-results-store";
@@ -36,16 +37,13 @@ export interface SubmitResult {
  * Hook to manage the post submission process across platforms
  */
 export function useSubmitPost() {
+  const apiClient = useApiClient();
   const { data: session } = useAuthClient().useSession();
   const isSignedIn = !!session?.user;
   const navigate = useNavigate();
   const { setSubmissionOutcome } = useSubmissionResultsStore();
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [result, setResult] = useState<SubmitResult>({ status: "idle" });
-
-  const createPostMutation = useCreatePost();
-  const replyPostMutation = useReplyPost();
-  const quotePostMutation = useQuotePost();
 
   const submitPost = async (
     posts: EditorContent[],
@@ -175,10 +173,10 @@ export function useSubmitPost() {
         const postRequest = {
           targets: otherAccounts.map((account) => ({
             platform: account.platform,
-            userId: account.profile?.userId || "",
+            userId: account.userId,
           })),
           content: nonEmptyPosts,
-        };
+        } satisfies CreatePostRequest;
 
         if (postType === "reply" && targetUrl) {
           // Extract platform and postId from URL using utility functions
@@ -189,11 +187,11 @@ export function useSubmitPost() {
             throw new Error("Invalid URL format or unsupported platform");
           }
 
-          apiResponse = await replyPostMutation.mutateAsync({
+          apiResponse = await apiClient.social.posts.reply({
             ...postRequest,
             platform,
             postId,
-          });
+          } satisfies ReplyToPostRequest);
         } else if (postType === "quote" && targetUrl) {
           // For quote posts, use the dedicated quote mutation
           const platform = detectPlatformFromUrl(targetUrl);
@@ -203,14 +201,14 @@ export function useSubmitPost() {
             throw new Error("Invalid URL format or unsupported platform");
           }
 
-          apiResponse = await quotePostMutation.mutateAsync({
+          apiResponse = await apiClient.social.posts.quote({
             ...postRequest,
             platform,
             postId,
-          });
+          } satisfies QuotePostRequest);
         } else {
           // Regular post
-          apiResponse = await createPostMutation.mutateAsync(postRequest);
+          apiResponse = await apiClient.social.posts.create(postRequest);
         }
       } catch (error) {
         apiError = error;
@@ -237,39 +235,26 @@ export function useSubmitPost() {
       finalResults = apiResponse.results || [];
       finalErrors = apiResponse.errors || [];
     } else if (apiError) {
-      // Parse the error to extract any available data
-      const errorData = parseCrosspostError(apiError);
+      finalSummary = {
+        total: apiResultCount,
+        succeeded: 0,
+        failed: apiResultCount,
+      };
 
-      if (errorData.summary) {
-        finalSummary = errorData.summary;
-      } else {
-        finalSummary = {
-          total: apiResultCount,
-          succeeded: 0,
-          failed: apiResultCount,
-        };
-      }
-
-      finalResults = errorData.results || [];
-      finalErrors = errorData.errors || [];
-
-      // If no specific errors from parseCrosspostError but we have a general message,
-      // create a generic error for each account that was part of this API call.
-      if (finalErrors.length === 0 && errorData.message && otherAccounts.length > 0) {
+      if (otherAccounts.length > 0) {
         finalErrors = otherAccounts.map((acc) => ({
-          message: errorData.message || "Posting failed for this account.",
-          code: (errorData.code as ApiErrorCode) || ApiErrorCode.PLATFORM_ERROR,
+          message: apiError instanceof Error ? apiError.message : "Posting failed for this account.",
+          code: ApiErrorCode.PLATFORM_ERROR,
           recoverable: false,
           details: {
             platform: acc.platform,
-            userId: acc.profile?.userId || "",
+            userId: acc.userId,
           },
         }));
-      } else if (finalErrors.length === 0 && errorData.message) {
-        // Generic error if no accounts were processed (e.g. network error before sending to any platform)
+      } else {
         finalErrors.push({
-          message: errorData.message || "An unknown error occurred.",
-          code: (errorData.code as ApiErrorCode) || ApiErrorCode.UNKNOWN_ERROR,
+          message: apiError instanceof Error ? apiError.message : "An unknown error occurred.",
+          code: ApiErrorCode.UNKNOWN_ERROR,
           recoverable: false,
           details: {},
         });
@@ -296,7 +281,7 @@ export function useSubmitPost() {
           recoverable: false,
           details: {
             platform: acc.platform,
-            userId: acc.profile?.userId || "",
+            userId: acc.userId,
           },
         });
       });
@@ -307,7 +292,7 @@ export function useSubmitPost() {
       nearSocialAccounts.forEach((acc) => {
         finalResults.push({
           platform: acc.platform,
-          userId: acc.profile?.userId || "",
+          userId: acc.userId,
           status: "success",
           details: { message: "Successfully posted to NEAR Social" },
         });

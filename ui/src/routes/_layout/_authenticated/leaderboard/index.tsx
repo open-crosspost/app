@@ -1,5 +1,4 @@
 import { ActivityLeaderboardQuerySchema, type Platform, TimePeriod } from "@crosspost/plugin/types";
-import { getErrorMessage } from "@/lib/error-utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
@@ -13,6 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { useApiClient } from "@/app";
 import { BackButton } from "@/components/back-button";
 import { InlineBadges } from "@/components/badges/inline-badges";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchLeaderboard } from "@/lib/api/leaderboard";
+import { getErrorMessage } from "@/lib/error-utils";
 import { type ExportField, type ExportFormat, exportData } from "@/lib/utils/export-utils";
 
 type LeaderboardEntry = {
@@ -61,11 +62,13 @@ export const Route = createFileRoute("/_layout/_authenticated/leaderboard/")({
 });
 
 const fetchAllLeaderboardData = async ({
+  apiClient,
   timeframe,
   platform,
   startDate,
   endDate,
 }: {
+  apiClient: ReturnType<typeof useApiClient>;
   timeframe: TimePeriod;
   platform?: string;
   startDate?: string;
@@ -77,7 +80,7 @@ const fetchAllLeaderboardData = async ({
   let hasMore = true;
 
   while (hasMore) {
-    const normalized = await fetchLeaderboard({
+    const normalized = await fetchLeaderboard(apiClient, {
       limit,
       offset,
       timeframe,
@@ -96,6 +99,7 @@ const fetchAllLeaderboardData = async ({
 };
 
 function LeaderboardPage() {
+  const apiClient = useApiClient();
   const search = useSearch({ from: Route.id });
   const { timeframe, platforms, startDate, endDate } = search;
   const navigate = useNavigate({ from: Route.fullPath });
@@ -131,7 +135,7 @@ function LeaderboardPage() {
       platforms,
     ],
     queryFn: async () => {
-      const result = await fetchLeaderboard({
+      const result = await fetchLeaderboard(apiClient, {
         limit: pagination.pageSize,
         offset: pagination.pageIndex * pagination.pageSize,
         timeframe: timeframe ?? TimePeriod.ALL,
@@ -189,6 +193,7 @@ function LeaderboardPage() {
   const handleExport = async (format: ExportFormat) => {
     try {
       const allData = await fetchAllLeaderboardData({
+        apiClient,
         timeframe: timeframe ?? TimePeriod.ALL,
         platform: platforms?.[0], // Pass the first platform if available
         startDate,

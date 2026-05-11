@@ -26,15 +26,16 @@ export const Route = createFileRoute("/_layout/login")({
   }),
   beforeLoad: ({ context, search }) => {
     const initialSession = context.session as SessionData | null | undefined;
-    const session =
-      initialSession ?? context.queryClient.getQueryData(["session"]);
+    const session = initialSession ?? context.queryClient.getQueryData(["session"]);
 
     if (session?.user) {
       throw redirect({ to: getRedirectUrl(search.redirect), search: {} });
     }
   },
   loader: ({ context }) => {
-    void context.queryClient.prefetchQuery(sessionQueryOptions(context.authClient, context.session));
+    void context.queryClient.prefetchQuery(
+      sessionQueryOptions(context.authClient, context.session),
+    );
   },
   component: LoginPage,
 });

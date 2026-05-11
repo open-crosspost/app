@@ -1,5 +1,13 @@
 import { z } from "zod";
-export type { NearAuthData } from "near-sign-verify";
+export interface NearAuthData {
+    account_id: string;
+    public_key: string;
+    signature: string;
+    message: string;
+    nonce: number[];
+    recipient: string;
+    callback_url?: string;
+}
 export declare const NearAuthDataSchema: z.ZodObject<{
     account_id: z.ZodString;
     public_key: z.ZodString;

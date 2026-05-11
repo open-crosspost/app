@@ -1,5 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
+import { socialContract } from "./social/contract";
 
 export const contract = oc.router({
   ping: oc.route({ method: "GET", path: "/ping" }).output(
@@ -15,6 +16,8 @@ export const contract = oc.router({
       note: z.string(),
     }),
   ),
+
+  social: socialContract,
 });
 
 export type ContractType = typeof contract;

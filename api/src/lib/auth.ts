@@ -59,6 +59,20 @@ function toAuthContext(context: RequestAuthContext): AuthContext {
   };
 }
 
+export function requireAuthContext(context: RequestAuthContext): AuthContext {
+  if (!context.user || !context.userId) {
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "Authentication required",
+      data: {
+        authType: "session",
+        hint: "Sign in with NEAR, passkey, email, phone, or anonymous",
+      },
+    });
+  }
+
+  return toAuthContext(context);
+}
+
 export function createAuthGuards(builder: any) {
   const requireAuthHandler = async ({
     context,
@@ -67,17 +81,7 @@ export function createAuthGuards(builder: any) {
     context: RequestAuthContext;
     next: MiddlewareNext<AuthContext>;
   }) => {
-    if (!context.user || !context.userId) {
-      throw new ORPCError("UNAUTHORIZED", {
-        message: "Authentication required",
-        data: {
-          authType: "session",
-          hint: "Sign in with NEAR, passkey, email, phone, or anonymous",
-        },
-      });
-    }
-
-    return next({ context: toAuthContext(context) });
+    return next({ context: requireAuthContext(context) });
   };
 
   const requireRoleHandler =

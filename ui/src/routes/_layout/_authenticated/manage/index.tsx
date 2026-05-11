@@ -1,14 +1,20 @@
 // PlatformName import removed "@crosspost/plugin/types";
 import { SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
+import { useApiClient, useAuthClient } from "@/app";
 import { BackButton } from "@/components/back-button";
 import { PlatformAccountItem } from "@/components/platform-account";
 import { PlatformAccountList } from "@/components/platform-account-list";
 import { Button } from "@/components/ui/button";
 import {
-  useConnectedAccounts,
-  useNearSocialAccount,
+  getNearSocialAccount,
+  listConnectedAccounts,
+  nearSocialAccountQueryKey,
+  socialAccountsQueryKey,
+} from "@/lib/social";
+import {
   usePlatformAccountsStore,
 } from "@/store/platform-accounts-store";
 
@@ -18,8 +24,18 @@ export const Route = createFileRoute("/_layout/_authenticated/manage/")({
 
 function ManageAccountsPage() {
   const navigate = useNavigate();
-  const { data: accounts = [], isLoading } = useConnectedAccounts();
-  const { data: profile, isLoading: isLoadingProfile } = useNearSocialAccount();
+  const apiClient = useApiClient();
+  const { data: session } = useAuthClient().useSession();
+  const { data: accounts = [], isLoading } = useQuery({
+    queryKey: socialAccountsQueryKey,
+    queryFn: () => listConnectedAccounts(apiClient),
+    enabled: !!session?.user,
+  });
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: nearSocialAccountQueryKey(session?.user?.id),
+    queryFn: () => getNearSocialAccount(session?.user?.id),
+    enabled: !!session?.user?.id,
+  });
   const { selectedAccountIds } = usePlatformAccountsStore();
 
   const handleContinue = () => {

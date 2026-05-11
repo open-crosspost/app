@@ -15,7 +15,9 @@ export const Route = createFileRoute("/_layout/_authenticated")({
   beforeLoad: async ({ context, location }) => {
     const { queryClient } = context;
 
-    const session = await queryClient.ensureQueryData(sessionQueryOptions(context.authClient, context.session));
+    const session = await queryClient.ensureQueryData(
+      sessionQueryOptions(context.authClient, context.session),
+    );
 
     if (!session?.user) {
       throw redirect({

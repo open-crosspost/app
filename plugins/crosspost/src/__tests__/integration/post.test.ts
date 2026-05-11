@@ -23,7 +23,7 @@ describe("Post Integration Tests", () => {
 
   const config = {
     variables: {
-      baseUrl: "https://api.opencrosspost.com",
+      baseUrl: "https://social.invalid",
       timeout: 5000,
     },
     secrets: {

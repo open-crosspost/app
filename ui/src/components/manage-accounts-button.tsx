@@ -3,8 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import type * as React from "react";
 import { useCallback } from "react";
-import { toast } from "@/hooks/use-toast";
 import { sessionQueryOptions, useAuthClient } from "@/app";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 
 export function ManageAccountsButton(): React.ReactElement {
