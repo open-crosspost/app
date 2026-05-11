@@ -75,6 +75,7 @@ export {
   getRedirectUrl,
   NEAR_ERROR_MESSAGES,
   NearAuthError,
+  sessionQueryKey,
   sessionQueryOptions,
   signInAnonymous,
   signInWithNear,

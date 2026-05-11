@@ -7,6 +7,7 @@ import {
   NearAuthError,
   type NearAuthErrorCode,
   type SessionData,
+  sessionQueryKey,
   sessionQueryOptions,
   signInAnonymous,
   signInWithNear,
@@ -50,7 +51,7 @@ function LoginPage() {
     if (freshSession) {
       queryClient.setQueryData(["session"], freshSession);
     }
-    await queryClient.invalidateQueries({ queryKey: ["session"] });
+    await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     await router.invalidate();
     toast.success(message);
   };

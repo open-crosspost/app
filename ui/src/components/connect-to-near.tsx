@@ -8,6 +8,7 @@ import {
   NearAuthError,
   type NearAuthErrorCode,
   type SessionData,
+  sessionQueryKey,
   sessionQueryOptions,
   signInWithNear,
   signOutAndNavigate,
@@ -27,8 +28,8 @@ export function ConnectToNearButton(): ReactElement {
   const nearMutation = useMutation({
     mutationFn: () => signInWithNear(authClient),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["session"] });
-      const fresh = queryClient.getQueryData<SessionData | null>(["session"]);
+      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+      const fresh = queryClient.getQueryData<SessionData | null>(sessionQueryKey);
       if (!fresh?.user) return;
       await router.invalidate();
       toast.success("Signed in with NEAR");

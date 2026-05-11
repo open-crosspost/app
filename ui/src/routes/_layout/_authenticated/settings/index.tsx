@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
+import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 
@@ -16,7 +16,7 @@ function SettingsPage() {
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    await queryClient.invalidateQueries({ queryKey: ["session"] });
+    await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     await router.invalidate();
     await router.navigate({ to: "/" });
   };

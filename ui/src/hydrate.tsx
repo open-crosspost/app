@@ -43,7 +43,7 @@ export async function hydrate() {
           hostUrl: runtimeConfig.hostUrl,
           rpcBase: runtimeConfig.rpcBase,
         }),
-        authClient: createAuthClient(),
+        authClient: createAuthClient(runtimeConfig),
       },
     });
 

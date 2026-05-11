@@ -12,7 +12,7 @@ import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import type { RouterContext } from "@/app";
-import { getAppName, getBaseStyles, getRuntimeBasePath } from "@/app";
+import { getAppName, getBaseStyles, getRuntimeBasePath, sessionQueryKey } from "@/app";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -31,7 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     // Pre-populate session cache from SSR data
     if (session && queryClient) {
-      queryClient.setQueryData(["session"], session);
+      queryClient.setQueryData(sessionQueryKey, session);
     }
 
     return {
