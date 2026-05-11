@@ -21,10 +21,10 @@
  *                        handoff. Root boundary between host-rendered
  *                        document and the UI application.
  *
- *   app.ts            — This file. Re-exports runtime helpers from
- *                        everything-dev/ui/runtime and public client surfaces
- *                        from ./lib/api and ./lib/auth. Also re-exports
- *                        router-facing public types.
+ *   app.ts            — This file. Re-exports the minimal shared runtime
+ *                        helpers plus public client surfaces from ./lib/api
+ *                        and ./lib/auth. Also re-exports router-facing
+ *                        public types.
  *
  * Boundary rule: The host loads UI remotely via Module Federation and
  * provides runtime config + auth/API routing. Work within the typed
@@ -38,31 +38,42 @@ import {
   buildPublishedAccountHref,
   buildPublishedGatewayHref,
   buildRuntimeHref,
-  getAccount,
-  getActiveRuntime,
-  getApiBaseUrl,
-  getAssetsUrl,
-  getHostUrl,
-  getNetworkId,
-  getRepository,
-  getRuntimeBasePath,
   getRuntimeConfig,
 } from "everything-dev/ui/runtime";
 
-export {
-  buildPublishedAccountHref,
-  buildPublishedGatewayHref,
-  buildRuntimeHref,
-  getAccount,
-  getActiveRuntime,
-  getApiBaseUrl,
-  getAssetsUrl,
-  getHostUrl,
-  getNetworkId,
-  getRepository,
-  getRuntimeBasePath,
-  getRuntimeConfig,
-};
+export { buildPublishedAccountHref, buildPublishedGatewayHref, buildRuntimeHref, getRuntimeConfig };
+
+type RuntimeConfigInput = Partial<import("everything-dev/types").ClientRuntimeConfig> | undefined;
+
+function readRuntimeConfig(config?: RuntimeConfigInput) {
+  if (config) return config;
+  if (typeof window === "undefined") return undefined;
+  try {
+    return getRuntimeConfig();
+  } catch {
+    return undefined;
+  }
+}
+
+export function getActiveRuntime(config?: RuntimeConfigInput) {
+  return readRuntimeConfig(config)?.runtime;
+}
+
+export function getAccount(config?: RuntimeConfigInput): string {
+  return readRuntimeConfig(config)?.account ?? "every.near";
+}
+
+export function getRepository(config?: RuntimeConfigInput): string | undefined {
+  return readRuntimeConfig(config)?.repository;
+}
+
+export function getAppName(config?: RuntimeConfigInput): string {
+  return getActiveRuntime(config)?.title ?? getAccount(config);
+}
+
+export function getAssetsUrl(config?: RuntimeConfigInput): string {
+  return readRuntimeConfig(config)?.assetsUrl ?? "";
+}
 
 import type { ApiClient } from "./lib/api";
 import type { AuthClient as AuthClientType } from "./lib/auth";
@@ -81,6 +92,7 @@ export {
   signInWithNear,
   signOutAndNavigate,
   useAuthClient,
+  useRelayHistory,
 } from "./lib/auth";
 
 import type {

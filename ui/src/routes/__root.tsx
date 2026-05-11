@@ -12,7 +12,7 @@ import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import type { RouterContext } from "@/app";
-import { getBaseStyles, getRuntimeBasePath, sessionQueryKey } from "@/app";
+import { getBaseStyles } from "@/app";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -31,7 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     // Pre-populate session cache from SSR data
     if (session && queryClient) {
-      queryClient.setQueryData(sessionQueryKey, session);
+      queryClient.setQueryData(["session"], session);
     }
 
     return {
@@ -43,22 +43,22 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   head: ({ loaderData }) => {
     const assetsUrl = loaderData?.assetsUrl || "";
     const runtimeConfig = loaderData?.runtimeConfig;
-    const runtimeBasePath = getRuntimeBasePath(runtimeConfig);
+    const runtimeBasePath = runtimeConfig?.runtime?.runtimeBasePath ?? "/";
     const siteUrl = runtimeConfig?.hostUrl
       ? `${runtimeConfig.hostUrl}${runtimeBasePath === "/" ? "" : runtimeBasePath}`
       : "";
-    const title = "Open Crosspost";
-    const description = "An open-source interface for seamless social media crossposting.";
+    const title = runtimeConfig?.runtime?.title ?? runtimeConfig?.account ?? "every.near";
+    const description =
+      "Open runtime for apps on NEAR, composed from published config and loaded through a shared host, UI, and API runtime.";
     const siteName = title;
     const ogImage = `${assetsUrl}/metadata.png`;
-    const socialDescription = "The open source crossposting engine and SDK for agents and humans.";
 
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: title,
-      description: socialDescription,
-      url: siteUrl || undefined,
+      description,
+      url: runtimeConfig?.hostUrl || undefined,
     };
 
     return {
@@ -70,10 +70,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { title },
         { name: "description", content: description },
-        {
-          name: "keywords",
-          content: "crossposting, social media, publishing, sdk, automation, agents",
-        },
         { name: "theme-color", content: "#ffffff" },
         { name: "color-scheme", content: "light dark" },
         { name: "application-name", content: siteName },
@@ -84,14 +80,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { name: "format-detection", content: "telephone=no" },
         { name: "robots", content: "index, follow" },
-        { property: "og:type", content: "website" },
         ...getSocialImageMeta({
           imageUrl: ogImage,
           title,
-          description: socialDescription,
+          description,
           siteName,
           siteUrl,
-          alt: "Open Crosspost preview",
+          alt: "app preview",
         }),
       ],
       links: [

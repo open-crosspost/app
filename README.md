@@ -7,7 +7,7 @@
 
 <h1 style="font-size: 4.25rem; font-weight: 800; line-height: 1; margin: 0;">everything.dev</h1>
 
-<img src="ui/src/assets/under-construction.gif" alt="Under construction" width="380" />
+<img src="ui/src/assets/under-construction.gif" alt="everything.dev" width="380" />
 
 </div>
 
@@ -20,24 +20,17 @@ Built with [Tanstack Start](https://tanstack.com/start/latest/docs/framework/rea
 ## Quick Start
 
 ```bash
-bun install             # Install dependencies
-bos dev --host remote   # Start development (typical workflow)
+bunx everything-dev@latest init
 ```
-
-This will start serving the UI, the API, and mounting it on a universally shared (remote) HOST application's build.
-
-- Host: http://localhost:3000
-- API: http://localhost:3000/api
-
-This maintains a flexible, well-typed architecture that connects the entirity of the application, it's operating system, and a cli to interact with it. It is a perpetually in-development model for the [Blockchain Operating System (BOS)](https://near.social/#/)
 
 ## Why
 
-Agents can now build software. But 45% of AI-generated code fails security tests — a rate flat for two years across 150+ models. The JavaScript supply chain saw a 15.3x increase in malicious packages. $1.46B was stolen via runtime JavaScript injection at Bybit. Only 2.8% of scripts on the median web page have integrity protection.
+Two main reasons:
 
-Build-time bundles have no compositional integrity. You cannot verify what is running matches what was published. You cannot swap a component without redeploying everything. You cannot prove provenance.
+1. I'm tired of constantly maintaining similiar logic and infrasturcture across multiple projects
+2. While agents are good at creating prototypes, vibe coding typically comes with security flaws. This framework provides a type-safe starting point, extended from production ready code, on an upgradable runtime, with an incredibly simple deployment flow (publish a JSON and restart a Docker image).
 
-everything.dev is a composition protocol, not a framework. The `bos.config.json` is a verifiable manifest. every-plugin provides typed contracts for composable APIs. The registry discovers published runtimes on-chain. `extends` and `bos://` let any app compose from any other. better-near-auth gives cryptographic identity and verifiable on-chain actions. Integrity hashes prove what loads matches what was published.
+When solutions are optimized to solve these two problems, a bi-product is more creativity and immense possibility, especially in the era of generative interfaces.
 
 **Runtime apps that compose, verify, and evolve without rebuilding.**
 
