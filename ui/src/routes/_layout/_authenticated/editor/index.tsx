@@ -4,7 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Eye, FileText, MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getNearAccountIdFromSession, useApiClient, useAuthClient } from "@/app";
+import {
+  getAvailableNearAccountId,
+  nearAccountIdQueryKey,
+  useApiClient,
+  useAuthClient,
+} from "@/app";
 import { DraftsModal } from "@/components/drafts-modal";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { PlatformAccountsSelector } from "@/components/platform-accounts-selector";
@@ -42,8 +47,14 @@ export const Route = createFileRoute("/_layout/_authenticated/editor/")({
 
 function EditorPage() {
   const apiClient = useApiClient();
-  const { data: session } = useAuthClient().useSession();
-  const nearAccountId = getNearAccountIdFromSession(session);
+  const authClient = useAuthClient();
+  const { data: session } = authClient.useSession();
+  const { data: nearAccountId } = useQuery({
+    queryKey: nearAccountIdQueryKey,
+    queryFn: () => getAvailableNearAccountId(authClient),
+    enabled: !!session?.user,
+    staleTime: 60 * 1000,
+  });
   const selectedAccountIds = usePlatformAccountsStore((state) => state.selectedAccountIds);
   const { data: connectedAccounts = [] } = useQuery({
     queryKey: socialAccountsQueryKey,
@@ -52,7 +63,7 @@ function EditorPage() {
   });
   const { data: nearSocialAccount } = useQuery({
     queryKey: nearSocialAccountQueryKey(nearAccountId),
-    queryFn: () => getNearSocialAccount(nearAccountId),
+    queryFn: () => getNearSocialAccount(authClient, nearAccountId),
     enabled: !!nearAccountId,
   });
   const allAccounts = useMemo(

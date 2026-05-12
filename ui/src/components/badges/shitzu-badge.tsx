@@ -14,11 +14,13 @@ export function ShitzuBadge({ accountId }: BadgeProps) {
       if (!accountId) return false;
 
       try {
-        const tokens = await near.client.view<unknown[]>(
-          SHITZU_REWARDS_CONTRACT_ID,
-          "primary_nft_of",
-          { account_id: accountId },
-        );
+        const tokens = (
+          await near.view({
+            contractId: SHITZU_REWARDS_CONTRACT_ID,
+            methodName: "primary_nft_of",
+            args: { account_id: accountId },
+          })
+        )?.data?.result as unknown[];
         return Array.isArray(tokens) && tokens.length > 0;
       } catch (error) {
         console.error("Error checking Shitzu NFT:", error);

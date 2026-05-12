@@ -17,9 +17,13 @@ export function NekoBadge({ accountId }: BadgeProps) {
       if (!accountId) return false;
 
       try {
-        const balance = await near.client.view<string>(NEKO_COOKIE_CONTRACT_ID, "ft_balance_of", {
-          account_id: accountId,
-        });
+        const balance = (
+          await near.view({
+            contractId: NEKO_COOKIE_CONTRACT_ID,
+            methodName: "ft_balance_of",
+            args: { account_id: accountId },
+          })
+        )?.data?.result as string | undefined;
         const standardAmount = new BigNumber(convertAtomicToStandard(balance ?? "0", 24));
         return standardAmount.gte(new BigNumber(100000));
       } catch (error) {

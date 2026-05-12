@@ -76,18 +76,22 @@ export type SessionData = AuthClient["$Infer"]["Session"];
 export type Organization = NonNullable<OrganizationListResult["data"]>[number];
 export type Passkey = NonNullable<PasskeyListResult["data"]>[number];
 export type NearActions = SIWNClientActions["near"];
+export const nearAccountIdQueryKey = ["near", "account-id"] as const;
 
 export function getNearActions(authClient: AuthClient): NearActions {
   return authClient.near as NearActions;
 }
 
-export function getNearAccountIdFromSession(
-  session: { user?: unknown } | null | undefined,
-): string | null {
-  const user = session?.user as
-    | { nearAccount?: { accountId?: string }; name?: string; id?: string }
-    | undefined;
-  return user?.nearAccount?.accountId ?? null;
+export async function getAvailableNearAccountId(authClient: AuthClient): Promise<string | null> {
+  const near = getNearActions(authClient);
+  const connectedAccountId = near.getAccountId();
+  if (connectedAccountId) {
+    return connectedAccountId;
+  }
+
+  const response = await near.listAccounts();
+  const accounts = response.data?.accounts ?? [];
+  return accounts.find((account) => account.isPrimary)?.accountId ?? accounts[0]?.accountId ?? null;
 }
 
 export function getNearWalletDisplayFromSession(
@@ -96,7 +100,7 @@ export function getNearWalletDisplayFromSession(
   const user = session?.user as
     | { nearAccount?: { accountId?: string }; name?: string; id?: string }
     | undefined;
-  return getNearAccountIdFromSession(session) ?? user?.name ?? user?.id ?? null;
+  return user?.nearAccount?.accountId ?? user?.name ?? user?.id ?? null;
 }
 
 export function useAuthClient(): AuthClient {

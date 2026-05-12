@@ -7,7 +7,8 @@ import type {
   TimePeriod,
 } from "@crosspost/plugin/types";
 import type { ApiClient } from "@/app";
-import { getImageUrl, getProfile } from "@/lib/utils/near-social-node";
+import type { AuthClient } from "@/lib/auth";
+import { getImageUrl } from "@/lib/utils/near-social-node";
 
 export const socialAccountsQueryKey = ["social", "accounts"] as const;
 
@@ -82,6 +83,7 @@ export async function fetchSocialLeaderboard(
 }
 
 export async function getNearSocialAccount(
+  authClient: AuthClient,
   currentAccountId: string | null | undefined,
 ): Promise<ConnectedAccount | null> {
   if (!currentAccountId) {
@@ -89,7 +91,8 @@ export async function getNearSocialAccount(
   }
 
   try {
-    const profile = await getProfile(currentAccountId);
+    const response = await authClient.near.getProfile(currentAccountId);
+    const profile = response.data ?? null;
     const profileImageUrl = profile?.image ? getImageUrl(profile.image) : "";
 
     return {
@@ -114,5 +117,12 @@ export function mergeConnectedAccounts(
   apiAccounts: ConnectedAccount[],
   nearSocialAccount: ConnectedAccount | null,
 ) {
-  return [...apiAccounts, ...(nearSocialAccount ? [nearSocialAccount] : [])];
+  const merged = [...apiAccounts, ...(nearSocialAccount ? [nearSocialAccount] : [])];
+  return merged.filter(
+    (account, index) =>
+      merged.findIndex(
+        (candidate) =>
+          candidate.platform === account.platform && candidate.userId === account.userId,
+      ) === index,
+  );
 }

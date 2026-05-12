@@ -11,14 +11,14 @@
     "ui": {
       "name": "ui",
       "development": "local:ui",
-      "production": "https://elliot-braem-3610-ui-app-open-crosspost-418715418-ze.zephyrcloud.app",
-      "integrity": "sha384-YYfevP5yBZO/Bf4rb02TYtqoZfoRXZWOyIMq2ValgfBfuv42wGL98kJ5kZFi5G1R",
-      "ssr": "https://elliot-braem-3611-ui-app-open-crosspost-e0a2bef1c-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-3629-ui-app-open-crosspost-5ea138913-ze.zephyrcloud.app",
+      "integrity": "sha384-Q5s66Re4eFNfYzzb7ZO7r/5W+6p0nrtgXYz5B2nEf4RZAzL8GV/cU4cA943Ygwgu",
+      "ssr": "https://elliot-braem-3633-ui-app-open-crosspost-1ada4d2e8-ze.zephyrcloud.app"
     },
     "api": {
       "name": "api",
       "development": "local:api",
-      "production": "https://elliot-braem-3612-api-app-open-crosspost-a11265f76-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-3636-api-app-open-crosspost-465576171-ze.zephyrcloud.app",
       "integrity": "sha384-31serfFMNTVadlW3BL7+gpXk9K2ruIjSoYYB6YZbS3usc2i+mCK6/yDIMmZVNHK8",
       "variables": {},
       "secrets": [
@@ -53,7 +53,7 @@
       "secrets": [
         "nearAuthData"
       ],
-      "production": "https://elliot-braem-3613-crosspost-plugin-app-open-cross-cbea8d92a-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-3638-crosspost-plugin-app-open-cross-f5e1a4b9e-ze.zephyrcloud.app"
     },
     "twitter": {
       "development": "local:plugins/twitter",
@@ -61,7 +61,7 @@
         "clientId",
         "clientSecret"
       ],
-      "production": "https://elliot-braem-3614-crosspost-twitter-app-open-cros-b41328a49-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-3640-crosspost-twitter-app-open-cros-ed1388e1b-ze.zephyrcloud.app"
     },
     "farcaster": {
       "development": "local:plugins/farcaster",
@@ -74,7 +74,7 @@
         "neynarApiKey",
         "pinataJwt"
       ],
-      "production": "https://elliot-braem-3615-crosspost-farcaster-app-open-cr-ec5193f50-ze.zephyrcloud.app"
+      "production": "https://elliot-braem-3641-crosspost-farcaster-app-open-cr-cf1db9673-ze.zephyrcloud.app"
     }
   },
   "shared": {

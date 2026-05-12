@@ -1,13 +1,14 @@
 // PlatformName import removed "@crosspost/plugin/types";
 import { SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, RefreshCw, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getNearAccountIdFromSession,
+  getAvailableNearAccountId,
   getNearActions,
   getNearWalletDisplayFromSession,
+  nearAccountIdQueryKey,
   sessionQueryKey,
   signInWithNear,
   useApiClient,
@@ -28,7 +29,6 @@ import { convertAtomicToStandard } from "@/lib/utils/string";
 import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
 
 const NEAR_SOCIAL_STORAGE_QUERY_KEY = ["social", "near-storage"] as const;
-const NEAR_SOCIAL_STORAGE_DEPOSIT = "0.1 NEAR";
 const SOCIAL_CONTRACT_ID = NETWORK_ID === "mainnet" ? "social.near" : "v1.social08.testnet";
 
 type SocialStorageBalance = {
@@ -45,10 +45,12 @@ async function fetchNearSocialStorageBalance(
   accountId: string,
 ): Promise<SocialStorageBalance> {
   return (
-    (await near.client.view<SocialStorageBalance>(SOCIAL_CONTRACT_ID, "storage_balance_of", {
-      account_id: accountId,
-    })) ?? null
-  );
+    await near.view({
+      contractId: SOCIAL_CONTRACT_ID,
+      methodName: "storage_balance_of",
+      args: { account_id: accountId },
+    })
+  )?.data?.result as SocialStorageBalance;
 }
 
 function formatNearAmount(atomicAmount: string): string {
@@ -70,7 +72,12 @@ function ManageAccountsPage() {
   const near = getNearActions(authClient);
   const { data: session } = authClient.useSession();
   const connectedNearAccountId = near.getAccountId();
-  const nearAccountId = connectedNearAccountId ?? getNearAccountIdFromSession(session);
+  const { data: nearAccountId } = useQuery({
+    queryKey: nearAccountIdQueryKey,
+    queryFn: () => getAvailableNearAccountId(authClient),
+    enabled: !!session?.user,
+    staleTime: 60 * 1000,
+  });
   const nearWalletDisplay = getNearWalletDisplayFromSession(session);
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: socialAccountsQueryKey,
@@ -79,7 +86,7 @@ function ManageAccountsPage() {
   });
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: nearSocialAccountQueryKey(nearAccountId),
-    queryFn: () => getNearSocialAccount(nearAccountId),
+    queryFn: () => getNearSocialAccount(authClient, nearAccountId),
     enabled: !!nearAccountId,
   });
   const { data: storageBalance, isLoading: isLoadingStorage } = useQuery({
@@ -107,6 +114,7 @@ function ManageAccountsPage() {
     },
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: nearAccountIdQueryKey }),
         queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
         queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey }),
         queryClient.invalidateQueries({ queryKey: NEAR_SOCIAL_STORAGE_QUERY_KEY }),
@@ -134,7 +142,7 @@ function ManageAccountsPage() {
           {},
           {
             gas: "30 Tgas",
-            attachedDeposit: NEAR_SOCIAL_STORAGE_DEPOSIT,
+            attachedDeposit: 100000000000000000000000n,
           },
         )
         .send();
@@ -159,6 +167,7 @@ function ManageAccountsPage() {
       toast.success("NEAR Social storage added");
     },
     onError: (error) => {
+      console.error("Failed to add NEAR Social storage:", error);
       toast.error(error.message || "Failed to add NEAR Social storage");
     },
   });
@@ -258,8 +267,8 @@ function ManageAccountsPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Please sign in with your NEAR wallet to use NEAR Social
               </p>
-              <Button onClick={() => connectNearMutation.mutate()} className="mt-4">
-                {connectNearMutation.isPending ? "Connecting..." : "Connect NEAR"}
+              <Button asChild className="mt-4">
+                <Link to="/login">Connect NEAR</Link>
               </Button>
             </div>
           )}

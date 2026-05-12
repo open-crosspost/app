@@ -15,11 +15,13 @@ export function BlackdragonBadge({ accountId }: BadgeProps) {
       if (!accountId) return false;
 
       try {
-        const tokens = await near.client.view<unknown[]>(
-          BLACKDRAGON_NFT_CONTRACT_ID,
-          "nft_tokens_for_owner",
-          { account_id: accountId },
-        );
+        const tokens = (
+          await near.view({
+            contractId: BLACKDRAGON_NFT_CONTRACT_ID,
+            methodName: "nft_tokens_for_owner",
+            args: { account_id: accountId },
+          })
+        )?.data?.result as unknown[];
         return Array.isArray(tokens) && tokens.length > 0;
       } catch (error) {
         console.error("Error checking Blackdragon NFT:", error);

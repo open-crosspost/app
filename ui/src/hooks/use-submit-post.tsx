@@ -131,11 +131,13 @@ export function useSubmitPost() {
     }
 
     const data = buildNearSocialPostData(accountId, text);
-    const storageBalance = await near.client.view<SocialStorageBalance>(
-      SOCIAL_CONTRACT_ID,
-      "storage_balance_of",
-      { account_id: accountId },
-    );
+    const storageBalance = (
+      await near.view({
+        contractId: SOCIAL_CONTRACT_ID,
+        methodName: "storage_balance_of",
+        args: { account_id: accountId },
+      })
+    )?.data?.result as SocialStorageBalance;
     const requiredDeposit = BigInt(
       calculateRequiredDeposit({
         data,
