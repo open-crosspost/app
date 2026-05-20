@@ -2,7 +2,7 @@ import type { AccountPost, PlatformName } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { Link as LinkIcon, Trash2, Twitter } from "lucide-react";
+import { Link as LinkIcon, Trash2, X } from "lucide-react";
 import type React from "react";
 import { useApiClient, useAuthClient } from "@/app";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
@@ -63,7 +63,7 @@ const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({
 }) => {
   switch (platform?.toLowerCase()) {
     case Platform.TWITTER:
-      return <Twitter className={className} />;
+      return <X className={className} />;
     case Platform.FARCASTER:
       return (
         <img src={farcasterSvg} alt="Farcaster Logo" className={`text-gray-400 ${className}`} />

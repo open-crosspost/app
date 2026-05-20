@@ -1,12 +1,7 @@
 import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  getAvailableNearAccountId,
-  nearAccountIdQueryKey,
-  useApiClient,
-  useAuthClient,
-} from "@/app";
+import { useApiClient, useAuthClient } from "@/app";
 import { AccountItem } from "@/components/account-item";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,8 +25,8 @@ export function PlatformAccountsSelector({
   const authClient = useAuthClient();
   const { data: session } = authClient.useSession();
   const { data: nearAccountId } = useQuery({
-    queryKey: nearAccountIdQueryKey,
-    queryFn: () => getAvailableNearAccountId(authClient),
+    queryKey: ["near", "accountId"] as const,
+    queryFn: () => authClient.near.getAccountId(),
     enabled: !!session?.user,
     staleTime: 60 * 1000,
   });

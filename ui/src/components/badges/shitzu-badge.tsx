@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getNearActions, useAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -7,7 +7,7 @@ const SHITZU_REWARDS_CONTRACT_ID = "rewards.0xshitzu.near";
 
 export function ShitzuBadge({ accountId }: BadgeProps) {
   const authClient = useAuthClient();
-  const near = getNearActions(authClient);
+  const near = authClient.near;
   const { data: hasNft, isLoading } = useQuery({
     queryKey: ["shitzuNft", accountId],
     queryFn: async () => {

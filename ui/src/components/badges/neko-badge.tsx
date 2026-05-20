@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import BigNumber from "bignumber.js";
-import { getNearActions, useAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import nekoBadgePng from "@/assets/badges/neko-badge.png";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -10,7 +10,7 @@ const NEKO_COOKIE_CONTRACT_ID = "cookie.nekotoken.near";
 
 export function NekoBadge({ accountId }: BadgeProps) {
   const authClient = useAuthClient();
-  const near = getNearActions(authClient);
+  const near = authClient.near;
   const { data: hasBadge, isLoading } = useQuery({
     queryKey: ["nekoCookie", accountId],
     queryFn: async () => {

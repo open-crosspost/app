@@ -22,26 +22,26 @@
     }
   },
   "peerDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   },
   "dependencies": {
-    "@orpc/contract": "^1.13.4",
-    "@orpc/server": "^1.13.4",
-    "effect": "^3.21.0",
-    "zod": "^4.3.6"
+    "@orpc/contract": "catalog:",
+    "@orpc/server": "catalog:",
+    "effect": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "^0.84.3",
-    "@module-federation/node": "^2.7.40",
-    "@rspack/cli": "^1.6.8",
-    "@rspack/core": "^1.6.8",
-    "@types/node": "^25.0.3",
+    "@module-federation/node": "catalog:",
+    "@rspack/cli": "catalog:",
+    "@rspack/core": "catalog:",
+    "@types/node": "catalog:",
     "dotenv": "^17.2.3",
     "everything-dev": "catalog:",
     "every-plugin": "catalog:",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.0.17",
-    "zephyr-rspack-plugin": "0.1.4"
+    "vitest": "catalog:",
+    "zephyr-rspack-plugin": "catalog:"
   },
   "scripts": {
     "build": "bun run build:types && rspack build",

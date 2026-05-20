@@ -4,16 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, RefreshCw, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import {
-  getAvailableNearAccountId,
-  getNearActions,
-  getNearWalletDisplayFromSession,
-  nearAccountIdQueryKey,
-  sessionQueryKey,
-  signInWithNear,
-  useApiClient,
-  useAuthClient,
-} from "@/app";
+import { type AuthClient, sessionQueryKey, useApiClient, useAuthClient } from "@/app";
 import { BackButton } from "@/components/back-button";
 import { PlatformAccountItem } from "@/components/platform-account";
 import { PlatformAccountList } from "@/components/platform-account-list";
@@ -41,7 +32,7 @@ function sleep(ms: number) {
 }
 
 async function fetchNearSocialStorageBalance(
-  near: ReturnType<typeof getNearActions>,
+  near: AuthClient["near"],
   accountId: string,
 ): Promise<SocialStorageBalance> {
   return (
@@ -69,16 +60,16 @@ function ManageAccountsPage() {
   const queryClient = useQueryClient();
   const apiClient = useApiClient();
   const authClient = useAuthClient();
-  const near = getNearActions(authClient);
+  const near = authClient.near;
   const { data: session } = authClient.useSession();
   const connectedNearAccountId = near.getAccountId();
   const { data: nearAccountId } = useQuery({
-    queryKey: nearAccountIdQueryKey,
-    queryFn: () => getAvailableNearAccountId(authClient),
+    queryKey: ["near", "accountId"] as const,
+    queryFn: () => near.getAccountId(),
     enabled: !!session?.user,
     staleTime: 60 * 1000,
   });
-  const nearWalletDisplay = getNearWalletDisplayFromSession(session);
+  const nearWalletDisplay = session?.user?.name ?? null;
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: socialAccountsQueryKey,
     queryFn: () => listConnectedAccounts(apiClient),
@@ -110,11 +101,11 @@ function ManageAccountsPage() {
         return;
       }
 
-      await signInWithNear(authClient);
+      await authClient.signIn.near();
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: nearAccountIdQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["near", "accountId"] as const }),
         queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
         queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey }),
         queryClient.invalidateQueries({ queryKey: NEAR_SOCIAL_STORAGE_QUERY_KEY }),

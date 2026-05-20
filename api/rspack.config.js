@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import DrizzleORMMigrations from "@proj-airi/unplugin-drizzle-orm-migrations/rspack";
@@ -11,23 +10,30 @@ import {
 import { computeSriHashForUrl } from "everything-dev/integrity";
 import { withZephyr } from "zephyr-rspack-plugin";
 
-const require = createRequire(import.meta.url);
-const pkg = require("./package.json");
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const shouldDeploy = process.env.DEPLOY === "true";
 
-function updateHostConfig(name, url, integrity) {
+const resolvedConfigPath = path.resolve(__dirname, "../.bos/bos.resolved-config.json");
+const bosConfigPath = path.resolve(__dirname, "../bos.config.json");
+
+function readBosConfig() {
+  const configPath = fs.existsSync(resolvedConfigPath) ? resolvedConfigPath : bosConfigPath;
+  const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  if (raw._resolved) {
+    const { _resolved, ...data } = raw;
+    return data;
+  }
+  return raw;
+}
+
+const _bosConfig = readBosConfig();
+
+function updateHostConfig(url, integrity) {
   try {
     const configPath = path.resolve(__dirname, "../bos.config.json");
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
-    if (config.app.api.name !== name) {
-      console.error(`   ❌ API "${name}" not found in bos.config.json`);
-      return;
-    }
 
     config.app.api.production = url;
     if (integrity) {
@@ -66,7 +72,7 @@ export default shouldDeploy
         onDeployComplete: async (info) => {
           console.log("🚀 API Deployed:", info.url);
           const integrity = await computeSriHashForUrl(info.url);
-          updateHostConfig(pkg.name, info.url, integrity ?? undefined);
+          updateHostConfig(info.url, integrity ?? undefined);
         },
       },
     })(baseConfig)

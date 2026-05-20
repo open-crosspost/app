@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { getNearWalletDisplayFromSession, sessionQueryOptions, useAuthClient } from "@/app";
+import { sessionQueryOptions, useAuthClient } from "@/app";
 import { LandingPage } from "@/components/landing-page";
 import { ManageAccountsButton } from "@/components/manage-accounts-button";
 
@@ -18,7 +18,7 @@ function HomePage() {
     return <LandingPage />;
   }
 
-  const walletDisplay = getNearWalletDisplayFromSession(session);
+  const walletDisplay = session?.user?.name ?? null;
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">

@@ -12,7 +12,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { calculateRequiredDeposit, extractHashtags, extractMentions } from "near-social-js";
 import { useState } from "react";
-import { getNearActions, useApiClient, useAuthClient } from "@/app";
+import { useApiClient, useAuthClient } from "@/app";
 import type { PostType } from "@/components/post-interaction-selector";
 import { ToastAction } from "@/components/ui/toast";
 import { NETWORK_ID } from "@/config";
@@ -115,7 +115,7 @@ class NearSocialStorageRequiredError extends Error {
 export function useSubmitPost() {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
-  const near = getNearActions(authClient);
+  const near = authClient.near;
   const { data: session } = authClient.useSession();
   const isSignedIn = !!session?.user;
   const navigate = useNavigate();

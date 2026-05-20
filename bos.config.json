@@ -1,45 +1,19 @@
 {
-  "extends": "bos://auth.everything.near/everything.dev",
+  "extends": "bos://dev.everything.near/everything.dev",
   "account": "work.efiz.near",
   "domain": "opencrosspost.com",
-  "testnet": "dev.allthethings.testnet",
-  "staging": {
-    "domain": "staging.dev.everything.dev"
-  },
   "repository": "https://github.com/open-crosspost/app",
   "app": {
     "ui": {
       "name": "ui",
-      "development": "local:ui",
-      "production": "https://elliot-braem-3629-ui-app-open-crosspost-5ea138913-ze.zephyrcloud.app",
-      "integrity": "sha384-Q5s66Re4eFNfYzzb7ZO7r/5W+6p0nrtgXYz5B2nEf4RZAzL8GV/cU4cA943Ygwgu",
-      "ssr": "https://elliot-braem-3633-ui-app-open-crosspost-1ada4d2e8-ze.zephyrcloud.app"
+      "development": "local:ui"
     },
     "api": {
       "name": "api",
       "development": "local:api",
-      "production": "https://elliot-braem-3636-api-app-open-crosspost-465576171-ze.zephyrcloud.app",
-      "integrity": "sha384-31serfFMNTVadlW3BL7+gpXk9K2ruIjSoYYB6YZbS3usc2i+mCK6/yDIMmZVNHK8",
       "variables": {},
       "secrets": [
-        "API_DATABASE_URL",
-        "API_DATABASE_AUTH_TOKEN"
-      ]
-    },
-    "host": {
-      "development": "local:host",
-      "production": "https://elliot-braem-3541-host-everything-dev-nearbuilder-ed5b79d99-ze.zephyrcloud.app",
-      "integrity": "sha384-Tsu6qanLw+Pn81PyT0VmuOM6bcae5ki20tZ09x1AUPMygsYj7QwoV2eGG299Zj+T"
-    },
-    "auth": {
-      "name": "everything-dev_auth-plugin",
-      "development": "local:plugins/auth",
-      "production": "https://elliot-braem-3605-everything-dev-auth-plugin-bett-f19f96ec0-ze.zephyrcloud.app",
-      "integrity": "sha384-0+6PBccgYZwLDVxJJ3LDeA0EledPagot9TwxGvq59+qoJaBVc8qHJcxPTJNiHI6X",
-      "secrets": [
-        "AUTH_DATABASE_URL",
-        "BETTER_AUTH_SECRET",
-        "CORS_ORIGIN"
+        "API_DATABASE_URL"
       ]
     }
   },
@@ -52,16 +26,14 @@
       },
       "secrets": [
         "nearAuthData"
-      ],
-      "production": "https://elliot-braem-3638-crosspost-plugin-app-open-cross-f5e1a4b9e-ze.zephyrcloud.app"
+      ]
     },
     "twitter": {
       "development": "local:plugins/twitter",
       "secrets": [
         "clientId",
         "clientSecret"
-      ],
-      "production": "https://elliot-braem-3640-crosspost-twitter-app-open-cros-ed1388e1b-ze.zephyrcloud.app"
+      ]
     },
     "farcaster": {
       "development": "local:plugins/farcaster",
@@ -73,8 +45,7 @@
         "farcasterDeveloperMnemonic",
         "neynarApiKey",
         "pinataJwt"
-      ],
-      "production": "https://elliot-braem-3641-crosspost-farcaster-app-open-cr-cf1db9673-ze.zephyrcloud.app"
+      ]
     }
   },
   "shared": {
@@ -108,8 +79,8 @@
         "shareScope": "default"
       },
       "better-near-auth": {
-        "version": "1.4.2",
-        "requiredVersion": "^1.4.2",
+        "version": "1.5.0",
+        "requiredVersion": "^1.5.0",
         "singleton": true,
         "strictVersion": false,
         "shareScope": "default"

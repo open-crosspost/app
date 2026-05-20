@@ -1,6 +1,6 @@
 import type { PlatformName } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
-import { Twitter } from "lucide-react";
+import { X } from "lucide-react";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,7 +28,7 @@ export function ConnectPlatform({
           <Button disabled size={size} variant={variant} className={`gap-2 ${className}`}>
             {showIcon &&
               (platform === Platform.TWITTER ? (
-                <Twitter size={size === "sm" ? 18 : 24} />
+                <X size={size === "sm" ? 18 : 24} />
               ) : platform === Platform.FARCASTER ? (
                 <img
                   src={farcasterSvg}

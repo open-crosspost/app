@@ -1,18 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate, redirect, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
-import {
-  getRedirectUrl,
-  NEAR_ERROR_MESSAGES,
-  NearAuthError,
-  type NearAuthErrorCode,
-  type SessionData,
-  sessionQueryKey,
-  sessionQueryOptions,
-  signInAnonymous,
-  signInWithNear,
-  useAuthClient,
-} from "@/app";
+import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 
 type SearchParams = {
@@ -29,7 +18,7 @@ export const Route = createFileRoute("/_layout/login")({
     const session = initialSession ?? context.queryClient.getQueryData(["session"]);
 
     if (session?.user) {
-      throw redirect({ to: getRedirectUrl(search.redirect), search: {} });
+      throw redirect({ to: search.redirect?.startsWith("/") ? search.redirect : "/", search: {} });
     }
   },
   loader: ({ context }) => {
@@ -58,19 +47,15 @@ function LoginPage() {
   };
 
   const nearMutation = useMutation({
-    mutationFn: () => signInWithNear(authClient),
+    mutationFn: () => authClient.signIn.near(),
     onSuccess: () => handleSuccess("Signed in with NEAR"),
     onError: (error) => {
-      if (error instanceof NearAuthError && error.code in NEAR_ERROR_MESSAGES) {
-        toast.error(NEAR_ERROR_MESSAGES[error.code as NearAuthErrorCode]);
-      } else {
-        toast.error(error.message || "Failed to sign in");
-      }
+      toast.error(error.message || "Failed to sign in");
     },
   });
 
   const anonymousMutation = useMutation({
-    mutationFn: () => signInAnonymous(authClient),
+    mutationFn: () => authClient.signIn.anonymous(),
     onSuccess: () => handleSuccess("Signed in anonymously"),
     onError: (error) => {
       toast.error(error.message || "Failed to sign in anonymously");

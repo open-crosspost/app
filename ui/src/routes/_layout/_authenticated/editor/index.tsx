@@ -4,12 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Eye, FileText, MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  getAvailableNearAccountId,
-  nearAccountIdQueryKey,
-  useApiClient,
-  useAuthClient,
-} from "@/app";
+import { useApiClient, useAuthClient } from "@/app";
 import { DraftsModal } from "@/components/drafts-modal";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { PlatformAccountsSelector } from "@/components/platform-accounts-selector";
@@ -50,8 +45,8 @@ function EditorPage() {
   const authClient = useAuthClient();
   const { data: session } = authClient.useSession();
   const { data: nearAccountId } = useQuery({
-    queryKey: nearAccountIdQueryKey,
-    queryFn: () => getAvailableNearAccountId(authClient),
+    queryKey: ["near", "accountId"] as const,
+    queryFn: () => authClient.near.getAccountId(),
     enabled: !!session?.user,
     staleTime: 60 * 1000,
   });

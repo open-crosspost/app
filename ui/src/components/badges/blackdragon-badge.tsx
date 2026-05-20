@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getNearActions, useAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import blackdragonBadgePng from "@/assets/badges/blackdragon-badge.png";
 import type { BadgeProps } from "@/components/badges/inline-badges";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -8,7 +8,7 @@ const BLACKDRAGON_NFT_CONTRACT_ID = "blackdragonforever.nfts.tg";
 
 export function BlackdragonBadge({ accountId }: BadgeProps) {
   const authClient = useAuthClient();
-  const near = getNearActions(authClient);
+  const near = authClient.near;
   const { data: hasNft, isLoading } = useQuery({
     queryKey: ["blackdragonNft", accountId],
     queryFn: async () => {

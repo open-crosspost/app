@@ -3,18 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
-import {
-  getNearWalletDisplayFromSession,
-  NEAR_ERROR_MESSAGES,
-  NearAuthError,
-  type NearAuthErrorCode,
-  type SessionData,
-  sessionQueryKey,
-  sessionQueryOptions,
-  signInWithNear,
-  signOutAndNavigate,
-  useAuthClient,
-} from "@/app";
+import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 
 export function ConnectToNearButton(): ReactElement {
@@ -22,11 +11,11 @@ export function ConnectToNearButton(): ReactElement {
   const router = useRouter();
   const authClient = useAuthClient();
   const { data: session, isPending: sessionLoading } = useQuery(sessionQueryOptions(authClient));
-  const displayAccountId = getNearWalletDisplayFromSession(session);
+  const displayAccountId = session?.user?.name ?? null;
   const isSignedIn = !!session?.user;
 
   const nearMutation = useMutation({
-    mutationFn: () => signInWithNear(authClient),
+    mutationFn: () => authClient.signIn.near(),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
       const fresh = queryClient.getQueryData<SessionData | null>(sessionQueryKey);
@@ -35,17 +24,17 @@ export function ConnectToNearButton(): ReactElement {
       toast.success("Signed in with NEAR");
     },
     onError: (error) => {
-      if (error instanceof NearAuthError && error.code in NEAR_ERROR_MESSAGES) {
-        toast.error(NEAR_ERROR_MESSAGES[error.code as NearAuthErrorCode]);
-      } else {
-        toast.error(error.message || "Failed to sign in");
-      }
+      toast.error(error.message || "Failed to sign in");
     },
   });
 
   const handleClick = () => {
     if (isSignedIn) {
-      void signOutAndNavigate(authClient, queryClient, router);
+      void (async () => {
+        await authClient.signOut();
+        await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+        await router.invalidate();
+      })();
     } else {
       nearMutation.mutate();
     }

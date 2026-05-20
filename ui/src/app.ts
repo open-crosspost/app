@@ -1,8 +1,9 @@
 /**
- * Public UI surface — thin barrel only.
+ * Public UI surface — runtime helpers, client factories, and router types.
  *
- * This file re-exports everything that UI route code needs.
- * Do not create clients, add app logic, or define types here.
+ * This file re-exports everything that UI route code needs and defines
+ * thin runtime helpers (getAccount, getAppName, etc.) derived from
+ * the injected runtime config.
  *
  * Framework file roles (understand this boundary — don't dig into host):
  *
@@ -26,7 +27,7 @@
  *                        and ./lib/auth. Also re-exports router-facing
  *                        public types.
  *
- * Boundary rule: The host loads UI remotely via Module Federation and
+ *   Boundary rule: The host loads UI remotely via Module Federation and
  * provides runtime config + auth/API routing. Work within the typed
  * surface exported here. Only investigate host internals if something
  * is genuinely broken and a host PR is warranted.
@@ -71,30 +72,16 @@ export function getAppName(config?: RuntimeConfigInput): string {
   return getActiveRuntime(config)?.title ?? getAccount(config);
 }
 
-export function getAssetsUrl(config?: RuntimeConfigInput): string {
-  return readRuntimeConfig(config)?.assetsUrl ?? "";
-}
-
 import type { ApiClient } from "./lib/api";
 import type { AuthClient as AuthClientType } from "./lib/auth";
 
 export type { ApiClient } from "./lib/api";
-export { createApiClient, useApiClient } from "./lib/api";
-export type { AuthClient, NearAuthErrorCode, Organization, Passkey, SessionData } from "./lib/auth";
+export { createApiClient, useApiClient, useOrpc } from "./lib/api";
+export type { AuthClient, Organization, Passkey, SessionData } from "./lib/auth";
 export {
   createAuthClient,
-  getAvailableNearAccountId,
-  getNearActions,
-  getNearWalletDisplayFromSession,
-  getRedirectUrl,
-  NEAR_ERROR_MESSAGES,
-  NearAuthError,
-  nearAccountIdQueryKey,
   sessionQueryKey,
   sessionQueryOptions,
-  signInAnonymous,
-  signInWithNear,
-  signOutAndNavigate,
   useAuthClient,
   useRelayHistory,
 } from "./lib/auth";
@@ -132,4 +119,5 @@ export interface CreateRouterOptions
 export interface RenderOptions extends Omit<BaseRenderOptions<SessionData>, "runtimeConfig"> {
   runtimeConfig: BaseRenderOptions<SessionData>["runtimeConfig"];
   apiClient: ApiClient;
+  authClient?: AuthClientType;
 }
