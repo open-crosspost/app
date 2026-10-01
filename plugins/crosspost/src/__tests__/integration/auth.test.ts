@@ -1,25 +1,19 @@
-import { createLocalPluginRuntime } from "every-plugin/testing";
-import { describe, expect, it, vi } from "vitest";
+import { createPluginRuntime } from "every-plugin";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import CrosspostPlugin from "../../index";
+import { Platform } from "../../types/platform";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("Auth Integration Tests", () => {
-  const runtime = createLocalPluginRuntime(
-    {
-      registry: {
-        "@crosspost/plugin": {
-          remoteUrl: "http://localhost:3000/remoteEntry.js",
-          version: "1.0.0",
-        },
-      },
+  const runtime = createPluginRuntime({
+    registry: {
+      "@crosspost/plugin": { module: CrosspostPlugin },
     },
-    {
-      "@crosspost/plugin": CrosspostPlugin,
-    },
-  );
+    secrets: {},
+  });
 
   const config = {
     variables: {
@@ -52,8 +46,9 @@ describe("Auth Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
-    const result = await client.auth.authorizeNearAccount();
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
+    const result = await client.auth.authorizeNearAccount({});
 
     expect(result.signerId).toBe("test.near");
     expect(result.isAuthorized).toBe(true);
@@ -70,7 +65,8 @@ describe("Auth Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.auth.getNearAuthorizationStatus();
 
     expect(result.signerId).toBe("test.near");
@@ -86,9 +82,10 @@ describe("Auth Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.auth.loginToPlatform({
-      platform: "twitter",
+      platform: Platform.TWITTER,
     });
 
     expect(result.url).toContain("twitter.com/oauth/authorize");
@@ -110,10 +107,11 @@ describe("Auth Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.auth.getConnectedAccounts();
 
     expect(result.accounts).toHaveLength(1);
-    expect(result.accounts[0].platform).toBe("twitter");
+    expect(result.accounts[0]?.platform).toBe("twitter");
   });
 });

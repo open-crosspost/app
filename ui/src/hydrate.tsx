@@ -1,10 +1,26 @@
-import { createApiClient, createAuthClient, getRuntimeConfig } from "./app";
+/**
+ * Client bootstrap — creates browser-side QueryClient, Router, and auth/API clients.
+ * Called from the host-rendered HTML shell.
+ *
+ * BE CAREFUL MODIFYING THIS FILE — changes will be overwritten by `bos sync` / `bos upgrade`.
+ * Prefer upstream changes at https://github.com/nearbuilders/everything-dev
+ */
+
+import { createApiClient, createAuthClient, getCspNonce, getRuntimeConfig } from "./app";
+import "./styles.css";
 
 declare global {
   interface Window {
     __EVERYTHING_DEV_HYDRATE_PROMISE__?: Promise<void>;
-    $_TSR?: unknown;
+    __EVERYTHING_DEV_SSR__?: boolean;
   }
+}
+
+function isServerRendered(): boolean {
+  if (window.__EVERYTHING_DEV_SSR__ !== undefined) {
+    return window.__EVERYTHING_DEV_SSR__;
+  }
+  return (window as any).$_TSR !== undefined;
 }
 
 export async function hydrate() {
@@ -12,10 +28,11 @@ export async function hydrate() {
     return window.__EVERYTHING_DEV_HYDRATE_PROMISE__;
   }
 
-  window.__EVERYTHING_DEV_HYDRATE_PROMISE__ = (async () => {
+  const hydratePromise = (async () => {
     console.log("[Hydrate] Starting...");
 
     const runtimeConfig = getRuntimeConfig();
+    const cspNonce = getCspNonce();
 
     const { QueryClientProvider } = await import("@tanstack/react-query");
     const { createRouter } = await import("./router");
@@ -37,17 +54,17 @@ export async function hydrate() {
     const { router } = createRouter({
       context: {
         queryClient: client,
-        assetsUrl: runtimeConfig.assetsUrl,
         runtimeConfig,
+        cspNonce,
         apiClient: createApiClient({
           hostUrl: runtimeConfig.hostUrl,
           rpcBase: runtimeConfig.rpcBase,
         }),
-        authClient: createAuthClient(runtimeConfig),
+        authClient: createAuthClient({ runtimeConfig, cspNonce }),
       },
     });
 
-    if (window.$_TSR) {
+    if (isServerRendered()) {
       const { hydrateRoot } = await import("react-dom/client");
       const { RouterClient } = await import("@tanstack/react-router/ssr/client");
 
@@ -71,9 +88,14 @@ export async function hydrate() {
     }
 
     console.log("[Hydrate] Complete!");
-  })();
+  })().catch((error) => {
+    console.error("[Hydrate] Failed:", error);
+    window.__EVERYTHING_DEV_HYDRATE_PROMISE__ = undefined;
+    throw error;
+  });
 
-  return window.__EVERYTHING_DEV_HYDRATE_PROMISE__;
+  window.__EVERYTHING_DEV_HYDRATE_PROMISE__ = hydratePromise;
+  return hydratePromise;
 }
 
 export default hydrate;

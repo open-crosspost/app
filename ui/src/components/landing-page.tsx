@@ -79,7 +79,10 @@ export function LandingPage() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const hold = (current: HeroPhase) => {
-      later(() => enter(current === "pitch" ? "soon" : "pitch"), current === "pitch" ? PITCH_MS : SOON_MS);
+      later(
+        () => enter(current === "pitch" ? "soon" : "pitch"),
+        current === "pitch" ? PITCH_MS : SOON_MS,
+      );
     };
 
     const enter = (next: HeroPhase) => {
@@ -119,26 +122,19 @@ export function LandingPage() {
       Everywhere at Once
     </>
   ) : (
-    <>
-      <span className="sm:hidden">
-        Coming
-        <br />
-        soon
-      </span>
-      <span className="hidden sm:inline">Coming soon</span>
-    </>
+    "Coming soon"
   );
 
   return (
-    <div className="flex min-h-[calc(100dvh-7rem)] flex-col justify-center -mx-2 -mt-2 sm:block sm:min-h-[80vh] sm:-mx-4 sm:-mt-4 md:-mx-8 md:-mt-8">
-      <div className="flex flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-16 md:py-20">
+    <div className="min-h-[80vh] -mx-2 -mt-2 sm:-mx-4 sm:-mt-4 md:-mx-8 md:-mt-8">
+      <div className="flex flex-col items-center justify-center px-4 py-10 sm:py-16 md:py-20">
         <div className="mx-auto w-full max-w-4xl text-center">
-          <div className="@container flex min-h-56 w-full min-w-0 flex-col items-center justify-center gap-4 sm:h-80 sm:gap-6">
+          <div className="@container flex h-72 w-full flex-col items-center justify-center gap-6 sm:h-80">
             <h1
-              className={`w-full min-w-0 max-w-full text-balance font-bold tracking-tight ${
+              className={`max-w-full font-bold tracking-tight ${
                 phase === "soon"
-                  ? "text-5xl leading-none sm:whitespace-nowrap sm:text-[clamp(3rem,11cqi,6.5rem)]"
-                  : "text-2xl leading-tight sm:text-5xl md:text-6xl"
+                  ? "whitespace-nowrap text-[clamp(1.75rem,11cqi,6.5rem)] leading-none"
+                  : "text-3xl leading-tight sm:text-5xl md:text-6xl"
               } ${glitching ? "hero-glitch hero-glitch-copy" : ""}`}
             >
               <span className="sr-only">
@@ -150,13 +146,13 @@ export function LandingPage() {
             </h1>
 
             {phase === "pitch" && !glitching ? (
-              <p className="mx-auto w-full min-w-0 max-w-2xl px-1 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
-                Post to Twitter, Farcaster, and more social platforms simultaneously. Save time, reach
-                more people, and manage everything from one place.
+              <p className="mx-auto max-w-2xl px-2 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
+                Post to Twitter, Farcaster, and more social platforms simultaneously. Save time,
+                reach more people, and manage everything from one place.
               </p>
             ) : null}
             {phase === "soon" && !glitching ? (
-              <p className="mx-auto w-full min-w-0 max-w-2xl px-1 text-base text-gray-600 sm:px-0 sm:text-xl dark:text-gray-400">
+              <p className="mx-auto max-w-2xl px-2 text-base text-gray-600 sm:px-0 sm:text-xl dark:text-gray-400">
                 Share everywhere, from one place.
               </p>
             ) : null}
@@ -164,7 +160,7 @@ export function LandingPage() {
         </div>
       </div>
 
-      <div className="mt-16 px-4 sm:mt-0 sm:px-6 md:px-10">
+      <div className="px-4 sm:px-6 md:px-10">
         <div className="border-y-2 border-primary bg-white py-4 overflow-hidden dark:bg-black">
           <div className="flex w-max items-center animate-marquee whitespace-nowrap">
             <MarqueeSegment />

@@ -77,13 +77,12 @@ const queryClient = new QueryClient({
 const { router } = createRouter({
   context: {
     queryClient,
-    assetsUrl: runtimeConfig.assetsUrl ?? window.location.origin,
     runtimeConfig,
     apiClient: createApiClient({
       hostUrl: runtimeConfig.hostUrl!,
       rpcBase: runtimeConfig.rpcBase!,
     }),
-    authClient: createAuthClient(runtimeConfig),
+    authClient: createAuthClient({ runtimeConfig }),
   },
 });
 

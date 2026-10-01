@@ -76,7 +76,7 @@ export class MediaAdapter {
             );
           }
 
-          const file = new File([mediaBuffer], filename, {
+          const file = new File([new Uint8Array(mediaBuffer)], filename, {
             type: mimeType || "application/octet-stream",
           });
 

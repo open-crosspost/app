@@ -1,57 +1,27 @@
-import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { EmitPluginManifest, EveryPluginDevServer } from "every-plugin/build/rspack";
+import {
+  EmitPluginManifest,
+  EveryPluginDevServer,
+  FixMfDataUriPlugin,
+} from "every-plugin/build/rspack";
+import { computeSriHashForUrl, findPluginKey, reportDeployResult } from "everything-dev/integrity";
 import { withZephyr } from "zephyr-rspack-plugin";
-
-const require = createRequire(import.meta.url);
-const _pkg = require("./package.json");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const shouldDeploy = process.env.DEPLOY === "true";
-
-function normalizePath(input) {
-  return input.replace(/\\/g, "/").replace(/\/+$/, "");
-}
-
-function resolveLocalTarget(value, configRoot) {
-  if (typeof value !== "string" || !value.startsWith("local:")) {
-    return null;
-  }
-
-  return normalizePath(path.resolve(configRoot, value.slice("local:".length)));
-}
-
-function updateBosConfig(url) {
-  try {
-    const configPath = path.resolve(__dirname, "../../bos.config.json");
-    const configRoot = path.dirname(configPath);
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    const pluginDir = normalizePath(__dirname);
-
-    const match = Object.entries(config.plugins ?? {}).find(([, plugin]) => {
-      return resolveLocalTarget(plugin.development, configRoot) === pluginDir;
-    });
-
-    if (!match) {
-      console.warn(`   ⚠️  No matching plugin entry found for ${pluginDir}`);
-      return;
-    }
-
-    const [key] = match;
-    config.plugins[key].production = url;
-    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
-    console.log(`   ✅ Updated bos.config.json: plugins.${key}.production`);
-  } catch (err) {
-    console.error("   ❌ Failed to update bos.config.json:", err.message);
-  }
-}
+const bosConfigPath = path.resolve(__dirname, "../../bos.config.json");
 
 const baseConfig = {
-  plugins: [new EveryPluginDevServer(), ...(shouldDeploy ? [new EmitPluginManifest()] : [])],
+  externals: ["pg", "@electric-sql/pglite"],
+  devtool: shouldDeploy ? false : "source-map",
+  plugins: [
+    new EmitPluginManifest(),
+    new EveryPluginDevServer({ dts: false }),
+    new FixMfDataUriPlugin(),
+  ],
   infrastructureLogging: {
     level: "error",
   },
@@ -61,9 +31,19 @@ const baseConfig = {
 export default shouldDeploy
   ? withZephyr({
       hooks: {
-        onDeployComplete: (info) => {
-          console.log("🚀 Template Plugin Deployed:", info.url);
-          updateBosConfig(info.url);
+        onDeployComplete: async (info) => {
+          console.log("🚀 Plugin Deployed:", info.url);
+          const integrity = await computeSriHashForUrl(info.url);
+          const key = findPluginKey(bosConfigPath, __dirname);
+          if (key) {
+            reportDeployResult({
+              url: info.url,
+              integrity,
+              bosConfigPath,
+              urlField: `plugins.${key}.production`,
+              integrityField: `plugins.${key}.integrity`,
+            });
+          }
         },
       },
     })(baseConfig)

@@ -24,7 +24,7 @@
     "effect": "catalog:",
     "every-plugin": "catalog:",
     "zod": "catalog:",
-    "@orpc/experimental-publisher": "^1.13.14",
+    "@orpc/experimental-publisher": "catalog:",
     "pg": "catalog:",
     "@electric-sql/pglite": "catalog:"
   },
@@ -56,5 +56,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
+  },
+  "engines": {
+    "node": ">=20.11"
   }
 }

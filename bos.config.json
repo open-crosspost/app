@@ -1,5 +1,5 @@
 {
-  "extends": "bos://dev.everything.near/everything.dev",
+  "extends": "bos://dev.everything.near/dev.everything.dev",
   "account": "work.efiz.near",
   "domain": "opencrosspost.com",
   "title": "Open Crosspost",
@@ -24,7 +24,7 @@
       "development": "local:plugins/crosspost",
       "variables": {
         "baseUrl": "https://social.invalid",
-        "timeout": "10000"
+        "timeout": 10000
       },
       "secrets": [
         "nearAuthData"
@@ -41,7 +41,7 @@
       "development": "local:plugins/farcaster",
       "variables": {
         "ipfsGatewayUrl": "https://gateway.pinata.cloud/ipfs",
-        "timeout": "10000"
+        "timeout": 10000
       },
       "secrets": [
         "farcasterDeveloperMnemonic",
@@ -49,59 +49,5 @@
         "pinataJwt"
       ]
     }
-  },
-  "shared": {
-    "ui": {
-      "effect": {
-        "version": "3.21.0",
-        "requiredVersion": "^3.21.0",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "zod": {
-        "version": "4.3.6",
-        "requiredVersion": "^4.3.6",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "@orpc/contract": {
-        "version": "1.13.14",
-        "requiredVersion": "^1.13.14",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "better-auth": {
-        "version": "1.6.9",
-        "requiredVersion": "^1.6.9",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "better-near-auth": {
-        "version": "1.5.0",
-        "requiredVersion": "^1.5.0",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "@better-auth/api-key": {
-        "version": "1.6.9",
-        "requiredVersion": "^1.6.9",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      },
-      "@better-auth/passkey": {
-        "version": "1.6.9",
-        "requiredVersion": "^1.6.9",
-        "singleton": true,
-        "strictVersion": false,
-        "shareScope": "default"
-      }
-    },
-    "plugins": {}
   }
 }

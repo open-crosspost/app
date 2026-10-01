@@ -1,19 +1,6 @@
-import type { PluginRegistry } from "every-plugin";
-import { createLocalPluginRuntime } from "every-plugin/testing";
+import { createPluginRuntime } from "every-plugin";
 import { beforeAll, describe, expect, it } from "vitest";
 import FarcasterPlugin from "@/index";
-
-const TEST_REGISTRY: PluginRegistry = {
-  "@crosspost/farcaster": {
-    remoteUrl: "http://localhost:3000/remoteEntry.js",
-    version: "1.0.0",
-    description: "Farcaster platform plugin",
-  },
-};
-
-const TEST_PLUGIN_MAP = {
-  "@crosspost/farcaster": FarcasterPlugin,
-} as const;
 
 // Real configuration from environment variables
 const TEST_CONFIG = {
@@ -29,13 +16,12 @@ const TEST_CONFIG = {
 };
 
 describe("Farcaster Plugin Integration Tests (Real API)", () => {
-  const runtime = createLocalPluginRuntime(
-    {
-      registry: TEST_REGISTRY,
-      secrets: {},
+  const runtime = createPluginRuntime({
+    registry: {
+      "@crosspost/farcaster": { module: FarcasterPlugin },
     },
-    TEST_PLUGIN_MAP,
-  );
+    secrets: {},
+  });
 
   beforeAll(async () => {
     // Validate required environment variables
@@ -55,7 +41,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         return;
       }
 
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       try {
         const result = await client.auth.getAuthUrl({
@@ -86,7 +73,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
     }, 30000); // Increase timeout for real API call
 
     it("should throw error for exchangeCodeForToken (not supported)", async () => {
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       await expect(
         client.auth.exchangeCodeForToken({
@@ -98,7 +86,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
     });
 
     it("should throw error for refreshToken (not supported)", async () => {
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       await expect(
         client.auth.refreshToken({
@@ -108,7 +97,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
     });
 
     it("should return true for revokeToken (no-op)", async () => {
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       const result = await client.auth.revokeToken({
         accessToken: "test-token",
@@ -129,7 +119,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         return;
       }
 
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       const result = await client.post.create({
         userId: "test-user",
@@ -151,7 +142,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         return;
       }
 
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       const result = await client.post.create({
         userId: "test-user",
@@ -179,7 +171,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         return;
       }
 
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       const testImageData = Buffer.from(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -211,7 +204,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
     }, 30000); // Increase timeout for real upload
 
     it("should get media status", async () => {
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       // Use a known IPFS CID for testing
       const testCid = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG"; // IPFS logo
@@ -240,7 +234,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         return;
       }
 
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       // First upload a file
       const testImageData = Buffer.from(
@@ -280,7 +275,8 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
 
   describe("Profile", () => {
     it("should get user profile", async () => {
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       // Try common FIDs that might exist (2, 3, or use a known active FID)
       // FID 2 is often dwr.eth, FID 3 is often v
@@ -315,12 +311,11 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
 
   describe("Rate Limit", () => {
     it("should return unlimited rate limits", async () => {
-      const { client } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/farcaster", TEST_CONFIG);
+      const client = createClient();
 
       const result = await client.rateLimit.check({
         endpoint: "posts",
-        userId: "test-user",
-        accessToken: "test-signer",
       });
 
       expect(result.limit).toBe(Number.MAX_SAFE_INTEGER);

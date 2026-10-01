@@ -1,28 +1,20 @@
-import { createLocalPluginRuntime } from "every-plugin/testing";
+import { createPluginRuntime } from "every-plugin";
 import Plugin from "@/index";
 import pluginDevConfig from "../plugin.dev";
 
 const TEST_PLUGIN_ID = pluginDevConfig.pluginId;
 const TEST_CONFIG = pluginDevConfig.config;
 
-const TEST_REGISTRY = {
-  [TEST_PLUGIN_ID]: {
-    remote: "http://localhost:3000/remoteEntry.js",
-    version: "1.0.0",
-    description: "Integration test runtime",
-  },
-};
-
-const TEST_PLUGIN_MAP = { [TEST_PLUGIN_ID]: Plugin } as const;
-
 // Create shared runtime (initialized once)
-export const runtime = createLocalPluginRuntime<typeof TEST_PLUGIN_MAP>(
-  { registry: TEST_REGISTRY, secrets: {} },
-  TEST_PLUGIN_MAP,
-);
+export const runtime = createPluginRuntime({
+  registry: {
+    [TEST_PLUGIN_ID]: { module: Plugin },
+  },
+  secrets: {},
+});
 
 // Helper to get client (reuses same plugin instance)
 export async function getPluginClient() {
-  const { client } = await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG);
-  return client;
+  const { createClient } = await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG);
+  return createClient();
 }

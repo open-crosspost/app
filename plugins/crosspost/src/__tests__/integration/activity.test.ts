@@ -1,5 +1,5 @@
-import { createLocalPluginRuntime } from "every-plugin/testing";
-import { describe, expect, it, vi } from "vitest";
+import { createPluginRuntime } from "every-plugin";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import CrosspostPlugin from "../../index";
 
 // Mock fetch globally
@@ -7,19 +7,12 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("Activity Integration Tests", () => {
-  const runtime = createLocalPluginRuntime(
-    {
-      registry: {
-        "@crosspost/plugin": {
-          remoteUrl: "http://localhost:3000/remoteEntry.js",
-          version: "1.0.0",
-        },
-      },
+  const runtime = createPluginRuntime({
+    registry: {
+      "@crosspost/plugin": { module: CrosspostPlugin },
     },
-    {
-      "@crosspost/plugin": CrosspostPlugin,
-    },
-  );
+    secrets: {},
+  });
 
   const config = {
     variables: {
@@ -47,31 +40,25 @@ describe("Activity Integration Tests", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          timeframe: "week",
-          generatedAt: "2023-01-01T00:00:00Z",
-          entries: [
+          leaderboard: [
             {
-              rank: 1,
               signerId: "test.near",
-              totalScore: 120,
-              totalPosts: 10,
-              totalLikes: 100,
-              totalReposts: 5,
-              totalQuotes: 2,
-              totalReplies: 3,
-              firstPostTimestamp: "2023-01-01T00:00:00Z",
-              lastActive: "2023-01-01T00:00:00Z",
+              postCount: 10,
+              firstPostTimestamp: 1672531200000,
+              lastPostTimestamp: 1672531200000,
             },
           ],
+          total: 1,
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.activity.getLeaderboard();
 
-    expect(result.timeframe).toBe("week");
-    expect(result.entries).toHaveLength(1);
-    expect(result.entries[0].signerId).toBe("test.near");
+    expect(result.total).toBe(1);
+    expect(result.leaderboard).toHaveLength(1);
+    expect(result.leaderboard[0]?.signerId).toBe("test.near");
   });
 
   it("should get account activity", async () => {
@@ -80,26 +67,27 @@ describe("Activity Integration Tests", () => {
       json: () =>
         Promise.resolve({
           signerId: "test.near",
-          timeframe: "week",
-          rank: 1,
-          totalScore: 120,
-          totalPosts: 10,
-          totalLikes: 100,
-          totalReposts: 5,
-          totalQuotes: 2,
-          totalReplies: 3,
-          lastActive: "2023-01-01T00:00:00Z",
-          platforms: [],
+          activity: [
+            {
+              signerId: "test.near",
+              platform: "twitter",
+              postCount: 10,
+              firstPostTimestamp: 1672531200000,
+              lastPostTimestamp: 1672531200000,
+            },
+          ],
+          total: 1,
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.activity.getAccountActivity({
       signerId: "test.near",
     });
 
     expect(result.signerId).toBe("test.near");
-    expect(result.totalPosts).toBe(10);
+    expect(result.activity[0]?.postCount).toBe(10);
   });
 
   it("should get account posts", async () => {
@@ -107,28 +95,27 @@ describe("Activity Integration Tests", () => {
       ok: true,
       json: () =>
         Promise.resolve({
+          signerId: "test.near",
           posts: [
             {
               id: "post-123",
               platform: "twitter",
+              userId: "123456",
+              type: "post",
               content: "Hello world!",
               createdAt: "2023-01-01T00:00:00Z",
             },
           ],
-          pagination: {
-            offset: 0,
-            limit: 10,
-            total: 1,
-          },
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.activity.getAccountPosts({
       signerId: "test.near",
     });
 
     expect(result.posts).toHaveLength(1);
-    expect(result.posts[0].id).toBe("post-123");
+    expect(result.posts[0]?.id).toBe("post-123");
   });
 });

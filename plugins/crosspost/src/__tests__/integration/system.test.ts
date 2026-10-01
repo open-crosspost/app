@@ -1,5 +1,5 @@
-import { createLocalPluginRuntime } from "every-plugin/testing";
-import { describe, expect, it, vi } from "vitest";
+import { createPluginRuntime } from "every-plugin";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import CrosspostPlugin from "../../index";
 
 // Mock fetch globally
@@ -7,19 +7,12 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("System Integration Tests", () => {
-  const runtime = createLocalPluginRuntime(
-    {
-      registry: {
-        "@crosspost/plugin": {
-          remoteUrl: "http://localhost:3000/remoteEntry.js",
-          version: "1.0.0",
-        },
-      },
+  const runtime = createPluginRuntime({
+    registry: {
+      "@crosspost/plugin": { module: CrosspostPlugin },
     },
-    {
-      "@crosspost/plugin": CrosspostPlugin,
-    },
-  );
+    secrets: {},
+  });
 
   const config = {
     variables: {
@@ -52,7 +45,8 @@ describe("System Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.system.getHealthStatus();
 
     expect(result.status).toBe("ok");
@@ -63,19 +57,22 @@ describe("System Integration Tests", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          limits: {
-            post: {
-              remaining: 100,
-              reset: "2023-01-01T00:00:00Z",
+          limits: [
+            {
+              platform: "twitter",
+              limits: {
+                post: { limit: 100, remaining: 100, reset: 1672531200000, resetAfter: 900 },
+              },
             },
-          },
+          ],
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.system.getRateLimits();
 
-    expect(result.limits.post.remaining).toBe(100);
+    expect(result.limits[0]?.limits.post?.remaining).toBe(100);
   });
 
   it("should get endpoint rate limit", async () => {
@@ -89,7 +86,8 @@ describe("System Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.system.getEndpointRateLimit({
       endpoint: "/api/post",
     });

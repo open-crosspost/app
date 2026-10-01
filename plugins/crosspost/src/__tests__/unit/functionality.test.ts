@@ -1,9 +1,10 @@
 // Test actual functionality of the Crosspost plugin
 
 import { Effect } from "effect";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrosspostService } from "../../service";
 import type { NearAuthData } from "../../types/auth";
+import { Platform } from "../../types/platform";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -66,7 +67,7 @@ describe("Crosspost Plugin Functionality Tests", () => {
     const mockResponse = {
       accounts: [
         {
-          platform: "twitter",
+          platform: Platform.TWITTER,
           userId: "123456",
           connectedAt: "2023-01-01T00:00:00Z",
           profile: null,
@@ -89,7 +90,7 @@ describe("Crosspost Plugin Functionality Tests", () => {
       summary: { total: 1, succeeded: 1, failed: 0 },
       results: [
         {
-          platform: "twitter",
+          platform: Platform.TWITTER,
           userId: "123456",
           details: { id: "post-123", success: true },
         },
@@ -103,7 +104,7 @@ describe("Crosspost Plugin Functionality Tests", () => {
 
     const result = await Effect.runPromise(
       service.createPost({
-        targets: [{ platform: "twitter", userId: "123456" }],
+        targets: [{ platform: Platform.TWITTER, userId: "123456" }],
         content: [{ text: "Hello from Crosspost!" }],
       }),
     );

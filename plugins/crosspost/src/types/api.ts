@@ -88,7 +88,7 @@ export interface ApiResponse<T> {
 export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
 export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
 export type SuccessDetail<T = any> = Omit<z.infer<typeof SuccessDetailSchema>, "details"> & {
-  details?: T;
+  details: T;
 };
 export type MultiStatusSummary = z.infer<typeof MultiStatusSummarySchema>;
 export type MultiStatusData<TDetail = any> = {

@@ -29,7 +29,7 @@ export class CrosspostService {
   }
 
   loginToPlatform(platform: Types.Platform, options?: Types.AuthInitRequest) {
-    return this.makeRequest<Types.AuthUrlResponse | Types.AuthCallbackResponse>(
+    return this.makeRequest<Types.AuthUrlResponse>(
       "POST",
       `/auth/${platform}/login`,
       options || { redirect: false },
@@ -179,7 +179,7 @@ export class CrosspostService {
 
           clearTimeout(timeoutId);
 
-          const responseData = await response.json();
+          const responseData = (await response.json()) as Record<string, unknown>;
 
           if (!response.ok) {
             throw mapToCrosspostError(responseData, response.status);

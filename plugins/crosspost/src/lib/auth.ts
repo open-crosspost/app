@@ -62,33 +62,6 @@ function parseOrgMetadata<TSchema extends z.ZodType | undefined>(
   });
 }
 
-export interface SessionAuthUser {
-  id: string;
-  role?: string;
-  email?: string;
-  name?: string;
-}
-
-export interface SessionAuthContext {
-  userId?: string | null;
-  user?: SessionAuthUser | null;
-}
-
-export interface AuthenticatedSession {
-  userId: string;
-  user: SessionAuthUser;
-}
-
-export function requireAuthContext(context: SessionAuthContext): AuthenticatedSession {
-  if (!context.user || !context.userId) {
-    throw new ORPCError("UNAUTHORIZED", {
-      message: "Authentication required",
-      data: { hint: "Sign in to continue" },
-    });
-  }
-  return { userId: context.userId, user: context.user };
-}
-
 export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefined = undefined>(
   builder: any,
   options?: { orgMetaSchema?: TOrgMetaSchema },

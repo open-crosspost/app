@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrosspostService } from "../../service";
 import type { NearAuthData } from "../../types/auth";
+import { Platform } from "../../types/platform";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -79,7 +80,7 @@ describe("CrosspostService", () => {
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await Effect.runPromise(service.loginToPlatform("twitter"));
+      const result = await Effect.runPromise(service.loginToPlatform(Platform.TWITTER));
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -92,7 +93,7 @@ describe("CrosspostService", () => {
 
     it("should refresh token", async () => {
       const mockResponse = {
-        platform: "twitter",
+        platform: Platform.TWITTER,
         userId: "123456",
         status: {
           code: "success",
@@ -105,7 +106,7 @@ describe("CrosspostService", () => {
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await Effect.runPromise(service.refreshToken("twitter", "123456"));
+      const result = await Effect.runPromise(service.refreshToken(Platform.TWITTER, "123456"));
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -120,7 +121,7 @@ describe("CrosspostService", () => {
       const mockResponse = {
         accounts: [
           {
-            platform: "twitter",
+            platform: Platform.TWITTER,
             userId: "123456",
             connectedAt: "2023-01-01T00:00:00Z",
             profile: null,
@@ -150,7 +151,7 @@ describe("CrosspostService", () => {
       const mockResponse = {
         results: [
           {
-            platform: "twitter",
+            platform: Platform.TWITTER,
             userId: "123456",
             details: {
               id: "post-123",
@@ -172,7 +173,7 @@ describe("CrosspostService", () => {
 
       const result = await Effect.runPromise(
         service.createPost({
-          targets: [{ platform: "twitter", userId: "123456" }],
+          targets: [{ platform: Platform.TWITTER, userId: "123456" }],
           content: [{ text: "Hello world" }],
         }),
       );
@@ -190,7 +191,7 @@ describe("CrosspostService", () => {
       const mockResponse = {
         results: [
           {
-            platform: "twitter",
+            platform: Platform.TWITTER,
             userId: "123456",
             details: {
               id: "post-123",
@@ -212,9 +213,14 @@ describe("CrosspostService", () => {
 
       const result = await Effect.runPromise(
         service.deletePost({
-          platform: "twitter",
-          userId: "123456",
-          postId: "post-123",
+          targets: [{ platform: Platform.TWITTER, userId: "123456" }],
+          posts: [
+            {
+              platform: Platform.TWITTER,
+              userId: "123456",
+              postId: "post-123",
+            },
+          ],
         }),
       );
 
@@ -231,7 +237,7 @@ describe("CrosspostService", () => {
       const mockResponse = {
         results: [
           {
-            platform: "twitter",
+            platform: Platform.TWITTER,
             userId: "123456",
             details: {
               id: "post-123",
@@ -253,8 +259,8 @@ describe("CrosspostService", () => {
 
       const result = await Effect.runPromise(
         service.likePost({
-          platform: "twitter",
-          userId: "123456",
+          targets: [{ platform: Platform.TWITTER, userId: "123456" }],
+          platform: Platform.TWITTER,
           postId: "post-123",
         }),
       );

@@ -1,23 +1,11 @@
-import type { PluginRegistry } from "every-plugin";
-import { createLocalPluginRuntime } from "every-plugin/testing";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { createPluginRuntime } from "every-plugin";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import CrosspostPlugin from "../../index";
+import { Platform } from "../../types/platform";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-
-const TEST_REGISTRY: PluginRegistry = {
-  "@crosspost/plugin": {
-    remoteUrl: "http://localhost:3000/remoteEntry.js",
-    version: "1.0.0",
-    description: "Crosspost plugin for social media cross-posting",
-  },
-};
-
-const TEST_PLUGIN_MAP = {
-  "@crosspost/plugin": CrosspostPlugin,
-} as const;
 
 const TEST_CONFIG = {
   variables: {
@@ -37,13 +25,12 @@ const TEST_CONFIG = {
 };
 
 describe("Crosspost Plugin Integration Tests", () => {
-  const runtime = createLocalPluginRuntime<typeof TEST_PLUGIN_MAP>(
-    {
-      registry: TEST_REGISTRY,
-      secrets: { NEAR_AUTH_DATA: "test-auth-data" },
+  const runtime = createPluginRuntime({
+    registry: {
+      "@crosspost/plugin": { module: CrosspostPlugin },
     },
-    TEST_PLUGIN_MAP,
-  );
+    secrets: { NEAR_AUTH_DATA: "test-auth-data" },
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,8 +61,9 @@ describe("Crosspost Plugin Integration Tests", () => {
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
-      const result = await client.auth.authorizeNearAccount();
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
+      const result = await client.auth.authorizeNearAccount({});
 
       expect(result).toEqual({
         signerId: "test.near",
@@ -101,11 +89,12 @@ describe("Crosspost Plugin Integration Tests", () => {
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.auth.getConnectedAccounts();
 
       expect(result.accounts).toHaveLength(1);
-      expect(result.accounts[0].platform).toBe("twitter");
+      expect(result.accounts[0]?.platform).toBe("twitter");
     });
   });
 
@@ -128,9 +117,10 @@ describe("Crosspost Plugin Integration Tests", () => {
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.post.create({
-        targets: [{ platform: "twitter", userId: "123456" }],
+        targets: [{ platform: Platform.TWITTER, userId: "123456" }],
         content: [{ text: "Hello world!" }],
       });
 
@@ -157,10 +147,11 @@ describe("Crosspost Plugin Integration Tests", () => {
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.post.like({
-        targets: [{ platform: "twitter", userId: "123456" }],
-        platform: "twitter",
+        targets: [{ platform: Platform.TWITTER, userId: "123456" }],
+        platform: Platform.TWITTER,
         postId: "post-123",
       });
 
@@ -175,32 +166,26 @@ describe("Crosspost Plugin Integration Tests", () => {
         json: () =>
           Promise.resolve({
             data: {
-              timeframe: "week",
-              entries: [
+              leaderboard: [
                 {
                   signerId: "test.near",
-                  totalPosts: 10,
-                  totalLikes: 100,
-                  totalReposts: 5,
-                  totalReplies: 3,
-                  totalQuotes: 2,
-                  totalScore: 120,
-                  rank: 1,
-                  lastActive: "2023-01-01T00:00:00Z",
-                  firstPostTimestamp: "2023-01-01T00:00:00Z",
+                  postCount: 10,
+                  firstPostTimestamp: 1672531200000,
+                  lastPostTimestamp: 1672531200000,
                 },
               ],
-              generatedAt: "2023-01-01T00:00:00Z",
+              total: 1,
             },
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.activity.getLeaderboard();
 
-      expect(result.timeframe).toBe("week");
-      expect(result.entries).toHaveLength(1);
-      expect(result.entries[0].signerId).toBe("test.near");
+      expect(result.total).toBe(1);
+      expect(result.leaderboard).toHaveLength(1);
+      expect(result.leaderboard[0]?.signerId).toBe("test.near");
     });
 
     it("should get account activity", async () => {
@@ -210,27 +195,28 @@ describe("Crosspost Plugin Integration Tests", () => {
           Promise.resolve({
             data: {
               signerId: "test.near",
-              timeframe: "week",
-              totalPosts: 10,
-              totalLikes: 100,
-              totalReposts: 5,
-              totalReplies: 3,
-              totalQuotes: 2,
-              totalScore: 120,
-              rank: 1,
-              lastActive: "2023-01-01T00:00:00Z",
-              platforms: [],
+              activity: [
+                {
+                  signerId: "test.near",
+                  platform: "twitter",
+                  postCount: 10,
+                  firstPostTimestamp: 1672531200000,
+                  lastPostTimestamp: 1672531200000,
+                },
+              ],
+              total: 1,
             },
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.activity.getAccountActivity({
         signerId: "test.near",
       });
 
       expect(result.signerId).toBe("test.near");
-      expect(result.totalPosts).toBe(10);
+      expect(result.activity[0]?.postCount).toBe(10);
     });
   });
 
@@ -244,7 +230,8 @@ describe("Crosspost Plugin Integration Tests", () => {
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.system.getHealthStatus();
 
       expect(result.status).toBe("ok");
@@ -256,17 +243,23 @@ describe("Crosspost Plugin Integration Tests", () => {
         json: () =>
           Promise.resolve({
             data: {
-              limits: {
-                post: { remaining: 100, reset: "2023-01-01T00:00:00Z" },
-              },
+              limits: [
+                {
+                  platform: "twitter",
+                  limits: {
+                    post: { limit: 100, remaining: 100, reset: 1672531200000, resetAfter: 900 },
+                  },
+                },
+              ],
             },
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
       const result = await client.system.getRateLimits();
 
-      expect(result.limits.post.remaining).toBe(100);
+      expect(result.limits[0]?.limits.post?.remaining).toBe(100);
     });
   });
 
@@ -288,9 +281,10 @@ describe("Crosspost Plugin Integration Tests", () => {
           }),
       });
 
-      const { client } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const { createClient } = await runtime.usePlugin("@crosspost/plugin", TEST_CONFIG);
+      const client = createClient();
 
-      await expect(client.auth.authorizeNearAccount()).rejects.toThrow("Authentication failed");
+      await expect(client.auth.authorizeNearAccount({})).rejects.toThrow("Authentication failed");
     });
   });
 });

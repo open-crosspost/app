@@ -3,7 +3,7 @@ import { CommonPluginErrors } from "every-plugin";
 import { z } from "zod";
 import * as Types from "./types";
 
-const authRouter: AnyContractRouter = oc.router({
+const authRouter = oc.router({
   authorizeNearAccount: oc
     .route({ method: "POST", path: "/auth/authorize/near" })
     .input(Types.NearAuthorizationRequestSchema)
@@ -80,9 +80,9 @@ const authRouter: AnyContractRouter = oc.router({
     .route({ method: "GET", path: "/auth/accounts" })
     .output(Types.ConnectedAccountsResponseSchema)
     .errors(CommonPluginErrors),
-});
+}) satisfies AnyContractRouter;
 
-const postRouter: AnyContractRouter = oc.router({
+const postRouter = oc.router({
   create: oc
     .route({ method: "POST", path: "/api/post" })
     .input(Types.CreatePostRequestSchema)
@@ -124,9 +124,9 @@ const postRouter: AnyContractRouter = oc.router({
     .input(Types.UnlikePostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
     .errors(CommonPluginErrors),
-});
+}) satisfies AnyContractRouter;
 
-const activityRouter: AnyContractRouter = oc.router({
+const activityRouter = oc.router({
   getLeaderboard: oc
     .route({ method: "GET", path: "/api/activity" })
     .input(Types.ActivityLeaderboardQuerySchema.optional())
@@ -154,9 +154,9 @@ const activityRouter: AnyContractRouter = oc.router({
     )
     .output(Types.AccountPostsResponseSchema)
     .errors(CommonPluginErrors),
-});
+}) satisfies AnyContractRouter;
 
-const systemRouter: AnyContractRouter = oc.router({
+const systemRouter = oc.router({
   getRateLimits: oc
     .route({ method: "GET", path: "/api/rate-limit" })
     .output(Types.RateLimitResponseSchema)
@@ -176,13 +176,13 @@ const systemRouter: AnyContractRouter = oc.router({
     .route({ method: "GET", path: "/health" })
     .output(Types.HealthStatusSchema)
     .errors(CommonPluginErrors),
-});
+}) satisfies AnyContractRouter;
 
-export const contract: AnyContractRouter = oc.router({
+export const contract = oc.router({
   auth: authRouter,
   post: postRouter,
   activity: activityRouter,
   system: systemRouter,
-});
+}) satisfies AnyContractRouter;
 
 export type ContractType = typeof contract;

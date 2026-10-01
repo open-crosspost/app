@@ -125,7 +125,8 @@ function ManageAccountsPage() {
         throw new Error("Reconnect your NEAR wallet to add storage.");
       }
 
-      await near.client
+      await near
+        .getNearClient()
         .transaction(signerId)
         .functionCall(
           SOCIAL_CONTRACT_ID,

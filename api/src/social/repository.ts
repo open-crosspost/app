@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import type { ApiDatabase } from "../db";
+import type { Database } from "../db";
 import { socialActivity, socialConnectedAccounts, socialPlatformCredentials } from "../db/schema";
 import type {
   AccountPostsQuery,
@@ -86,7 +86,7 @@ function matchesQueryTimeframe(
 }
 
 export class SocialRepository {
-  constructor(private readonly db: ApiDatabase) {}
+  constructor(private readonly db: Database) {}
 
   async ensureSchema(): Promise<void> {
     await this.db.execute(`

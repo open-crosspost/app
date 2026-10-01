@@ -1,25 +1,19 @@
-import { createLocalPluginRuntime } from "every-plugin/testing";
-import { describe, expect, it, vi } from "vitest";
+import { createPluginRuntime } from "every-plugin";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import CrosspostPlugin from "../../index";
+import { Platform } from "../../types/platform";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("Post Integration Tests", () => {
-  const runtime = createLocalPluginRuntime(
-    {
-      registry: {
-        "@crosspost/plugin": {
-          remoteUrl: "http://localhost:3000/remoteEntry.js",
-          version: "1.0.0",
-        },
-      },
+  const runtime = createPluginRuntime({
+    registry: {
+      "@crosspost/plugin": { module: CrosspostPlugin },
     },
-    {
-      "@crosspost/plugin": CrosspostPlugin,
-    },
-  );
+    secrets: {},
+  });
 
   const config = {
     variables: {
@@ -58,9 +52,10 @@ describe("Post Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.post.create({
-      targets: [{ platform: "twitter", userId: "123456" }],
+      targets: [{ platform: Platform.TWITTER, userId: "123456" }],
       content: [{ text: "Hello world!" }],
     });
 
@@ -85,11 +80,17 @@ describe("Post Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.post.delete({
-      platform: "twitter",
-      userId: "123456",
-      postId: "post-123",
+      targets: [{ platform: Platform.TWITTER, userId: "123456" }],
+      posts: [
+        {
+          platform: Platform.TWITTER,
+          userId: "123456",
+          postId: "post-123",
+        },
+      ],
     });
 
     expect(result.data.summary.succeeded).toBe(1);
@@ -111,10 +112,11 @@ describe("Post Integration Tests", () => {
         }),
     });
 
-    const { client } = await runtime.usePlugin("@crosspost/plugin", config);
+    const { createClient } = await runtime.usePlugin("@crosspost/plugin", config);
+    const client = createClient();
     const result = await client.post.like({
-      platform: "twitter",
-      userId: "123456",
+      targets: [{ platform: Platform.TWITTER, userId: "123456" }],
+      platform: Platform.TWITTER,
       postId: "post-123",
     });
 
