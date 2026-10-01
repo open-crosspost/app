@@ -4,7 +4,6 @@ import { ChevronDown, LogOut, Moon, PenSquare, Sun, Trophy, User } from "lucide-
 import { useTheme } from "next-themes";
 import type * as React from "react";
 import { sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
-import { ConnectToNearButton } from "./connect-to-near";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -33,7 +32,7 @@ export const Header: React.FC = () => {
   return (
     <div className="relative border-b-2 border-primary bg-white dark:bg-black p-4 sm:p-6">
       <div className="flex flex-col items-center space-y-4 sm:flex-row sm:justify-between sm:space-y-0 sm:items-center">
-        <Link to="/editor" className="flex-shrink-0">
+        <Link to={isSignedIn ? "/editor" : "/"} className="flex-shrink-0">
           <div className="flex items-center gap-2">
             <PenSquare size={24} />
             <h1 className="text-3xl font-bold">crosspost</h1>
@@ -48,7 +47,6 @@ export const Header: React.FC = () => {
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
-          {!isSignedIn && <ConnectToNearButton />}
           {isSignedIn && profileAccountId && (
             <>
               <Link to="/leaderboard">
