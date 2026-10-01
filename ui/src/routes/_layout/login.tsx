@@ -1,7 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Navigate, redirect, useRouter } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Navigate, redirect } from "@tanstack/react-router";
+import { type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 
 type SearchParams = {
@@ -30,39 +29,9 @@ export const Route = createFileRoute("/_layout/login")({
 });
 
 function LoginPage() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const authClient = useAuthClient();
   const { data: session } = useQuery(sessionQueryOptions(authClient));
   const { redirect } = Route.useSearch();
-
-  const handleSuccess = async (message: string) => {
-    const { data: freshSession } = await authClient.getSession();
-    if (freshSession) {
-      queryClient.setQueryData(["session"], freshSession);
-    }
-    await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
-    await router.invalidate();
-    toast.success(message);
-  };
-
-  const nearMutation = useMutation({
-    mutationFn: () => authClient.signIn.near(),
-    onSuccess: () => handleSuccess("Signed in with NEAR"),
-    onError: (error) => {
-      toast.error(error.message || "Failed to sign in");
-    },
-  });
-
-  const anonymousMutation = useMutation({
-    mutationFn: () => authClient.signIn.anonymous(),
-    onSuccess: () => handleSuccess("Signed in anonymously"),
-    onError: (error) => {
-      toast.error(error.message || "Failed to sign in anonymously");
-    },
-  });
-
-  const isPending = nearMutation.isPending || anonymousMutation.isPending;
 
   if (session?.user) {
     const redirectTo = redirect?.startsWith("/") ? redirect : "/";
@@ -80,13 +49,8 @@ function LoginPage() {
         </div>
 
         <div className="space-y-3">
-          <Button
-            onClick={() => nearMutation.mutate()}
-            disabled={isPending}
-            className="w-full"
-            size="lg"
-          >
-            {nearMutation.isPending ? "Connecting..." : "Connect NEAR Wallet"}
+          <Button disabled className="w-full" size="lg">
+            Connect NEAR Wallet
           </Button>
 
           <div className="relative">
@@ -98,13 +62,8 @@ function LoginPage() {
             </div>
           </div>
 
-          <Button
-            onClick={() => anonymousMutation.mutate()}
-            disabled={isPending}
-            className="w-full"
-            size="lg"
-          >
-            {anonymousMutation.isPending ? "Signing in..." : "Continue as Guest"}
+          <Button disabled className="w-full" size="lg">
+            Continue as Guest
           </Button>
         </div>
 

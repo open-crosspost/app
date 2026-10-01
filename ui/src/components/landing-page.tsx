@@ -1,7 +1,5 @@
-import { ArrowRight, Calendar, Shield, Zap } from "lucide-react";
-import farcasterSvg from "@/assets/platforms/farcaster.svg";
-import { ConnectToNearButton } from "@/components/connect-to-near";
-import { Button } from "@/components/ui/button";
+import { Calendar, Shield, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 
 function MarqueeXIcon() {
   return (
@@ -24,6 +22,17 @@ function MarqueeXIcon() {
 
 const marqueeChip =
   "mx-5 inline-flex items-center gap-1.5 text-sm font-bold text-neutral-950 sm:mx-8 sm:gap-2 sm:text-lg dark:text-white";
+
+const PITCH_MS = 2000;
+const SOON_MS = 5000;
+const GLITCH_MS = 480;
+
+type HeroPhase = "pitch" | "soon";
+
+const glitchFrames: Record<HeroPhase, string[]> = {
+  soon: ["Sh@re Y0ur C0ntent", "C0m1ng s00n", "C██ing ▓oon", "Coming s0on"],
+  pitch: ["C0MING S00N", "Sh@re Y0ur", "3verywhere ▓t 0nce", "Share Y0ur Content"],
+};
 
 function MarqueeSegment({ ariaHidden }: { ariaHidden?: boolean }) {
   return (
@@ -52,28 +61,98 @@ function MarqueeSegment({ ariaHidden }: { ariaHidden?: boolean }) {
 }
 
 export function LandingPage() {
+  const [phase, setPhase] = useState<HeroPhase>("pitch");
+  const [glitching, setGlitching] = useState(false);
+  const [glitchLine, setGlitchLine] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const timers = new Set<number>();
+    const later = (fn: () => void, ms: number) => {
+      const id = window.setTimeout(() => {
+        timers.delete(id);
+        if (alive) fn();
+      }, ms);
+      timers.add(id);
+    };
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const hold = (current: HeroPhase) => {
+      later(() => enter(current === "pitch" ? "soon" : "pitch"), current === "pitch" ? PITCH_MS : SOON_MS);
+    };
+
+    const enter = (next: HeroPhase) => {
+      if (reducedMotion) {
+        setPhase(next);
+        hold(next);
+        return;
+      }
+
+      const frames = glitchFrames[next];
+      setGlitching(true);
+      frames.forEach((line, index) => {
+        later(() => setGlitchLine(line), index * 80);
+      });
+      later(() => setPhase(next), GLITCH_MS / 2);
+      later(() => {
+        setGlitchLine(null);
+        setGlitching(false);
+        hold(next);
+      }, GLITCH_MS);
+    };
+
+    hold("pitch");
+
+    return () => {
+      alive = false;
+      for (const id of timers) window.clearTimeout(id);
+    };
+  }, []);
+
+  const headline = glitchLine ? (
+    glitchLine
+  ) : phase === "pitch" ? (
+    <>
+      Share Your Content
+      <br />
+      Everywhere at Once
+    </>
+  ) : (
+    "Coming soon"
+  );
+
   return (
     <div className="min-h-[80vh] -mx-2 -mt-2 sm:-mx-4 sm:-mt-4 md:-mx-8 md:-mt-8">
       <div className="flex flex-col items-center justify-center px-4 py-10 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-4xl space-y-6 text-center">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-            Share Your Content
-            <br />
-            Everywhere at Once
-          </h1>
+        <div className="mx-auto w-full max-w-4xl text-center">
+          <div className="@container flex h-72 w-full flex-col items-center justify-center gap-6 sm:h-80">
+            <h1
+              className={`max-w-full font-bold tracking-tight ${
+                phase === "soon"
+                  ? "whitespace-nowrap text-[clamp(1.75rem,11cqi,6.5rem)] leading-none"
+                  : "text-3xl leading-tight sm:text-5xl md:text-6xl"
+              } ${glitching ? "hero-glitch hero-glitch-copy" : ""}`}
+            >
+              <span className="sr-only">
+                {phase === "pitch"
+                  ? "Share Your Content. Everywhere at Once"
+                  : "Coming soon. Share everywhere, from one place."}
+              </span>
+              <span aria-hidden="true">{headline}</span>
+            </h1>
 
-          <p className="mx-auto max-w-2xl px-2 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
-            Post to Twitter, Farcaster, and more social platforms simultaneously. Save time, reach
-            more people, and manage everything from one place.
-          </p>
-          <div className="mx-auto flex w-full max-w-md flex-col items-stretch justify-center gap-3 pt-4 sm:max-w-none sm:flex-row sm:items-center sm:gap-4 sm:pt-6">
-            <ConnectToNearButton />
-            <Button asChild className="w-full sm:w-auto">
-              <a href="https://github.com/open-crosspost" target="_blank" rel="noopener noreferrer">
-                View on GitHub
-                <ArrowRight size={16} />
-              </a>
-            </Button>
+            {phase === "pitch" && !glitching ? (
+              <p className="mx-auto max-w-2xl px-2 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
+                Post to Twitter, Farcaster, and more social platforms simultaneously. Save time, reach
+                more people, and manage everything from one place.
+              </p>
+            ) : null}
+            {phase === "soon" && !glitching ? (
+              <p className="mx-auto max-w-2xl px-2 text-base text-gray-600 sm:px-0 sm:text-xl dark:text-gray-400">
+                Share everywhere, from one place.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -85,36 +164,6 @@ export function LandingPage() {
             <MarqueeSegment ariaHidden />
             <MarqueeSegment ariaHidden />
             <MarqueeSegment ariaHidden />
-          </div>
-        </div>
-      </div>
-
-      {/* Supported Platforms */}
-      <div className="px-4 py-10 sm:py-12 max-w-4xl mx-auto text-center">
-        <h2 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6">Supported Platforms</h2>
-        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-8">
-          <div className="flex items-center gap-2 text-sm sm:text-base font-medium">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-                fill="currentColor"
-              />
-            </svg>
-            <span>Twitter</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm sm:text-base font-medium">
-            <img src={farcasterSvg} alt="Farcaster" className="w-5 h-5" />
-            <span>Farcaster</span>
-          </div>
-          <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
-            + More coming soon
           </div>
         </div>
       </div>
