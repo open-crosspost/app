@@ -31,11 +31,11 @@ export const Header: React.FC = () => {
 
   return (
     <div className="relative border-b-2 border-primary bg-white dark:bg-black p-4 sm:p-6">
-      <div className="flex flex-col items-center space-y-4 sm:flex-row sm:justify-between sm:space-y-0 sm:items-center">
-        <Link to={isSignedIn ? "/editor" : "/"} className="flex-shrink-0">
+      <div className="flex flex-row items-center justify-between gap-3">
+        <Link to={isSignedIn ? "/editor" : "/"} className="min-w-0 flex-shrink">
           <div className="flex items-center gap-2">
             <PenSquare size={24} />
-            <h1 className="text-3xl font-bold">crosspost</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">crosspost</h1>
           </div>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
