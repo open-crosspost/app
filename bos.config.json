@@ -2,6 +2,8 @@
   "extends": "bos://dev.everything.near/everything.dev",
   "account": "work.efiz.near",
   "domain": "opencrosspost.com",
+  "title": "Open Crosspost",
+  "description": "Write once and share to X, Farcaster, and more social platforms from one place. Open Crosspost is coming soon.",
   "repository": "https://github.com/open-crosspost/app",
   "app": {
     "ui": {
