@@ -12,6 +12,9 @@ import { getImageUrl } from "@/lib/utils/near-social-node";
 
 export const socialAccountsQueryKey = ["social", "accounts"] as const;
 
+export const X_CONNECT_WALLET_KEY_STORAGE_KEY = "crosspost:x-connect:wallet-api-key";
+export const X_CONNECT_CALLBACK_PATH = "/callback/x";
+
 export function socialAccountPostsQueryKey(accountId: string) {
   return ["social", "account-posts", accountId] as const;
 }

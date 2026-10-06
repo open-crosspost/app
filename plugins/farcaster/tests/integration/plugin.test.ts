@@ -52,10 +52,10 @@ describe("Farcaster Plugin Integration Tests (Real API)", () => {
         });
 
         expect(result).toBeDefined();
-        expect(typeof result).toBe("string");
-        expect(result.length).toBeGreaterThan(0);
+        expect(typeof result.url).toBe("string");
+        expect(result.url.length).toBeGreaterThan(0);
         // Should contain warpcast URL or similar
-        console.log("Auth URL:", result);
+        console.log("Auth URL:", result.url);
       } catch (error: any) {
         // Handle 402 Payment Required (signer creation requires paid plan)
         if (

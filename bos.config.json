@@ -19,7 +19,9 @@
       "development": "local:api",
       "variables": {},
       "secrets": [
-        "API_DATABASE_URL"
+        "API_DATABASE_URL",
+        "clientId",
+        "clientSecret"
       ],
       "production": "https://elliot-braem-8722-api-app-open-crosspost-78b7be543-ze.zephyrcloud.app",
       "integrity": "sha384-f44nnzTI2ICnmhcquVeBDy7YvAOIsPDEjgPyXZ7Gj0bI/04qybacrHMYI6tYo908"

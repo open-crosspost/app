@@ -1,20 +1,33 @@
 // PlatformName import removed "@crosspost/plugin/types";
-import { SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
+import { Platform, SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, RefreshCw, Wallet } from "lucide-react";
+import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { type AuthClient, sessionQueryKey, useApiClient, useAuthClient } from "@/app";
 import { BackButton } from "@/components/back-button";
 import { PlatformAccountItem } from "@/components/platform-account";
 import { PlatformAccountList } from "@/components/platform-account-list";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { NETWORK_ID } from "@/config";
 import {
   getNearSocialAccount,
   listConnectedAccounts,
   nearSocialAccountQueryKey,
   socialAccountsQueryKey,
+  X_CONNECT_CALLBACK_PATH,
+  X_CONNECT_WALLET_KEY_STORAGE_KEY,
 } from "@/lib/social";
 import { convertAtomicToStandard } from "@/lib/utils/string";
 import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
@@ -164,6 +177,47 @@ function ManageAccountsPage() {
     },
   });
 
+  const [isXConnectOpen, setXConnectOpen] = useState(false);
+  const [walletApiKey, setWalletApiKey] = useState("");
+
+  const connectXMutation = useMutation({
+    mutationFn: async (key: string) => {
+      sessionStorage.setItem(X_CONNECT_WALLET_KEY_STORAGE_KEY, key);
+
+      const result = await apiClient.social.accounts.connect({
+        platform: Platform.TWITTER,
+        redirectUri: window.location.origin + X_CONNECT_CALLBACK_PATH,
+      });
+
+      if (result.status !== "redirect" || !result.url) {
+        throw new Error(result.message || "X account connection is unavailable right now.");
+      }
+
+      return result.url;
+    },
+    onSuccess: (url) => {
+      window.location.assign(url);
+    },
+    onError: (error) => {
+      sessionStorage.removeItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
+      toast.error(error.message || "Failed to start X account connection");
+    },
+  });
+
+  const handleXConnectOpenChange = (open: boolean) => {
+    setXConnectOpen(open);
+    if (!open) {
+      setWalletApiKey("");
+    }
+  };
+
+  const handleXConnectSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const key = walletApiKey.trim();
+    if (!key) return;
+    connectXMutation.mutate(key);
+  };
+
   const hasAvailableStorage = storageBalance ? BigInt(storageBalance.available) > 0n : false;
 
   const handleContinue = () => {
@@ -273,8 +327,50 @@ function ManageAccountsPage() {
             platform={platform}
             accounts={accounts}
             isLoading={isLoading}
+            onConnect={platform === Platform.TWITTER ? () => setXConnectOpen(true) : undefined}
           />
         ))}
+
+        <Dialog open={isXConnectOpen} onOpenChange={handleXConnectOpenChange}>
+          <DialogContent className="border bg-background text-foreground">
+            <form onSubmit={handleXConnectSubmit} className="space-y-4">
+              <DialogHeader>
+                <DialogTitle>Connect X Account</DialogTitle>
+                <DialogDescription>
+                  Your key is kept in this browser tab only until the connection completes.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="outlayer-wallet-api-key">
+                  Paste your OutLayer wallet API key (wk_…)
+                </Label>
+                <Input
+                  id="outlayer-wallet-api-key"
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="wk_…"
+                  value={walletApiKey}
+                  onChange={(event) => setWalletApiKey(event.target.value)}
+                  disabled={connectXMutation.isPending}
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleXConnectOpenChange(false)}
+                  disabled={connectXMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!walletApiKey.trim() || connectXMutation.isPending}>
+                  {connectXMutation.isPending ? "Redirecting..." : "Continue to X"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex justify-center sm:justify-end pt-4 border-t">
           <Button

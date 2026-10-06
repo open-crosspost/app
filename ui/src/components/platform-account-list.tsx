@@ -10,9 +10,15 @@ interface PlatformAccountListProps {
   platform: PlatformName;
   accounts: ConnectedAccount[];
   isLoading: boolean;
+  onConnect?: () => void;
 }
 
-export function PlatformAccountList({ platform, accounts, isLoading }: PlatformAccountListProps) {
+export function PlatformAccountList({
+  platform,
+  accounts,
+  isLoading,
+  onConnect,
+}: PlatformAccountListProps) {
   // isAccountSelected removed = usePlatformAccountsStore();
   const filteredAccounts = accounts.filter(
     (account) => account?.platform === platform?.toLowerCase(),
@@ -22,7 +28,7 @@ export function PlatformAccountList({ platform, accounts, isLoading }: PlatformA
     <div className="space-y-4 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h2 className="text-xl font-semibold capitalize">{platform} Accounts</h2>
-        <ConnectPlatform platform={platform} />
+        <ConnectPlatform platform={platform} onConnect={onConnect} />
       </div>
 
       {isLoading ? (
@@ -43,10 +49,17 @@ export function PlatformAccountList({ platform, accounts, isLoading }: PlatformA
             No {platform} accounts connected
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {capitalize(platform)} account connection is coming soon
+            {platform === Platform.TWITTER
+              ? "Connect your X account with your OutLayer wallet API key"
+              : `${capitalize(platform)} account connection is coming soon`}
           </p>
           <div className="mt-6">
-            <ConnectPlatform platform={platform} size="default" showIcon={true} />
+            <ConnectPlatform
+              platform={platform}
+              size="default"
+              showIcon={true}
+              onConnect={onConnect}
+            />
           </div>
         </div>
       ) : (
