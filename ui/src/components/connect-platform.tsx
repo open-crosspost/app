@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { isPlatformConnectable } from "@/lib/social";
 import { capitalize } from "@/lib/utils/string";
 
 interface ConnectPlatformProps {
@@ -25,7 +26,7 @@ export function ConnectPlatform({
   onConnect,
   disabled = false,
 }: ConnectPlatformProps) {
-  const isAvailable = platform === Platform.TWITTER;
+  const isAvailable = isPlatformConnectable(platform);
 
   const button = (
     <Button

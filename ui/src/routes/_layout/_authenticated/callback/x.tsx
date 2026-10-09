@@ -48,9 +48,10 @@ function XCallbackPage() {
     hasRun.current = true;
 
     const walletApiKey = sessionStorage.getItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
-    sessionStorage.removeItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
+    const clearStoredWalletKey = () => sessionStorage.removeItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
 
     if (error) {
+      clearStoredWalletKey();
       setStatus({
         kind: "error",
         message: error_description || `X authorization was not completed (${error}).`,
@@ -59,6 +60,7 @@ function XCallbackPage() {
     }
 
     if (!code || !state) {
+      clearStoredWalletKey();
       setStatus({ kind: "error", message: "The X callback is missing its code or state." });
       return;
     }
@@ -74,10 +76,12 @@ function XCallbackPage() {
     apiClient.social.accounts
       .callback({ platform: Platform.TWITTER, code, state, walletApiKey })
       .then((result) => {
+        clearStoredWalletKey();
         setStatus({ kind: "connected", result });
         void queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey });
       })
       .catch((callbackError: unknown) => {
+        clearStoredWalletKey();
         setStatus({
           kind: "error",
           message:
@@ -104,7 +108,7 @@ function XCallbackPage() {
       {status.kind === "connected" && (
         <div className="rounded-md border bg-card p-4 text-card-foreground space-y-3">
           <div className="flex items-center gap-2 text-lg font-medium">
-            <CheckCircle2 size={20} className="text-green-600" />
+            <CheckCircle2 size={20} className="text-success" />
             connected ✓
           </div>
           <p className="text-sm text-muted-foreground">

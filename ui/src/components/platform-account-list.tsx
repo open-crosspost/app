@@ -4,7 +4,7 @@ import { RefreshCw, X } from "lucide-react";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { ConnectPlatform } from "@/components/connect-platform";
 import { PlatformAccountItem } from "@/components/platform-account";
-import { capitalize } from "@/lib/utils/string";
+import { platformConnectMessage } from "@/lib/social";
 
 interface PlatformAccountListProps {
   platform: PlatformName;
@@ -49,9 +49,7 @@ export function PlatformAccountList({
             No {platform} accounts connected
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {platform === Platform.TWITTER
-              ? "Connect your X account with your OutLayer wallet API key"
-              : `${capitalize(platform)} account connection is coming soon`}
+            {platformConnectMessage(platform)}
           </p>
           <div className="mt-6">
             <ConnectPlatform

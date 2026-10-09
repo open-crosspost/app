@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { NETWORK_ID } from "@/config";
 import {
   getNearSocialAccount,
+  isPlatformConnectable,
   listConnectedAccounts,
   nearSocialAccountQueryKey,
   socialAccountsQueryKey,
@@ -327,7 +328,7 @@ function ManageAccountsPage() {
             platform={platform}
             accounts={accounts}
             isLoading={isLoading}
-            onConnect={platform === Platform.TWITTER ? () => setXConnectOpen(true) : undefined}
+            onConnect={isPlatformConnectable(platform) ? () => setXConnectOpen(true) : undefined}
           />
         ))}
 

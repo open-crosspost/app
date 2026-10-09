@@ -31,8 +31,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
   secrets: z.object({
     API_DATABASE_URL: z.string().default("file:./api.db"),
     API_DATABASE_AUTH_TOKEN: z.string().optional(),
-    clientId: z.string().optional(),
-    clientSecret: z.string().optional(),
+    X_CLIENT_ID: z.string().optional(),
+    X_CLIENT_SECRET: z.string().optional(),
   }),
 
   context: z.object({
@@ -71,8 +71,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
       databaseDriver = driver;
       const socialRepository = new SocialRepository(driver.db);
       const social = new SocialService(socialRepository, plugins?.twitter, {
-        clientId: config.secrets.clientId,
-        clientSecret: config.secrets.clientSecret,
+        clientId: config.secrets.X_CLIENT_ID,
+        clientSecret: config.secrets.X_CLIENT_SECRET,
       });
 
       await social.ensureSchema();
