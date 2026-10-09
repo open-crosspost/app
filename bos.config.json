@@ -19,7 +19,9 @@
       "development": "local:api",
       "variables": {},
       "secrets": [
-        "API_DATABASE_URL"
+        "API_DATABASE_URL",
+        "X_CLIENT_ID",
+        "X_CLIENT_SECRET"
       ],
       "production": "https://elliot-braem-8722-api-app-open-crosspost-78b7be543-ze.zephyrcloud.app",
       "integrity": "sha384-f44nnzTI2ICnmhcquVeBDy7YvAOIsPDEjgPyXZ7Gj0bI/04qybacrHMYI6tYo908"
@@ -41,8 +43,8 @@
     "twitter": {
       "development": "local:plugins/twitter",
       "secrets": [
-        "clientId",
-        "clientSecret"
+        "X_CLIENT_ID",
+        "X_CLIENT_SECRET"
       ],
       "production": "https://elliot-braem-8720-crosspost-twitter-app-open-cros-a8dd39b37-ze.zephyrcloud.app",
       "integrity": "sha384-V7JExUMCLSLMVmdFsCkVSqwqQLtnYnG4kHV/yt6bHzyS/Qbq6uSUz7okakXawOOU"

@@ -12,16 +12,27 @@ import type {
   SocialActivityLeaderboardResponse,
   SocialConnectAccountInput,
   SocialConnectAccountResponse,
+  SocialConnectCallbackInput,
+  SocialConnectCallbackResponse,
   SocialMultiStatusData,
 } from "./types";
 import { ApiErrorCode, makeUnsupportedPlatformResult } from "./types";
+import { type TwitterPluginClient, type XClientCredentials, XConnectFlow } from "./x-connect";
 
 function unavailableMessage(subject: string, action: string): string {
   return `${action} for ${subject} is not implemented yet.`;
 }
 
 export class SocialService {
-  constructor(private readonly repository: SocialRepository) {}
+  private readonly xConnect?: XConnectFlow;
+
+  constructor(
+    private readonly repository: SocialRepository,
+    twitter?: TwitterPluginClient,
+    xCredentials: XClientCredentials = {},
+  ) {
+    this.xConnect = twitter ? new XConnectFlow(twitter, xCredentials) : undefined;
+  }
 
   async ensureSchema(): Promise<void> {
     await this.repository.ensureSchema();
@@ -32,13 +43,36 @@ export class SocialService {
   }
 
   async connectAccount(
-    _userId: string,
+    userId: string,
     input: SocialConnectAccountInput,
   ): Promise<SocialConnectAccountResponse> {
+    if (input.platform !== "twitter" || !this.xConnect) {
+      return {
+        status: "unavailable",
+        message: unavailableMessage(input.platform, "account connection"),
+      };
+    }
+
+    const { url, state } = await this.xConnect.start({ userId, redirectUri: input.redirectUri });
+
     return {
-      status: "unavailable",
-      message: unavailableMessage(input.platform, "account connection"),
+      status: "redirect",
+      url,
+      state,
     };
+  }
+
+  async completeConnect(
+    userId: string,
+    input: SocialConnectCallbackInput,
+  ): Promise<SocialConnectCallbackResponse> {
+    if (input.platform !== "twitter" || !this.xConnect) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: unavailableMessage(input.platform, "account connection"),
+      });
+    }
+
+    return await this.xConnect.complete({ userId, ...input });
   }
 
   async disconnectAccount(userId: string, input: SocialAccountMutation) {
