@@ -9,8 +9,8 @@ export default {
   config: {
     variables: {},
     secrets: {
-      clientId: process.env.TWITTER_CLIENT_ID || "",
-      clientSecret: process.env.TWITTER_CLIENT_SECRET || "",
+      X_CLIENT_ID: process.env.X_CLIENT_ID || "",
+      X_CLIENT_SECRET: process.env.X_CLIENT_SECRET || "",
     },
   } satisfies PluginConfigInput<typeof Plugin>,
 };

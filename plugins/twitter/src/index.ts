@@ -12,15 +12,15 @@ export default createPlugin({
   variables: z.object(),
 
   secrets: z.object({
-    clientId: z.string().describe("Twitter OAuth 2.0 Client ID"),
-    clientSecret: z.string().describe("Twitter OAuth 2.0 Client Secret"),
+    X_CLIENT_ID: z.string().describe("X OAuth 2.0 Client ID"),
+    X_CLIENT_SECRET: z.string().describe("X OAuth 2.0 Client Secret"),
   }),
 
   contract,
 
   initialize: (config) =>
     Effect.succeed({
-      service: new TwitterService(config.secrets.clientId, config.secrets.clientSecret),
+      service: new TwitterService(config.secrets.X_CLIENT_ID, config.secrets.X_CLIENT_SECRET),
     }),
 
   shutdown: () => Effect.void,

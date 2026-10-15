@@ -11,7 +11,7 @@ export const platformContract = oc.router({
     getAuthUrl: oc
       .route({ method: "GET", path: "/auth/url" })
       .input(AuthSchemas.GetAuthUrlInputSchema)
-      .output(z.string()),
+      .output(AuthSchemas.GetAuthUrlResultSchema),
     exchangeCodeForToken: oc
       .route({ method: "POST", path: "/auth/token" })
       .input(AuthSchemas.ExchangeCodeInputSchema)

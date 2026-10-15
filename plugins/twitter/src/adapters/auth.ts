@@ -11,9 +11,11 @@ export class AuthAdapter {
   /**
    * Get the authorization URL for OAuth flow
    * @param input The input parameters for getting auth URL
-   * @returns The authorization URL
+   * @returns The authorization URL with the PKCE state and code verifier
    */
-  getAuthUrl(input: AuthSchemas.GetAuthUrlInput): Effect.Effect<string, Error> {
+  getAuthUrl(
+    input: AuthSchemas.GetAuthUrlInput,
+  ): Effect.Effect<AuthSchemas.GetAuthUrlResult, Error> {
     return Effect.tryPromise({
       try: async () => {
         const client = new TwitterApi({
@@ -26,7 +28,11 @@ export class AuthAdapter {
           state: input.state,
         });
 
-        return authLink.url;
+        return {
+          url: authLink.url,
+          state: authLink.state,
+          codeVerifier: authLink.codeVerifier,
+        };
       },
       catch: (error) => {
         console.error("Error generating auth URL:", error);
@@ -50,7 +56,7 @@ export class AuthAdapter {
           clientSecret: this.clientSecret,
         });
 
-        const { accessToken, refreshToken, expiresIn } = await client.loginWithOAuth2({
+        const { accessToken, refreshToken, expiresIn, scope } = await client.loginWithOAuth2({
           code: input.code,
           redirectUri: input.redirectUri,
           codeVerifier: input.codeVerifier || "",
@@ -64,9 +70,10 @@ export class AuthAdapter {
           accessToken,
           refreshToken,
           expiresAt: Date.now() + expiresIn * 1000,
-          scope: input.scopes,
+          scope: scope?.length ? scope : input.scopes,
           tokenType: "oauth2",
           userId: user.id,
+          username: user.username,
         };
       },
       catch: (error) => {

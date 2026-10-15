@@ -4,6 +4,7 @@ import { z } from "every-plugin/zod";
 import { contract } from "./contract";
 import { createDatabaseDriver, type DatabaseDriver } from "./db";
 import { requireAuthContext } from "./lib/auth";
+import type { PluginsClient } from "./lib/plugins-types.gen";
 import { SocialRepository } from "./social/repository";
 import { SocialService } from "./social/service";
 
@@ -24,12 +25,14 @@ export interface AuthContext {
   auth: unknown;
 }
 
-export default createPlugin({
+export default createPlugin.withPlugins<PluginsClient>()({
   variables: z.object({}),
 
   secrets: z.object({
     API_DATABASE_URL: z.string().default("file:./api.db"),
     API_DATABASE_AUTH_TOKEN: z.string().optional(),
+    X_CLIENT_ID: z.string().optional(),
+    X_CLIENT_SECRET: z.string().optional(),
   }),
 
   context: z.object({
@@ -62,12 +65,15 @@ export default createPlugin({
 
   contract,
 
-  initialize: (config) =>
+  initialize: (config, plugins) =>
     Effect.promise(async () => {
       const driver = await createDatabaseDriver(config.secrets.API_DATABASE_URL);
       databaseDriver = driver;
       const socialRepository = new SocialRepository(driver.db);
-      const social = new SocialService(socialRepository);
+      const social = new SocialService(socialRepository, plugins?.twitter, {
+        clientId: config.secrets.X_CLIENT_ID,
+        clientSecret: config.secrets.X_CLIENT_SECRET,
+      });
 
       await social.ensureSchema();
 
@@ -109,6 +115,11 @@ export default createPlugin({
           connect: builder.social.accounts.connect.handler(async ({ context, input }) => {
             const auth = requireAuthContext(context);
             return await services.social.connectAccount(auth.userId, input);
+          }),
+
+          callback: builder.social.accounts.callback.handler(async ({ context, input }) => {
+            const auth = requireAuthContext(context);
+            return await services.social.completeConnect(auth.userId, input);
           }),
 
           disconnect: builder.social.accounts.disconnect.handler(async ({ context, input }) => {

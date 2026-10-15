@@ -13,6 +13,12 @@ export const GetAuthUrlInputSchema = z.object({
   scopes: z.array(z.string()),
 });
 
+export const GetAuthUrlResultSchema = z.object({
+  url: z.string(),
+  state: z.string(),
+  codeVerifier: z.string().optional(),
+});
+
 export const ExchangeCodeInputSchema = z.object({
   code: z.string(),
   redirectUri: z.string().url(),
@@ -36,10 +42,13 @@ export const AuthTokenSchema = z.object({
   expiresAt: z.number(),
   scope: z.array(z.string()).optional(),
   tokenType: z.string(),
+  userId: z.string().optional(),
+  username: z.string().optional(),
 });
 
 export type AuthenticatedRequest = z.infer<typeof AuthenticatedRequestSchema>;
 export type GetAuthUrlInput = z.infer<typeof GetAuthUrlInputSchema>;
+export type GetAuthUrlResult = z.infer<typeof GetAuthUrlResultSchema>;
 export type ExchangeCodeInput = z.infer<typeof ExchangeCodeInputSchema>;
 export type RefreshTokenInput = z.infer<typeof RefreshTokenInputSchema>;
 export type RevokeTokenInput = z.infer<typeof RevokeTokenInputSchema>;

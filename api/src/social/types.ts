@@ -63,12 +63,28 @@ export const SocialLeaderboardEntrySchema = z.object({
 
 export const SocialConnectAccountInputSchema = z.object({
   platform: PlatformSchema,
+  redirectUri: z.string().url(),
 });
 
 export const SocialConnectAccountResponseSchema = z.object({
   status: z.enum(["redirect", "unavailable"]),
   url: z.string().url().optional(),
-  message: z.string(),
+  state: z.string().optional(),
+  message: z.string().optional(),
+});
+
+export const SocialConnectCallbackInputSchema = z.object({
+  platform: PlatformSchema,
+  code: z.string().min(1),
+  state: z.string().min(1),
+  walletApiKey: z.string().min(1),
+});
+
+export const SocialConnectCallbackResponseSchema = z.object({
+  status: z.literal("connected"),
+  scope: z.array(z.string()),
+  xUserId: z.string(),
+  username: z.string().optional(),
 });
 
 export const SocialAccountMutationSchema = z.object({
@@ -87,6 +103,8 @@ export const SocialActivityLeaderboardResponseSchema = z.object({
 
 export type SocialConnectAccountInput = z.infer<typeof SocialConnectAccountInputSchema>;
 export type SocialConnectAccountResponse = z.infer<typeof SocialConnectAccountResponseSchema>;
+export type SocialConnectCallbackInput = z.infer<typeof SocialConnectCallbackInputSchema>;
+export type SocialConnectCallbackResponse = z.infer<typeof SocialConnectCallbackResponseSchema>;
 export type SocialAccountMutation = z.infer<typeof SocialAccountMutationSchema>;
 export type SocialActivityLeaderboardResponse = z.infer<
   typeof SocialActivityLeaderboardResponseSchema

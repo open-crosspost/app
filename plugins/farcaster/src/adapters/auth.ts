@@ -19,7 +19,9 @@ export class AuthAdapter {
    * @param input The input parameters for getting auth URL
    * @returns The authorization URL (Warpcast approval URL) and state (signer UUID)
    */
-  getAuthUrl(_input: AuthSchemas.GetAuthUrlInput): Effect.Effect<string, Error> {
+  getAuthUrl(
+    _input: AuthSchemas.GetAuthUrlInput,
+  ): Effect.Effect<AuthSchemas.GetAuthUrlResult, Error> {
     const self = this;
     return Effect.gen(function* () {
       const client = yield* Effect.tryPromise({
@@ -61,7 +63,10 @@ export class AuthAdapter {
 
       // Return the Warpcast approval URL
       // Note: The signer UUID should be stored as the "state" for later use
-      return registered.signer_approval_url || "";
+      return {
+        url: registered.signer_approval_url || "",
+        state: created.signer_uuid,
+      };
     });
   }
 

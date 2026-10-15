@@ -18,6 +18,8 @@ import {
   SocialActivityLeaderboardResponseSchema,
   SocialConnectAccountInputSchema,
   SocialConnectAccountResponseSchema,
+  SocialConnectCallbackInputSchema,
+  SocialConnectCallbackResponseSchema,
 } from "./types";
 
 const accountsContract = oc.router({
@@ -30,6 +32,12 @@ const accountsContract = oc.router({
     .route({ method: "POST", path: "/social/accounts/connect" })
     .input(SocialConnectAccountInputSchema)
     .output(SocialConnectAccountResponseSchema)
+    .errors(CommonPluginErrors),
+
+  callback: oc
+    .route({ method: "POST", path: "/social/accounts/callback" })
+    .input(SocialConnectCallbackInputSchema)
+    .output(SocialConnectCallbackResponseSchema)
     .errors(CommonPluginErrors),
 
   disconnect: oc
