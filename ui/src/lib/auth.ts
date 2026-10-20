@@ -7,7 +7,7 @@
 
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import {
   adminClient,
@@ -192,6 +192,22 @@ export function useAuthClient(): AuthClient {
 }
 
 export const sessionQueryKey = ["session"] as const;
+
+export function resolveSessionFromCache(
+  queryClient: ReturnType<typeof useQueryClient> | { getQueryData: (key: unknown[]) => unknown },
+  session: SessionData | null | undefined
+): SessionData | null {
+  const cached = queryClient.getQueryData(sessionQueryKey);
+  if (cached !== undefined) return cached as SessionData | null;
+  return session ?? null;
+}
+
+export function requireSession(session: SessionData | null | undefined): SessionData {
+  if (!session?.user) {
+    throw new Error("No active session");
+  }
+  return session;
+}
 
 export function sessionQueryOptions(authClient: AuthClient, initialSession?: SessionData | null) {
   const baseOptions = {

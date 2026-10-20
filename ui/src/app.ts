@@ -104,6 +104,8 @@ export { createApiClient, useApiClient, useOrpc } from "./lib/api";
 export type { AuthClient, Organization, Passkey, SessionData } from "./lib/auth";
 export {
   createAuthClient,
+  requireSession,
+  resolveSessionFromCache,
   sessionQueryKey,
   sessionQueryOptions,
   useAuthClient,

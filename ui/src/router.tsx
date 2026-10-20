@@ -2,12 +2,13 @@
  * Client router factory — creates a TanStack Router with browser history.
  *
  * BE CAREFUL MODIFYING THIS FILE — changes will be overwritten by `bos sync` / `bos upgrade`.
- * Prefer upstream changes at https://github.com/nearbuilders/everything-dev
+ * Prefer upstream changes at https://github.com/nearbuilders/everything.dev
  */
 
-import { dehydrate, hydrate } from "@tanstack/react-query";
-import { createBrowserHistory, createRouter as createTanStackRouter } from "@tanstack/react-router";
-import type { CreateRouterOptions } from "./app";
+import { dehydrate, hydrate, QueryClient } from "@tanstack/react-query";
+import { createBrowserHistory } from "@tanstack/react-router";
+import { createRouter as createCoreRouter } from "everything-dev/ui/router-client";
+import type { ApiClient, CreateRouterOptions, SessionData } from "./app";
 import { createAuthClient } from "./app";
 import { routeTree } from "./routeTree.gen";
 
@@ -17,6 +18,19 @@ export type {
   RouterContext,
   RouterModule,
 } from "./app";
+
+export function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+      },
+    },
+  });
+}
 
 function defaultErrorComponent({ error }: { error: Error }) {
   return (
@@ -57,8 +71,9 @@ export function createRouter(opts: CreateRouterOptions) {
   const history = opts.history ?? createBrowserHistory();
   const cspNonce = opts.context.cspNonce;
 
-  const router = createTanStackRouter({
-    routeTree,
+  const router = createCoreRouter<ApiClient, SessionData, typeof routeTree>({
+    ...opts,
+    defaultRouteTree: routeTree,
     history,
     basepath: opts.basepath ?? opts.context.runtimeConfig?.runtime?.runtimeBasePath ?? "/",
     context: {
@@ -87,7 +102,6 @@ export function createRouter(opts: CreateRouterOptions) {
       if (typeof window === "undefined") {
         return { queryClientState: dehydrate(queryClient) };
       }
-
       return { queryClientState: {} };
     },
     hydrate: (dehydrated: { queryClientState?: unknown }) => {

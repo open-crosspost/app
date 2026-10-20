@@ -3,7 +3,7 @@
  * Root boundary between the host-rendered document and the UI application.
  *
  * BE CAREFUL MODIFYING THIS FILE — changes will be overwritten by `bos sync` / `bos upgrade`.
- * Prefer upstream changes at https://github.com/nearbuilders/everything-dev
+ * Prefer upstream changes at https://github.com/nearbuilders/everything.dev
  */
 
 import { TanStackDevtools } from "@tanstack/react-devtools";
@@ -16,19 +16,21 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { getRemoteScripts } from "everything-dev/ui/head";
+import { getRemoteScripts, getThemeInitScript } from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
+import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import type { RouterContext } from "@/app";
 import { getBaseStyles } from "@/app";
 import { Toaster } from "@/components/ui/sonner";
 import { useMediaQuery } from "@/hooks";
-import { sessionQueryKey } from "@/lib/auth";
+import { AppI18nProvider } from "@/i18n/runtime";
+import { resolveSessionFromCache, sessionQueryKey } from "@/lib/auth";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context }) => {
-    const session = context.session;
+    const session = resolveSessionFromCache(context.queryClient, context.session);
 
     return {
       runtimeConfig: context.runtimeConfig,
@@ -38,9 +40,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   },
   loader: async ({ context }) => {
     const { queryClient } = context;
-    const session = context.session;
+    const session = resolveSessionFromCache(queryClient, context.session);
 
-    if (session && queryClient) {
+    if (session !== undefined && queryClient) {
       queryClient.setQueryData(sessionQueryKey, session);
     }
 
@@ -78,7 +80,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         { title },
         { name: "description", content: description },
-        { name: "theme-color", content: "#ffffff" },
+        { name: "theme-color", content: "#ffffff", media: "(prefers-color-scheme: light)" },
+        { name: "theme-color", content: "#0b0d10", media: "(prefers-color-scheme: dark)" },
         { name: "color-scheme", content: "light dark" },
         { name: "application-name", content: title },
         { name: "mobile-web-app-capable", content: "yes" },
@@ -102,12 +105,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           rel: "stylesheet",
           href: `${assetsUrl ?? ""}/static/css/style.css${runtimeConfig?.ui?.integrity ? `?v=${encodeURIComponent(runtimeConfig.ui.integrity)}` : ""}`,
         },
-        { rel: "preconnect", href: "https://fonts.googleapis.com" },
-        {
-          rel: "preconnect",
-          href: "https://fonts.gstatic.com",
-          crossOrigin: "anonymous",
-        },
         { rel: "shortcut icon", href: "/favicon.ico" },
         { rel: "icon", href: "/favicon.ico" },
         { rel: "icon", type: "image/png", sizes: "96x96", href: "/favicon-96x96.png" },
@@ -120,9 +117,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         ...(siteUrl ? [{ rel: "canonical", href: siteUrl }] : []),
       ],
       scripts: [
-        ...(typeof window === "undefined"
-          ? [{ children: "window.__EVERYTHING_DEV_SSR__=true" }]
-          : []),
+        getThemeInitScript(),
         ...getRemoteScripts({
           runtimeConfig: runtimeConfig ?? undefined,
           containerName: "ui",
@@ -143,36 +138,46 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  const { cspNonce } = Route.useRouteContext();
+  const { cspNonce, session, runtimeConfig } = Route.useRouteContext();
   const isDesktop = useMediaQuery("(min-width: 640px)");
+  const isSsr = typeof window === "undefined";
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+    <html
+      lang="en"
+      className="scroll-smooth"
+      suppressHydrationWarning
+      data-everything-ssr={isSsr ? "true" : undefined}
+    >
       <head>
         <HeadContent />
-        <style nonce={cspNonce} dangerouslySetInnerHTML={{ __html: getBaseStyles() }} />
+        <style nonce={cspNonce} dangerouslySetInnerHTML={{ __html: localGetBaseStyles() }} />
       </head>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem nonce={cspNonce}>
-          <div id="root">
-            <Outlet />
-          </div>
-          <Toaster position={isDesktop ? "bottom-right" : "top-center"} closeButton />
-        </ThemeProvider>
+        <MotionConfig reducedMotion="user">
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem nonce={cspNonce}>
+            <div id="root">
+              <AppI18nProvider
+                preferredLocale={(session?.user as { locale?: string | null } | undefined)?.locale}
+              >
+                <Outlet />
+              </AppI18nProvider>
+            </div>
+            <Toaster position={isDesktop ? "bottom-right" : "top-center"} closeButton />
+            <ClientOnly>
+              <TanStackDevtools
+                config={{ position: "bottom-right" }}
+                plugins={[
+                  {
+                    name: "Tanstack Router",
+                    render: <TanStackRouterDevtoolsPanel />,
+                  },
+                  TanStackQueryDevtools,
+                ]}
+              />
+            </ClientOnly>
+          </ThemeProvider>
+        </MotionConfig>
         <Scripts />
-        {process.env.NODE_ENV === "development" && (
-          <ClientOnly>
-            <TanStackDevtools
-              config={{ position: "bottom-right" }}
-              plugins={[
-                {
-                  name: "Tanstack Router",
-                  render: <TanStackRouterDevtoolsPanel />,
-                },
-                TanStackQueryDevtools,
-              ]}
-            />
-          </ClientOnly>
-        )}
       </body>
     </html>
   );
@@ -180,25 +185,10 @@ function RootComponent() {
 
 function RootNotFound() {
   return (
-    <DocumentFallback title="Page not found" body="The page you requested doesn't exist here." />
-  );
-}
-
-function RootError() {
-  return (
-    <DocumentFallback
-      title="Application error"
-      body="Something went wrong before the app layout could render."
-    />
-  );
-}
-
-function DocumentFallback({ title, body }: { title: string; body: string }) {
-  return (
     <div className="min-h-dvh bg-background text-foreground flex items-center justify-center px-6">
       <div className="max-w-md text-center space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted-foreground">{body}</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Page not found</h1>
+        <p className="text-sm text-muted-foreground">The page you requested doesn't exist here.</p>
         <div>
           <Link
             to="/"
@@ -207,6 +197,17 @@ function DocumentFallback({ title, body }: { title: string; body: string }) {
             Back home
           </Link>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function RootError() {
+  return (
+    <div className="min-h-dvh bg-background text-foreground flex items-center justify-center px-6">
+      <div className="max-w-md text-center space-y-4">
+        <h1 className="text-3xl font-semibold tracking-tight">Application error</h1>
+        <p className="text-sm text-muted-foreground">Something went wrong before the app layout could render.</p>
       </div>
     </div>
   );

@@ -7,7 +7,6 @@
   "repository": "https://github.com/open-crosspost/app",
   "app": {
     "ui": {
-      "name": "ui",
       "development": "local:ui",
       "production": "https://elliot-braem-8718-ui-app-open-crosspost-3302eb068-ze.zephyrcloud.app",
       "integrity": "sha384-jMBd3Wn3wGhUAIbIq31JLvSRwjE8AXJPP90u5V8mjVuL3cdinyI+2AilGuH4VETh",
@@ -15,9 +14,7 @@
       "ssrIntegrity": "sha384-EhzE4kilVcoky2Rg/Yq2Xm7z6vPiBedG0tHyRqfOpTH5yXz3WYY4NDs/Iz0wWCQ9"
     },
     "api": {
-      "name": "api",
       "development": "local:api",
-      "variables": {},
       "secrets": [
         "API_DATABASE_URL",
         "X_CLIENT_ID",
