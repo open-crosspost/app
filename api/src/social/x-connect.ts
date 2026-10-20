@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { ORPCError } from "every-plugin/orpc";
+import { ORPCError } from "@orpc/server";
 import type { PluginsClient } from "../lib/plugins-types.gen";
 import type { SocialConnectCallbackInput, SocialConnectCallbackResponse } from "./types";
 
@@ -21,7 +21,8 @@ export interface XClientCredentials {
   clientSecret?: string;
 }
 
-export type TwitterPluginClient = NonNullable<PluginsClient["twitter"]>;
+/** The twitter plugin's in-process client factory (v2 client-entry surface). */
+export type TwitterPluginClient = NonNullable<PluginsClient["twitter"]>["client"];
 
 interface PendingConnect {
   userId: string;
@@ -52,7 +53,7 @@ export interface XConnectStartResult {
 
 export class XConnectFlow {
   constructor(
-    private readonly twitter: NonNullable<PluginsClient["twitter"]>,
+    private readonly twitter: TwitterPluginClient,
     private readonly credentials: XClientCredentials,
   ) {}
 

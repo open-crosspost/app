@@ -213,7 +213,7 @@ export const sessionQueryKey = ["session"] as const;
  * then run `pnpm run typecheck`.
  */
 export function resolveSessionFromCache(
-  queryClient: ReturnType<typeof useQueryClient> | { getQueryData: (key: unknown[]) => unknown },
+  queryClient: ReturnType<typeof useQueryClient> | { getQueryData: (key: readonly unknown[]) => unknown },
   session: SessionData | null | undefined
 ): SessionData | null {
   const cached = queryClient.getQueryData(sessionQueryKey);

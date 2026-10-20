@@ -71,7 +71,7 @@ function ResultsPage() {
         <p className="text-gray-500 mb-6">
           It looks like you haven't submitted any posts yet, or the results have been cleared.
         </p>
-        <Button onClick={() => navigate({ to: "/_authenticated/editor" })}>Go to Editor</Button>
+        <Button onClick={() => navigate({ to: "/editor" })}>Go to Editor</Button>
       </div>
     );
   }

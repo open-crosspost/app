@@ -10,7 +10,9 @@ export function AppI18nProvider({
   preferredLocale?: string | null;
 }) {
   return (
-    <AppLocaleContext.Provider value={preferredLocale}>{children}</AppLocaleContext.Provider>
+    <AppLocaleContext.Provider value={preferredLocale ?? undefined}>
+      {children}
+    </AppLocaleContext.Provider>
   );
 }
 

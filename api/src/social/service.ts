@@ -1,4 +1,4 @@
-import { ORPCError } from "every-plugin/orpc";
+import { ORPCError } from "@orpc/server";
 import type { SocialRepository } from "./repository";
 import type {
   AccountPostsQuery,
@@ -24,14 +24,28 @@ function unavailableMessage(subject: string, action: string): string {
 }
 
 export class SocialService {
-  private readonly xConnect?: XConnectFlow;
+  private twitterFactory?: TwitterPluginClient;
+  private readonly xCredentials: XClientCredentials;
 
   constructor(
     private readonly repository: SocialRepository,
-    twitter?: TwitterPluginClient,
     xCredentials: XClientCredentials = {},
   ) {
-    this.xConnect = twitter ? new XConnectFlow(twitter, xCredentials) : undefined;
+    this.xCredentials = xCredentials;
+  }
+
+  /**
+   * Wires the twitter plugin's in-process client factory (injected at
+   * router-build time — createRouter receives the loaded sibling plugins;
+   * initialize does not). XConnectFlow is stateless, so per-access
+   * construction is safe.
+   */
+  attachTwitter(factory?: TwitterPluginClient) {
+    this.twitterFactory = factory;
+  }
+
+  private get xConnect(): XConnectFlow | undefined {
+    return this.twitterFactory ? new XConnectFlow(this.twitterFactory, this.xCredentials) : undefined;
   }
 
   async ensureSchema(): Promise<void> {

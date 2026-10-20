@@ -1,14 +1,16 @@
+import { Context, Effect, Layer } from "effect";
 import { createPlugin } from "every-plugin";
-import { Effect } from "every-plugin/effect";
-import { z } from "every-plugin/zod";
+import { z } from "zod";
 import { contract } from "./contract";
-import { createDatabaseDriver, type DatabaseDriver } from "./db";
+import { createDatabaseDriver } from "./db";
 import { requireAuthContext } from "./lib/auth";
 import type { PluginsClient } from "./lib/plugins-types.gen";
 import { SocialRepository } from "./social/repository";
 import { SocialService } from "./social/service";
 
-let databaseDriver: DatabaseDriver | null = null;
+export class SocialServiceTag extends Context.Service<SocialServiceTag, SocialService>()(
+  "api/SocialService",
+) {}
 
 export interface AuthContext {
   userId: string;
@@ -24,6 +26,10 @@ export interface AuthContext {
   reqHeaders?: Headers;
   auth: unknown;
 }
+
+// Set in initialize, read in createRouter (which runs after the plugin's
+// services are built) to wire the sibling twitter client factory.
+let socialService: SocialService | null = null;
 
 export default createPlugin.withPlugins<PluginsClient>()({
   variables: z.object({}),
@@ -65,111 +71,127 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
   contract,
 
-  initialize: (config, plugins) =>
-    Effect.promise(async () => {
-      const driver = await createDatabaseDriver(config.secrets.API_DATABASE_URL);
-      databaseDriver = driver;
+  initialize: (config) =>
+    Effect.gen(function* () {
+      const driver = yield* Effect.acquireRelease(
+        Effect.tryPromise({
+          try: () => createDatabaseDriver(config.secrets.API_DATABASE_URL),
+          catch: (cause) => new Error(`api database driver failed: ${String(cause)}`),
+        }),
+        (driver) => Effect.promise(() => driver.close()).pipe(Effect.ignore),
+      );
+
       const socialRepository = new SocialRepository(driver.db);
-      const social = new SocialService(socialRepository, plugins?.twitter, {
+      const social = new SocialService(socialRepository, {
         clientId: config.secrets.X_CLIENT_ID,
         clientSecret: config.secrets.X_CLIENT_SECRET,
       });
 
-      await social.ensureSchema();
+      yield* Effect.promise(() => social.ensureSchema());
 
-      console.log("[API] Services Initialized");
+      socialService = social;
 
-      return {
-        db: driver.db,
-        social,
-      };
+      yield* Effect.logInfo("[API] Services Initialized");
+
+      return Layer.succeed(SocialServiceTag, social);
     }),
 
-  shutdown: () =>
-    Effect.promise(async () => {
-      await databaseDriver?.close();
-      databaseDriver = null;
-      console.log("[API] Shutdown");
-    }),
+  createRouter: (builder, plugins) => {
+    socialService?.attachTwitter(plugins.twitter ? () => plugins.twitter.client() : undefined);
 
-  createRouter: (services, builder) => {
-    return builder.router({
-      ping: builder.ping.handler(async () => ({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-      })),
+    return {
+      ping: builder.ping.effect(function* () {
+        return {
+          status: "ok",
+          timestamp: new Date().toISOString(),
+        };
+      }),
 
-      reloadConfig: builder.reloadConfig.handler(async () => ({
-        status: "pending" as const,
-        note: "restart host to pick up new config",
-      })),
+      reloadConfig: builder.reloadConfig.effect(function* () {
+        return {
+          status: "pending" as const,
+          note: "restart host to pick up new config",
+        };
+      }),
 
-      social: builder.social.router({
-        accounts: builder.social.accounts.router({
-          list: builder.social.accounts.list.handler(async ({ context }) => {
+      social: {
+        accounts: {
+          list: builder.social.accounts.list.effect(function* ({ context }) {
             const auth = requireAuthContext(context);
-            const accounts = await services.social.listAccounts(auth.userId);
+            const social = yield* SocialServiceTag;
+            const accounts = yield* Effect.promise(() => social.listAccounts(auth.userId));
             return { accounts };
           }),
 
-          connect: builder.social.accounts.connect.handler(async ({ context, input }) => {
+          connect: builder.social.accounts.connect.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.connectAccount(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.connectAccount(auth.userId, input));
           }),
 
-          callback: builder.social.accounts.callback.handler(async ({ context, input }) => {
+          callback: builder.social.accounts.callback.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.completeConnect(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.completeConnect(auth.userId, input));
           }),
 
-          disconnect: builder.social.accounts.disconnect.handler(async ({ context, input }) => {
+          disconnect: builder.social.accounts.disconnect.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.disconnectAccount(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.disconnectAccount(auth.userId, input));
           }),
 
-          refresh: builder.social.accounts.refresh.handler(async ({ context, input }) => {
+          refresh: builder.social.accounts.refresh.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.refreshAccount(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.refreshAccount(auth.userId, input));
           }),
 
-          status: builder.social.accounts.status.handler(async ({ context, input }) => {
+          status: builder.social.accounts.status.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.getAccountStatus(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.getAccountStatus(auth.userId, input));
           }),
-        }),
+        },
 
-        posts: builder.social.posts.router({
-          create: builder.social.posts.create.handler(async ({ context, input }) => {
+        posts: {
+          create: builder.social.posts.create.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.createPost(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.createPost(auth.userId, input));
           }),
 
-          reply: builder.social.posts.reply.handler(async ({ context, input }) => {
+          reply: builder.social.posts.reply.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.replyToPost(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.replyToPost(auth.userId, input));
           }),
 
-          quote: builder.social.posts.quote.handler(async ({ context, input }) => {
+          quote: builder.social.posts.quote.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.quotePost(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.quotePost(auth.userId, input));
           }),
 
-          delete: builder.social.posts.delete.handler(async ({ context, input }) => {
+          delete: builder.social.posts.delete.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
-            return await services.social.deletePost(auth.userId, input);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.deletePost(auth.userId, input));
           }),
-        }),
+        },
 
-        activity: builder.social.activity.router({
-          leaderboard: builder.social.activity.leaderboard.handler(async ({ input }) => {
-            return await services.social.getLeaderboard(input);
+        activity: {
+          leaderboard: builder.social.activity.leaderboard.effect(function* ({ input }) {
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.getLeaderboard(input));
           }),
 
-          accountPosts: builder.social.activity.accountPosts.handler(async ({ input }) => {
-            return await services.social.getAccountPosts(input.signerId, input.query);
+          accountPosts: builder.social.activity.accountPosts.effect(function* ({ input }) {
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.getAccountPosts(input.signerId, input.query));
           }),
-        }),
-      }),
-    });
+        },
+      },
+    };
   },
 });

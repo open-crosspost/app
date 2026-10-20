@@ -2,16 +2,19 @@ import { ActivityLeaderboardQuerySchema, type Platform, TimePeriod } from "@cros
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
+  columnVisibilityFeature,
   createColumnHelper,
+  createPaginatedRowModel,
+  createSortedRowModel,
   flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
+  rowPaginationFeature,
+  rowSortingFeature,
   type PaginationState,
   type SortingState,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApiClient } from "@/app";
 import { BackButton } from "@/components/back-button";
 import { InlineBadges } from "@/components/badges/inline-badges";
@@ -119,6 +122,18 @@ function LeaderboardPage() {
     pageSize: 10,
   });
 
+  const features = useMemo(
+    () =>
+      tableFeatures({
+        columnVisibilityFeature,
+        rowSortingFeature,
+        rowPaginationFeature,
+        sortedRowModel: createSortedRowModel(),
+        paginatedRowModel: createPaginatedRowModel(),
+      }),
+    [],
+  );
+
   const {
     data: queryResult,
     isLoading,
@@ -215,8 +230,8 @@ function LeaderboardPage() {
     }
   };
 
-  const columnHelper = createColumnHelper<LeaderboardEntry>();
-  const columns = [
+  const columnHelper = createColumnHelper<typeof features, LeaderboardEntry>();
+  const columns = columnHelper.columns([
     columnHelper.accessor("rank", {
       header: "Rank",
       cell: (info) => <div className="w-[20px]">{info.getValue()}</div>,
@@ -228,7 +243,7 @@ function LeaderboardPage() {
         return (
           <div className="flex items-center gap-2 w-[180px]">
             <Link
-              to={`/_authenticated/profile/$accountId`}
+              to={`/profile/$accountId`}
               params={{ accountId }}
               className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors block truncate"
             >
@@ -298,10 +313,11 @@ function LeaderboardPage() {
         }
       },
     }),
-  ];
+  ]);
 
   // Initialize TanStack Table
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data,
     columns,
     state: {
@@ -310,9 +326,6 @@ function LeaderboardPage() {
     },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true, // Keep manual pagination
     // pageCount is derived from totalEntries fetched from API
     pageCount: totalEntries > 0 ? Math.ceil(totalEntries / pagination.pageSize) : -1, // Use -1 or 0 if total unknown initially
@@ -545,13 +558,13 @@ function LeaderboardPage() {
                 <Label className="text-sm font-medium mb-1 block">
                   Page{" "}
                   <strong>
-                    {table.getState().pagination.pageIndex + 1} of{" "}
+                    {table.state.pagination.pageIndex + 1} of{" "}
                     {/* Use table.getPageCount() which relies on totalEntries */}
                     {table.getPageCount() > 0 ? table.getPageCount() : 1}
                   </strong>
                 </Label>
                 <Select
-                  value={table.getState().pagination.pageSize.toString()}
+                  value={table.state.pagination.pageSize.toString()}
                   onValueChange={(value) => {
                     table.setPageSize(Number(value));
                   }}

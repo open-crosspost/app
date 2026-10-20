@@ -1,12 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import {
-  type Organization,
-  type Passkey,
-  type SessionData,
-  useAuthClient,
-} from "@/app";
+import { type Organization, type Passkey, useAuthClient } from "@/app";
 import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 
 export const Route = createFileRoute("/_authenticated/home")({
@@ -110,7 +105,7 @@ function Home() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>
-                <Link to="/_authenticated/settings">identity settings</Link>
+                <Link to="/settings">identity settings</Link>
               </Button>
             </div>
           </CardContent>
@@ -167,7 +162,7 @@ function Home() {
               <WorkspaceTile
                 title="settings"
                 body="profile, linked auth methods, sessions, and sign out"
-                to="/_authenticated/settings"
+                to="/settings"
               />
             </div>
           </CardContent>

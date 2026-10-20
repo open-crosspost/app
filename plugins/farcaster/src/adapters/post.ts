@@ -597,10 +597,10 @@ export class PostAdapter {
         catch: (error) => {
           // If we can't resolve, fall back to URL embed
           console.warn("Could not resolve cast hash, using URL embed:", error);
-          throw error;
+          return error instanceof Error ? error : new Error(String(error));
         },
       }).pipe(
-        Effect.catchAll(() =>
+        Effect.catchCause(() =>
           Effect.succeed({
             url: `https://warpcast.com/~/conversations/${castHash}`,
           } as FarcasterEmbed),

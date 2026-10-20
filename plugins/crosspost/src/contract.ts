@@ -1,5 +1,5 @@
 import { type AnyContractRouter, oc } from "@orpc/contract";
-import { CommonPluginErrors } from "every-plugin";
+import { PluginErrors } from "every-plugin";
 import { z } from "zod";
 import * as Types from "./types";
 
@@ -8,12 +8,12 @@ const authRouter = oc.router({
     .route({ method: "POST", path: "/auth/authorize/near" })
     .input(Types.NearAuthorizationRequestSchema)
     .output(Types.NearAuthorizationResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getNearAuthorizationStatus: oc
     .route({ method: "GET", path: "/auth/authorize/near/status" })
     .output(Types.NearAuthorizationStatusResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   loginToPlatform: oc
     .route({ method: "POST", path: "/auth/{platform}/login" })
@@ -24,7 +24,7 @@ const authRouter = oc.router({
       }),
     )
     .output(Types.AuthUrlResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   refreshToken: oc
     .route({ method: "POST", path: "/auth/{platform}/refresh" })
@@ -35,7 +35,7 @@ const authRouter = oc.router({
       }),
     )
     .output(Types.AuthCallbackResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   refreshProfile: oc
     .route({ method: "POST", path: "/auth/{platform}/refresh-profile" })
@@ -46,7 +46,7 @@ const authRouter = oc.router({
       }),
     )
     .output(Types.ConnectedAccountSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getAuthStatus: oc
     .route({ method: "GET", path: "/auth/{platform}/status/{userId}" })
@@ -57,13 +57,13 @@ const authRouter = oc.router({
       }),
     )
     .output(Types.AuthStatusResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   unauthorizeNear: oc
     .route({ method: "DELETE", path: "/auth/unauthorize/near" })
     .input(Types.NearAuthorizationRequestSchema)
     .output(Types.NearUnauthorizationResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   revokeAuth: oc
     .route({ method: "DELETE", path: "/auth/{platform}/revoke" })
@@ -74,12 +74,12 @@ const authRouter = oc.router({
       }),
     )
     .output(Types.AuthRevokeResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getConnectedAccounts: oc
     .route({ method: "GET", path: "/auth/accounts" })
     .output(Types.ConnectedAccountsResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 }) satisfies AnyContractRouter;
 
 const postRouter = oc.router({
@@ -87,43 +87,43 @@ const postRouter = oc.router({
     .route({ method: "POST", path: "/api/post" })
     .input(Types.CreatePostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   delete: oc
     .route({ method: "DELETE", path: "/api/post" })
     .input(Types.DeletePostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   repost: oc
     .route({ method: "POST", path: "/api/post/repost" })
     .input(Types.RepostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   quote: oc
     .route({ method: "POST", path: "/api/post/quote" })
     .input(Types.QuotePostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   reply: oc
     .route({ method: "POST", path: "/api/post/reply" })
     .input(Types.ReplyToPostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   like: oc
     .route({ method: "POST", path: "/api/post/like" })
     .input(Types.LikePostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   unlike: oc
     .route({ method: "DELETE", path: "/api/post/like" })
     .input(Types.UnlikePostRequestSchema)
     .output(z.object({ data: Types.MultiStatusDataSchema }))
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 }) satisfies AnyContractRouter;
 
 const activityRouter = oc.router({
@@ -131,7 +131,7 @@ const activityRouter = oc.router({
     .route({ method: "GET", path: "/api/activity" })
     .input(Types.ActivityLeaderboardQuerySchema.optional())
     .output(Types.ActivityLeaderboardResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getAccountActivity: oc
     .route({ method: "GET", path: "/api/activity/{signerId}" })
@@ -142,7 +142,7 @@ const activityRouter = oc.router({
       }),
     )
     .output(Types.AccountActivityResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getAccountPosts: oc
     .route({ method: "GET", path: "/api/activity/{signerId}/posts" })
@@ -153,14 +153,14 @@ const activityRouter = oc.router({
       }),
     )
     .output(Types.AccountPostsResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 }) satisfies AnyContractRouter;
 
 const systemRouter = oc.router({
   getRateLimits: oc
     .route({ method: "GET", path: "/api/rate-limit" })
     .output(Types.RateLimitResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getEndpointRateLimit: oc
     .route({ method: "GET", path: "/api/rate-limit/{endpoint}" })
@@ -170,12 +170,12 @@ const systemRouter = oc.router({
       }),
     )
     .output(Types.EndpointRateLimitResponseSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 
   getHealthStatus: oc
     .route({ method: "GET", path: "/health" })
     .output(Types.HealthStatusSchema)
-    .errors(CommonPluginErrors),
+    .errors(PluginErrors),
 }) satisfies AnyContractRouter;
 
 export const contract = oc.router({

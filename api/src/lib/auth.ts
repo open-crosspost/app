@@ -5,9 +5,9 @@
  * Prefer upstream changes at https://github.com/nearbuilders/everything-dev
  */
 
-import type { DecoratedMiddleware } from "every-plugin/orpc";
-import { ORPCError } from "every-plugin/orpc";
-import type { z } from "every-plugin/zod";
+import type { DecoratedMiddleware } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
+import type { z } from "zod";
 import type {
   AuthOrganizationContext,
   AuthOrganizationSummary,
@@ -99,8 +99,7 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
     { userId: string; user: RequestAuthUser },
     any,
     any,
-    any,
-    any
+  any
   >;
   type OrgMiddleware = DecoratedMiddleware<
     AuthContext,
@@ -112,7 +111,6 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
         organization: (AuthOrganizationSummary & { metadata: TOrgMeta | null }) | null;
       };
     },
-    any,
     any,
     any,
     any
@@ -130,7 +128,6 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
     },
     any,
     any,
-    any,
     any
   >;
   type ApiKeyMiddleware = DecoratedMiddleware<
@@ -138,8 +135,7 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
     { apiKey: ApiKeyContext },
     any,
     any,
-    any,
-    any
+  any
   >;
 
   const requireAuth = builder.middleware(
@@ -164,7 +160,7 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
       }
       return next({ context });
     },
-  ) as DecoratedMiddleware<AuthContext, Record<string, never>, any, any, any, any>;
+  ) as DecoratedMiddleware<AuthContext, Record<string, never>, any, any, any>;
 
   const requireRole = <TRoles extends readonly string[]>(...roles: TRoles) =>
     builder.middleware(async ({ context, next }: { context: AuthContext; next: any }) => {

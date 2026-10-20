@@ -17,7 +17,7 @@ function SettingsPage() {
     await authClient.signOut();
     await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     await router.invalidate();
-    await router.navigate({ to: "/_public/" });
+    await router.navigate({ to: "/" });
   };
 
   return (
@@ -41,7 +41,7 @@ function SettingsPage() {
             <p className="text-sm text-muted-foreground">Return to the main application</p>
           </div>
           <Button asChild>
-            <Link to="/_public/">Home</Link>
+            <Link to="/">Home</Link>
           </Button>
         </div>
       </div>

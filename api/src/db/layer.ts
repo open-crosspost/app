@@ -1,13 +1,13 @@
 import { PluginIdTag } from "every-plugin";
-import { Context, Effect, Layer } from "every-plugin/effect";
+import { Context, Effect, Layer } from "effect";
 import { getMigrationStorage, pluginMigrationSlug } from "everything-dev/db";
 import { createDatabaseDriver, type Database, DatabaseError } from "./index";
 import { detectDrift, loadMigrations, migrate } from "./migrate";
 
-export class DatabaseTag extends Context.Tag("Database")<Database, Database>() {}
+export class DatabaseTag extends Context.Service<DatabaseTag, Database>()("Database") {}
 
 export const DatabaseLive = (url: string) =>
-  Layer.scoped(
+  Layer.effect(
     DatabaseTag,
     Effect.gen(function* () {
       const driver = yield* Effect.acquireRelease(
@@ -53,7 +53,7 @@ export const DatabaseLive = (url: string) =>
           yield* Effect.logWarning(
             `[Database] Run \`bos db doctor ${storage.slug}\` to diagnose and \`bos db repair ${storage.slug}\` to fix.`,
           );
-          throw new DatabaseError({
+          return yield* new DatabaseError({
             stage: "migration",
             migrationTag: "drift-safe-repair",
             cause: new Error(
@@ -67,7 +67,7 @@ export const DatabaseLive = (url: string) =>
           yield* Effect.logWarning(
             `[Database] ⚠️ Partial migration drift detected: ${drift.missingTables.length}/${drift.expectedTables.length} expected table(s) missing.`,
           );
-          throw new DatabaseError({
+          return yield* new DatabaseError({
             stage: "migration",
             migrationTag: "drift-manual",
             cause: new Error(

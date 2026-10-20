@@ -138,7 +138,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  const { cspNonce, session, runtimeConfig } = Route.useRouteContext();
+  const { cspNonce, session } = Route.useRouteContext();
   const isDesktop = useMediaQuery("(min-width: 640px)");
   const isSsr = typeof window === "undefined";
   return (
@@ -150,7 +150,7 @@ function RootComponent() {
     >
       <head>
         <HeadContent />
-        <style nonce={cspNonce} dangerouslySetInnerHTML={{ __html: localGetBaseStyles() }} />
+        <style nonce={cspNonce} dangerouslySetInnerHTML={{ __html: getBaseStyles() }} />
       </head>
       <body>
         <MotionConfig reducedMotion="user">

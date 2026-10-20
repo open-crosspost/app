@@ -118,7 +118,7 @@ function XCallbackPage() {
             Granted scope: {status.result.scope.join(", ")}
           </p>
           <Button asChild>
-            <Link to="/_authenticated/manage">Back to Manage Accounts</Link>
+            <Link to="/manage">Back to Manage Accounts</Link>
           </Button>
         </div>
       )}
@@ -130,7 +130,7 @@ function XCallbackPage() {
           </div>
           <p className="text-sm text-muted-foreground">{status.message}</p>
           <Button asChild>
-            <Link to="/_authenticated/manage">Back to Manage Accounts</Link>
+            <Link to="/manage">Back to Manage Accounts</Link>
           </Button>
         </div>
       )}
