@@ -1,13 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, redirect } from "@tanstack/react-router";
-import { type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
+import { type SessionData, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 
 type SearchParams = {
   redirect?: string;
 };
 
-export const Route = createFileRoute("/_layout/login")({
+export const Route = createFileRoute("/_public/login")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
@@ -20,17 +19,12 @@ export const Route = createFileRoute("/_layout/login")({
       throw redirect({ to: search.redirect?.startsWith("/") ? search.redirect : "/", search: {} });
     }
   },
-  loader: ({ context }) => {
-    void context.queryClient.prefetchQuery(
-      sessionQueryOptions(context.authClient, context.session),
-    );
-  },
   component: LoginPage,
 });
 
 function LoginPage() {
   const authClient = useAuthClient();
-  const { data: session } = useQuery(sessionQueryOptions(authClient));
+  const { data: session } = authClient.useSession();
   const { redirect } = Route.useSearch();
 
   if (session?.user) {

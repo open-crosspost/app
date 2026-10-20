@@ -56,7 +56,7 @@ type LeaderboardEntry = {
   lastPostTimestamp?: string | number;
 };
 
-export const Route = createFileRoute("/_layout/_authenticated/leaderboard/")({
+export const Route = createFileRoute("/_authenticated/leaderboard/")({
   component: LeaderboardPage,
   validateSearch: (search) => ActivityLeaderboardQuerySchema.parse(search),
 });
@@ -228,7 +228,7 @@ function LeaderboardPage() {
         return (
           <div className="flex items-center gap-2 w-[180px]">
             <Link
-              to={`/profile/$accountId`}
+              to={`/_authenticated/profile/$accountId`}
               params={{ accountId }}
               className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors block truncate"
             >

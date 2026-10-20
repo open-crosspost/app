@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_layout/_authenticated/profile/")({
+export const Route = createFileRoute("/_authenticated/profile/")({
   component: ProfileIndexPage,
 });
 

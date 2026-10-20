@@ -36,7 +36,7 @@ import type { EditorContent, EditorMedia } from "@/store/drafts-store";
 import { useDraftsStore } from "@/store/drafts-store";
 import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
 
-export const Route = createFileRoute("/_layout/_authenticated/editor/")({
+export const Route = createFileRoute("/_authenticated/editor/")({
   component: EditorPage,
 });
 

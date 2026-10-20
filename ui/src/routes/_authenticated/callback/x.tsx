@@ -25,7 +25,7 @@ type CallbackStatus =
   | { kind: "connected"; result: ConnectResult }
   | { kind: "error"; message: string };
 
-export const Route = createFileRoute("/_layout/_authenticated/callback/x")({
+export const Route = createFileRoute("/_authenticated/callback/x")({
   validateSearch: (search: Record<string, unknown>): XCallbackSearch => ({
     code: typeof search.code === "string" ? search.code : undefined,
     state: typeof search.state === "string" ? search.state : undefined,
@@ -118,7 +118,7 @@ function XCallbackPage() {
             Granted scope: {status.result.scope.join(", ")}
           </p>
           <Button asChild>
-            <Link to="/manage">Back to Manage Accounts</Link>
+            <Link to="/_authenticated/manage">Back to Manage Accounts</Link>
           </Button>
         </div>
       )}
@@ -130,7 +130,7 @@ function XCallbackPage() {
           </div>
           <p className="text-sm text-muted-foreground">{status.message}</p>
           <Button asChild>
-            <Link to="/manage">Back to Manage Accounts</Link>
+            <Link to="/_authenticated/manage">Back to Manage Accounts</Link>
           </Button>
         </div>
       )}

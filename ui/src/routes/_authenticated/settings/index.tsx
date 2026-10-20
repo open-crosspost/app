@@ -1,9 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
+import { sessionQueryKey, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_layout/_authenticated/settings/")({
+export const Route = createFileRoute("/_authenticated/settings/")({
   component: SettingsPage,
 });
 
@@ -11,13 +11,13 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const authClient = useAuthClient();
-  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions(authClient));
+  const { data: session } = authClient.useSession();
 
   const handleSignOut = async () => {
     await authClient.signOut();
     await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     await router.invalidate();
-    await router.navigate({ to: "/" });
+    await router.navigate({ to: "/_public/" });
   };
 
   return (
@@ -41,7 +41,7 @@ function SettingsPage() {
             <p className="text-sm text-muted-foreground">Return to the main application</p>
           </div>
           <Button asChild>
-            <Link to="/">Home</Link>
+            <Link to="/_public/">Home</Link>
           </Button>
         </div>
       </div>

@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { sessionQueryOptions, useAuthClient } from "@/app";
+import { useAuthClient } from "@/app";
 import { LandingPage } from "@/components/landing-page";
 import { ManageAccountsButton } from "@/components/manage-accounts-button";
 
-export const Route = createFileRoute("/_layout/")({
+export const Route = createFileRoute("/_public/")({
   component: HomePage,
 });
 
 function HomePage() {
   const authClient = useAuthClient();
-  const { data: session } = useQuery(sessionQueryOptions(authClient));
+  const { data: session } = authClient.useSession();
   const isSignedIn = !!session?.user;
 
   if (!isSignedIn) {

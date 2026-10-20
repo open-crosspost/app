@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { type Organization, type SessionData, sessionQueryOptions } from "@/app";
+import { type Organization, type SessionData } from "@/app";
 
 interface AuthContext {
   isAuthenticated: boolean;
@@ -11,13 +11,9 @@ interface AuthContext {
   isBanned: boolean;
 }
 
-export const Route = createFileRoute("/_layout/_authenticated")({
+export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ context, location }) => {
-    const { queryClient } = context;
-
-    const session = await queryClient.ensureQueryData(
-      sessionQueryOptions(context.authClient, context.session),
-    );
+    const session = context.session as SessionData | null | undefined;
 
     if (!session?.user) {
       throw redirect({
@@ -45,7 +41,7 @@ export const Route = createFileRoute("/_layout/_authenticated")({
       isBanned: session.user.banned || false,
     };
 
-    await queryClient.ensureQueryData({
+    await context.queryClient.ensureQueryData({
       queryKey: ["organizations"],
       queryFn: async () => {
         const { data } = await context.authClient.organization.list();

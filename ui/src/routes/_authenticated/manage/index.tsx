@@ -65,7 +65,7 @@ function formatNearAmount(atomicAmount: string): string {
   });
 }
 
-export const Route = createFileRoute("/_layout/_authenticated/manage/")({
+export const Route = createFileRoute("/_authenticated/manage/")({
   component: ManageAccountsPage,
 });
 
@@ -222,7 +222,7 @@ function ManageAccountsPage() {
   const hasAvailableStorage = storageBalance ? BigInt(storageBalance.available) > 0n : false;
 
   const handleContinue = () => {
-    navigate({ to: "/editor" });
+    navigate({ to: "/_authenticated/editor" });
   };
 
   return (
@@ -315,7 +315,7 @@ function ManageAccountsPage() {
                 Please sign in with your NEAR wallet to use NEAR Social
               </p>
               <Button asChild className="mt-4">
-                <Link to="/login">Connect NEAR</Link>
+                <Link to="/_public/login">Connect NEAR</Link>
               </Button>
             </div>
           )}

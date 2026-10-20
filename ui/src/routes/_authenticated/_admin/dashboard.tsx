@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_layout/_authenticated/_admin/dashboard")({
+export const Route = createFileRoute("/_authenticated/_admin/dashboard")({
   component: AdminDashboard,
 });
 
@@ -10,7 +10,7 @@ function AdminDashboard() {
       <div className="flex items-center justify-between pb-4 border-b border-border/50">
         <h1 className="text-lg font-mono">Admin Dashboard</h1>
         <Link
-          to="/"
+          to="/_public/"
           className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
         >
           ← back

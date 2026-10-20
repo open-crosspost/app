@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { fetchSocialAccountPosts, socialAccountPostsQueryKey } from "@/lib/social";
 import { getProfile } from "@/lib/utils/near-social-node";
 
-export const Route = createFileRoute("/_layout/_authenticated/profile/$accountId")({
+export const Route = createFileRoute("/_authenticated/profile/$accountId")({
   loader: async ({ params }) => {
     try {
       const profile = await getProfile(params.accountId);
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_layout/_authenticated/profile/$accountId
 export function ProfilePage() {
   const data = Route.useLoaderData();
   const accountId = useParams({
-    from: "/_layout/_authenticated/profile/$accountId",
+    from: "/_authenticated/profile/$accountId",
     select: (params) => params.accountId,
   });
 

@@ -5,12 +5,11 @@ import {
   type Organization,
   type Passkey,
   type SessionData,
-  sessionQueryOptions,
   useAuthClient,
 } from "@/app";
 import { Badge, Button, Card, CardContent, UnderConstruction } from "@/components";
 
-export const Route = createFileRoute("/_layout/_authenticated/home")({
+export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
       { title: "Workspace | app" },
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/_layout/_authenticated/home")({
 
 function Home() {
   const auth = useAuthClient();
-  const { data: session } = useQuery<SessionData | null>(sessionQueryOptions(auth));
+  const { data: session } = auth.useSession();
   const { data: organizations = [] } = useQuery({
     queryKey: ["organizations"],
     queryFn: async () => {
@@ -111,7 +110,7 @@ function Home() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>
-                <Link to="/settings">identity settings</Link>
+                <Link to="/_authenticated/settings">identity settings</Link>
               </Button>
             </div>
           </CardContent>
@@ -168,7 +167,7 @@ function Home() {
               <WorkspaceTile
                 title="settings"
                 body="profile, linked auth methods, sessions, and sign out"
-                to="/settings"
+                to="/_authenticated/settings"
               />
             </div>
           </CardContent>

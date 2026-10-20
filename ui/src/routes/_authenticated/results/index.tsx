@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useSubmitPost } from "@/hooks/use-submit-post";
 import { useSubmissionResultsStore } from "@/store/submission-results-store";
 
-export const Route = createFileRoute("/_layout/_authenticated/results/")({
+export const Route = createFileRoute("/_authenticated/results/")({
   component: ResultsPage,
 });
 
@@ -71,7 +71,7 @@ function ResultsPage() {
         <p className="text-gray-500 mb-6">
           It looks like you haven't submitted any posts yet, or the results have been cleared.
         </p>
-        <Button onClick={() => navigate({ to: "/editor" })}>Go to Editor</Button>
+        <Button onClick={() => navigate({ to: "/_authenticated/editor" })}>Go to Editor</Button>
       </div>
     );
   }
