@@ -26,7 +26,9 @@
     "zod": "catalog:",
     "@orpc/experimental-publisher": "catalog:",
     "pg": "catalog:",
-    "@electric-sql/pglite": "catalog:"
+    "@electric-sql/pglite": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "aws4fetch": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "^0.85.1",
@@ -38,15 +40,15 @@
     "everything-dev": "catalog:",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "catalog:",
-    "every-plugin": "catalog:",
     "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.4",
-    "@types/pg": "catalog:"
+    "@types/pg": "catalog:",
+    "@module-federation/runtime-tools": "catalog:"
   },
   "scripts": {
-    "build": "pnpm run build:types && rspack build",
+    "build": "every-plugin build",
     "build:types": "tsc -p tsconfig.contract.json",
     "deploy": "pnpm run build:types && DEPLOY=true rspack build",
-    "dev": "pnpm run build:types && rspack serve",
+    "dev": "every-plugin dev",
     "test": "vitest run --root . --pool=forks",
     "test:watch": "vitest --root .",
     "coverage": "vitest run --root . --coverage",
