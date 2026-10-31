@@ -1,5 +1,43 @@
 import "@orpc/openapi/extensions/route";
 import { z } from "zod";
+/**
+ * Metered-connectors bridge contract.
+ *
+ * This plugin owns ONLY the OutLayer side of the demo: reading the agent's
+ * Agent Connect budget, topping up the OutLayer payment key from the agent's
+ * balance, and metered connector calls. Agent account management lives in the
+ * `agent-connect` plugin — no duplicated owner intents here.
+ */
+/**
+ * Where users buy the XPOST gate token — same link the site footer shows.
+ */
+export declare const XPOST_BUY_URL = "https://meme.cooking/meme/1634";
+export declare const GateRefusalDataSchema: z.ZodObject<{
+    reason: z.ZodEnum<{
+        balance_too_low: "balance_too_low";
+        no_near_account: "no_near_account";
+    }>;
+    minimum: z.ZodString;
+    balance: z.ZodNullable<z.ZodString>;
+    buyUrl: z.ZodString;
+}, z.core.$strip>;
+export type GateRefusalData = z.infer<typeof GateRefusalDataSchema>;
+/**
+ * The XPOST admission gate refused app-paid dispatch before any spend — the
+ * call is free, the payload explains the remedy (buy XPOST, sign in, or BYO).
+ */
+export declare const GATE_REFUSED: {
+    readonly status: 402;
+    readonly data: z.ZodObject<{
+        reason: z.ZodEnum<{
+            balance_too_low: "balance_too_low";
+            no_near_account: "no_near_account";
+        }>;
+        minimum: z.ZodString;
+        balance: z.ZodNullable<z.ZodString>;
+        buyUrl: z.ZodString;
+    }, z.core.$strip>;
+};
 export declare const contract: {
     agentBudget: import("@orpc/contract").ProcedureContract<z.ZodObject<{
         agentId: z.ZodString;
@@ -383,6 +421,18 @@ export declare const contract: {
                 host: z.ZodOptional<z.ZodString>;
                 port: z.ZodOptional<z.ZodNumber>;
                 suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+        GATE_REFUSED: {
+            readonly status: 402;
+            readonly data: z.ZodObject<{
+                reason: z.ZodEnum<{
+                    balance_too_low: "balance_too_low";
+                    no_near_account: "no_near_account";
+                }>;
+                minimum: z.ZodString;
+                balance: z.ZodNullable<z.ZodString>;
+                buyUrl: z.ZodString;
             }, z.core.$strip>;
         };
     }>;

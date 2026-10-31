@@ -55,6 +55,9 @@ function AdminIndex() {
           >
             Users and roles
           </Link>
+          <Link to="/admin/sponsor" className="text-foreground underline-offset-4 hover:underline">
+            Sponsor wallet and relayer
+          </Link>
         </nav>
       </section>
     </div>

@@ -6,7 +6,9 @@ import { CheckCircle2, RefreshCw, Wallet } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { pluginPath, sessionQueryKey, useApiClient, useAuthClient } from "@/app";
+import { AnonymousBanner } from "@/components/anonymous-banner";
 import { BackButton } from "@/components/back-button";
+import { XpostGateCard } from "@/components/gate/xpost-gate-card";
 import { PlatformAccountItem } from "@/components/platform-account";
 import { PlatformAccountList } from "@/components/platform-account-list";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,7 @@ function ManageAccountsPage() {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
   const near = authClient.near;
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
   const connectedNearAccountId = near.getAccountId();
   const { data: nearAccountId } = useQuery({
     queryKey: ["near", "accountId"] as const,
@@ -60,11 +62,6 @@ function ManageAccountsPage() {
     queryKey: nearSocialAccountQueryKey(nearAccountId),
     queryFn: () => getNearSocialAccount(authClient, nearAccountId),
     enabled: !!nearAccountId,
-  });
-  const { data: gateStatus } = useQuery({
-    queryKey: ["connectors", "xpostGateStatus"] as const,
-    queryFn: () => apiClient.connectors.xpostGateStatus(),
-    staleTime: 60 * 1000,
   });
   const { selectedAccountIds } = usePlatformAccountsStore();
 
@@ -165,7 +162,7 @@ function ManageAccountsPage() {
             <h2 className="text-xl font-semibold">Near Social Account</h2>
           </div>
 
-          {isLoadingProfile ? (
+          {isSessionPending || isLoadingProfile ? (
             <div className="flex justify-center py-8">
               <RefreshCw size={16} className={"animate-spin"} />
             </div>
@@ -218,26 +215,24 @@ function ManageAccountsPage() {
           )}
         </div>
 
-        {/* Other Platform Accounts */}
-        {SUPPORTED_PLATFORMS.map((platform) => (
-          <PlatformAccountList
-            key={platform}
-            platform={platform}
-            accounts={accounts}
-            isLoading={isLoading}
-            onConnect={
-              isPlatformConnectable(platform) ? () => connectXMutation.mutate() : undefined
-            }
-          />
-        ))}
+        <AnonymousBanner />
 
-        {gateStatus?.enabled && (
-          <p className="text-sm text-muted-foreground">
-            {gateStatus.caller.tier
-              ? `Sponsored posting: XPOST Tier ${gateStatus.caller.tier} of 3`
-              : `Sponsored posting needs ${gateStatus.tier1} XPOST — you hold ${gateStatus.caller.balance ?? "0"}.`}
-          </p>
+        {/* Other Platform Accounts */}
+        {SUPPORTED_PLATFORMS.filter((platform) => platform !== Platform.FARCASTER).map(
+          (platform) => (
+            <PlatformAccountList
+              key={platform}
+              platform={platform}
+              accounts={accounts}
+              isLoading={isSessionPending || isLoading}
+              onConnect={
+                isPlatformConnectable(platform) ? () => connectXMutation.mutate() : undefined
+              }
+            />
+          ),
         )}
+
+        <XpostGateCard redirectPath="/manage" />
 
         <p className="text-sm text-muted-foreground">
           By default the app pays for posting — no keys needed.{" "}

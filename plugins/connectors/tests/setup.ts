@@ -108,7 +108,7 @@ export function mockUpstream(
 
 export async function getPluginClient(context?: {
   userId?: string;
-  nearAccountId?: string;
+  nearAccountId?: string | null;
   role?: string;
 }) {
   if (!server) {

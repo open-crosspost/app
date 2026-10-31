@@ -12,6 +12,32 @@ import { z } from "zod";
  * `agent-connect` plugin — no duplicated owner intents here.
  */
 
+/**
+ * Where users buy the XPOST gate token — same link the site footer shows.
+ */
+export const XPOST_BUY_URL = "https://meme.cooking/meme/1634";
+
+export const GateRefusalDataSchema = z.object({
+  reason: z.enum(["no_near_account", "balance_too_low"]),
+  minimum: z.string().describe("Tier-1 minimum in human XPOST units"),
+  balance: z
+    .string()
+    .nullable()
+    .describe("The caller's XPOST balance in human units (null when no NEAR account)"),
+  buyUrl: z.string().describe("Where to acquire XPOST"),
+});
+
+export type GateRefusalData = z.infer<typeof GateRefusalDataSchema>;
+
+/**
+ * The XPOST admission gate refused app-paid dispatch before any spend — the
+ * call is free, the payload explains the remedy (buy XPOST, sign in, or BYO).
+ */
+export const GATE_REFUSED = {
+  status: 402,
+  data: GateRefusalDataSchema,
+} as const;
+
 const PolicyWindowSchema = z
   .object({
     limitUsd: z.string().nullable(),
@@ -32,6 +58,17 @@ const BridgeEventSchema = z.object({
   connector: z.string().nullable(),
   operation: z.string().nullable(),
   createdAt: z.string(),
+});
+
+const SpendWindowSchema = z.object({
+  posts: z.number().int().min(0),
+  usdMicros: z.string().describe("Sum of OutLayer compute costs in USD micros"),
+});
+
+const SponsorDailyPointSchema = z.object({
+  date: z.string().describe("UTC date (YYYY-MM-DD)"),
+  posts: z.number().int().min(0),
+  usdMicros: z.string(),
 });
 
 export const contract = oc.router({
@@ -299,7 +336,7 @@ export const contract = oc.router({
         error: z.string().nullable(),
       }),
     )
-    .errors({ UNAUTHORIZED, BAD_REQUEST, CONNECTION_ERROR }),
+    .errors({ UNAUTHORIZED, BAD_REQUEST, CONNECTION_ERROR, GATE_REFUSED }),
 
   xpostGateStatus: oc
     .route({
@@ -377,6 +414,57 @@ export const contract = oc.router({
       }),
     )
     .errors({ UNAUTHORIZED, FORBIDDEN, BAD_REQUEST, CONNECTION_ERROR }),
+
+  sponsorStats: oc
+    .route({
+      method: "GET",
+      path: "/sponsor/stats",
+      summary: "Public sponsorship totals",
+      description:
+        "Public: how many calls the app's shared payment key has sponsored and the metered compute cost so far — powers the 'the app pays for this' surfaces.",
+      tags: ["Connectors Bridge"],
+    })
+    .input(z.object({}).optional())
+    .output(
+      z.object({
+        sponsoredPosts: z.number().int().min(0),
+        sponsoredUsdMicros: z.string(),
+        lastSponsoredAt: z.string().nullable(),
+      }),
+    )
+    .errors({ CONNECTION_ERROR }),
+
+  appSponsorStatus: oc
+    .route({
+      method: "GET",
+      path: "/sponsor/status",
+      summary: "Sponsor wallet health and spend aggregates (admin)",
+      description:
+        "Admin: the app's shared OutLayer payment wallet (owner, key nonce, on-chain NEAR balance, best-effort remaining USD from OutLayer), sponsored-call spend windows, the 30-day daily series, and the low-balance warning thresholds.",
+      tags: ["Connectors Bridge"],
+    })
+    .input(z.object({}).optional())
+    .output(
+      z.object({
+        configured: z.boolean(),
+        walletOwner: z.string().nullable(),
+        keyNonce: z.string().nullable(),
+        nearBalanceYocto: z.string().nullable(),
+        nearBalanceNear: z.string().nullable(),
+        outlayerKeyRemainingUsd: z.string().nullable(),
+        windows: z.object({
+          day: SpendWindowSchema,
+          week: SpendWindowSchema,
+          month: SpendWindowSchema,
+        }),
+        daily: z.array(SponsorDailyPointSchema),
+        thresholds: z.object({
+          warnNear: z.string().describe("NEAR balance floor (human units) — below this, warn"),
+          warnUsd: z.string().describe("OutLayer key remaining USD floor — below this, warn"),
+        }),
+      }),
+    )
+    .errors({ UNAUTHORIZED, FORBIDDEN, CONNECTION_ERROR }),
 
   events: oc
     .route({

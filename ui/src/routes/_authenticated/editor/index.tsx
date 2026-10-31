@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Eye, FileText, MoreHorizontal, X } from "lucide-react";
+import { Eye, FileText, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
+import { AnonymousBanner } from "@/components/anonymous-banner";
 import { DraftsModal } from "@/components/drafts-modal";
+import { XpostGateGuard } from "@/components/gate/xpost-gate-guard";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
+import { NearSocialFallbackDialog } from "@/components/near-social-fallback-dialog";
 import { PlatformAccountsSelector } from "@/components/platform-accounts-selector";
 import { PostEditorCore } from "@/components/post-editor-core";
 import { PostInteractionSelector } from "@/components/post-interaction-selector";
@@ -50,14 +53,16 @@ export const Route = createFileRoute("/_authenticated/editor/")({
   }),
   loader: async ({ context }) => {
     const { queryClient, authClient, apiClient } = context;
-    await queryClient.ensureQueryData(nearAccountIdQueryOptions(authClient));
-    const nearAccountId = queryClient.getQueryData<string | null>(
-      nearAccountIdQueryOptions(authClient).queryKey,
+    // connectedAccounts is independent of nearAccountId — start both together
+    const nearAccountIdQuery = queryClient.ensureQueryData(nearAccountIdQueryOptions(authClient));
+    const connectedAccountsQuery = queryClient.ensureQueryData(
+      connectedAccountsQueryOptions(apiClient),
     );
+    const nearAccountId = await nearAccountIdQuery;
     // Preload best-effort: an unavailable API must not take the route down —
     // the selector's inline error state handles degradation with a retry.
     await Promise.allSettled([
-      queryClient.ensureQueryData(connectedAccountsQueryOptions(apiClient)),
+      connectedAccountsQuery,
       nearAccountId
         ? queryClient.ensureQueryData(nearSocialAccountQueryOptions(authClient, nearAccountId))
         : Promise.resolve(null),
@@ -92,10 +97,10 @@ function EditorPage() {
     () => allAccounts.filter((account) => selectedAccountIds.includes(account.userId)),
     [allAccounts, selectedAccountIds],
   );
-  const { submitPost, isPosting } = useSubmitPost();
+  const { submitPost, isPosting, nearSocialFallbackReason, resolveNearSocialFallback } =
+    useSubmitPost();
   const { setModalOpen, autosave, saveAutoSave, clearAutoSave, saveDraft, isModalOpen } =
     useDraftsStore();
-
   const [state, dispatch] = useReducer(editorReducer, undefined, () =>
     initEditorState(autosave?.posts),
   );
@@ -267,6 +272,9 @@ function EditorPage() {
 
   return (
     <div className="h-full w-full min-w-0 px-4 pt-4 pb-6 sm:px-6 lg:px-6 lg:pt-6 lg:pb-6">
+      <div className="mb-4">
+        <AnonymousBanner />
+      </div>
       <div className="mb-4 border-b border-border lg:hidden">
         <div className="flex">
           <button
@@ -317,6 +325,7 @@ function EditorPage() {
               </div>
             ) : null}
             <div className="mb-4 space-y-4">
+              <XpostGateGuard redirectPath="/editor" />
               <PlatformAccountsSelector disabledPlatforms={disabledPlatforms} />
               <div className="mb-2 flex min-w-0 items-start gap-2">
                 <div className="min-w-0 flex-1">
@@ -404,7 +413,14 @@ function EditorPage() {
                     disabled={isPosting || isEditorEmpty(posts) || selectedAccounts.length === 0}
                     className="min-w-0 px-2 sm:px-4"
                   >
-                    {isPosting ? "…" : "Post"}
+                    {isPosting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Posting…
+                      </>
+                    ) : (
+                      "Post"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -440,6 +456,10 @@ function EditorPage() {
         onClose={() => dispatch({ type: "preview_closed" })}
         posts={posts}
         selectedAccounts={selectedAccounts}
+      />
+      <NearSocialFallbackDialog
+        reason={nearSocialFallbackReason}
+        onChoice={resolveNearSocialFallback}
       />
     </div>
   );

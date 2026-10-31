@@ -9,14 +9,23 @@ import {
   type SuccessDetail,
 } from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
+import type { NearSocialFallbackChoice } from "@/components/near-social-fallback-dialog";
 import type { PostType } from "@/components/post-interaction-selector";
 import { connectorErrorDetail, connectorSuccessDetail, postToX } from "@/lib/connector-post";
-import { postToNearSocial } from "@/lib/near-social-post";
+import { extractGateRefusal, XPOST_GUARD_ANCHOR_ID } from "@/lib/gate";
+import {
+  directFallbackEnabled,
+  postToNearSocial,
+  postToNearSocialDirect,
+  RelayerUnavailableError,
+  rememberDirectFallback,
+} from "@/lib/near-social-post";
 import { detectPlatformFromUrl } from "@/lib/utils/url-utils";
 import type { EditorContent } from "@/store/drafts-store";
+import { useGateStore } from "@/store/gate-store";
 import { useSubmissionResultsStore } from "@/store/submission-results-store";
 
 export type SubmitStatus = "idle" | "posting" | "success" | "partial-success" | "failure";
@@ -45,6 +54,20 @@ export function useSubmitPost() {
   const { setSubmissionOutcome } = useSubmissionResultsStore();
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [result, setResult] = useState<SubmitResult>({ status: "idle" });
+  const [fallbackRequest, setFallbackRequest] = useState<{
+    reason: string;
+    resolve: (choice: NearSocialFallbackChoice) => void;
+  } | null>(null);
+
+  const requestFallbackChoice = (reason: string) =>
+    new Promise<NearSocialFallbackChoice>((resolve) => setFallbackRequest({ reason, resolve }));
+
+  const resolveFallback = useCallback((choice: NearSocialFallbackChoice) => {
+    setFallbackRequest((current) => {
+      current?.resolve(choice);
+      return null;
+    });
+  }, []);
 
   const submitPost = async (
     posts: EditorContent[],
@@ -120,37 +143,6 @@ export function useSubmitPost() {
           )
         : processingAccounts;
 
-    // Initial toast
-    const uniquePlatforms = new Set([
-      ...otherAccounts.map((a) => a.platform),
-      ...(nearSocialAccounts.length > 0 ? ["Near Social" as PlatformName] : []),
-    ]);
-    // totalAccounts for the toast should reflect the number of accounts being processed in *this* attempt
-    const totalAccountsForThisAttempt = processingAccounts.length;
-    toast("Crossposting...", {
-      description: `Publishing to ${uniquePlatforms.size} platform${uniquePlatforms.size > 1 ? "s" : ""} and ${totalAccountsForThisAttempt} account${totalAccountsForThisAttempt > 1 ? "s" : ""}`,
-    });
-
-    // Results tracking
-    let nearSocialSuccess = true;
-    let nearSocialError: any = null;
-    let apiResponse: MultiStatusData | null = null;
-    let apiError: any = null;
-    const connectorResults: SuccessDetail[] = [];
-    const connectorErrors: ErrorDetail[] = [];
-
-    // --- Post to NEAR Social (only for regular posts) ---
-    if (nearSocialAccounts.length > 0 && postType === "post") {
-      try {
-        await postToNearSocial(near, nonEmptyPosts.map((post) => post.text).join("\n\n"));
-      } catch (error) {
-        nearSocialSuccess = false;
-        nearSocialError = error;
-        console.error("NEAR Social post error:", error);
-      }
-    }
-
-    // --- Post to X via the connectors bridge (regular posts only) ---
     const twitterAccounts =
       postType === "post"
         ? otherAccounts.filter((account) => account.platform === Platform.TWITTER)
@@ -160,39 +152,147 @@ export function useSubmitPost() {
         ? otherAccounts.filter((account) => account.platform !== Platform.TWITTER)
         : [];
 
-    if (twitterAccounts.length > 0) {
-      const agentId = session?.user?.id;
-      const joinedText = nonEmptyPosts.map((post) => post.text).join("\n\n");
-      const hasMedia = nonEmptyPosts.some((post) => (post.media?.length ?? 0) > 0);
+    // Progress toast — only meaningful for regular posts, where targets are
+    // actually sent to. Replies/quotes short-circuit into honest errors below.
+    const sendableTargets = postType === "post" ? processingAccounts.length : 0;
+    const progressId =
+      sendableTargets > 0
+        ? toast.loading("Crossposting…", { description: `0/${sendableTargets} processed` })
+        : null;
+    let processedTargets = 0;
+    const tickProgress = (count = 1) => {
+      if (!progressId) return;
+      processedTargets += count;
+      toast.loading("Crossposting…", {
+        id: progressId,
+        description: `${processedTargets}/${sendableTargets} processed`,
+      });
+    };
 
-      for (const account of twitterAccounts) {
-        if (!agentId) {
-          connectorErrors.push({
-            message: "Sign in with your NEAR wallet, then connect your X account.",
-            code: ApiErrorCode.UNAUTHORIZED,
-            recoverable: false,
-            details: { platform: account.platform, userId: account.userId },
-          });
-          continue;
-        }
-        if (hasMedia) {
-          connectorErrors.push({
-            message: "Media is not yet supported for X posts",
-            code: ApiErrorCode.PLATFORM_ERROR,
-            recoverable: false,
-            details: { platform: account.platform, userId: account.userId },
-          });
-          continue;
-        }
-        try {
-          const result = await postToX(apiClient, agentId, joinedText);
-          connectorResults.push(connectorSuccessDetail(result, account.userId));
-        } catch (error) {
-          console.error("X connector post error:", error);
-          connectorErrors.push(connectorErrorDetail(error, account.userId));
-        }
+    // Results tracking
+    let nearSocialSuccess = true;
+    let nearSocialError: any = null;
+    let nearSocialSkipped = 0;
+    let apiResponse: MultiStatusData | null = null;
+    let apiError: any = null;
+    const connectorResults: SuccessDetail[] = [];
+    const connectorErrors: ErrorDetail[] = [];
+
+    const joinedText = nonEmptyPosts.map((post) => post.text).join("\n\n");
+
+    // --- NEAR Social leg (regular posts only) — resolves via the fallback
+    // modal when the relayer is unavailable; other legs run meanwhile ---
+    const runNearSocialLeg = async (): Promise<{ skipped: number; error: unknown }> => {
+      if (nearSocialAccounts.length === 0 || postType !== "post") {
+        return { skipped: 0, error: null };
       }
-    }
+      const onRejected = (reason: string) => {
+        toast.error("NEAR Social write rejected", { description: reason });
+      };
+      try {
+        await postToNearSocial(near, joinedText, onRejected);
+        tickProgress(nearSocialAccounts.length);
+        return { skipped: 0, error: null };
+      } catch (error) {
+        if (error instanceof RelayerUnavailableError) {
+          const choice = directFallbackEnabled()
+            ? "direct"
+            : await requestFallbackChoice(error.message);
+          if (choice === "skip") {
+            tickProgress(nearSocialAccounts.length);
+            toast("NEAR Social skipped", { description: error.message });
+            return { skipped: nearSocialAccounts.length, error: null };
+          }
+          rememberDirectFallback();
+          try {
+            await postToNearSocialDirect(near, joinedText, onRejected);
+            tickProgress(nearSocialAccounts.length);
+            return { skipped: 0, error: null };
+          } catch (directError) {
+            console.error("NEAR Social direct post error:", directError);
+            tickProgress(nearSocialAccounts.length);
+            return { skipped: 0, error: directError };
+          }
+        }
+        console.error("NEAR Social post error:", error);
+        tickProgress(nearSocialAccounts.length);
+        return { skipped: 0, error };
+      }
+    };
+
+    // --- X leg via the connectors bridge — one concurrent call per account ---
+    const agentId = session?.user?.id;
+    const hasMedia = nonEmptyPosts.some((post) => (post.media?.length ?? 0) > 0);
+    const runXLeg = async (account: ConnectedAccount): Promise<void> => {
+      if (!agentId) {
+        connectorErrors.push({
+          message: "Sign in with your NEAR wallet, then connect your X account.",
+          code: ApiErrorCode.UNAUTHORIZED,
+          recoverable: false,
+          details: { platform: account.platform, userId: account.userId },
+        });
+        tickProgress();
+        return;
+      }
+      if (hasMedia) {
+        connectorErrors.push({
+          message: "Media is not yet supported for X posts",
+          code: ApiErrorCode.PLATFORM_ERROR,
+          recoverable: false,
+          details: { platform: account.platform, userId: account.userId },
+        });
+        tickProgress();
+        return;
+      }
+      try {
+        const result = await postToX(apiClient, agentId, joinedText);
+        connectorResults.push(connectorSuccessDetail(result, account));
+      } catch (error) {
+        console.error("X connector post error:", error);
+        const gateRefusal = extractGateRefusal(error);
+        if (gateRefusal) {
+          useGateStore.getState().setRefusal(XPOST_GUARD_ANCHOR_ID, gateRefusal);
+        }
+        connectorErrors.push(connectorErrorDetail(error, account));
+      }
+      tickProgress();
+    };
+
+    // --- Legacy API leg (remaining platforms, single batched request) ---
+    const runLegacyLeg = async (): Promise<{
+      response: MultiStatusData | null;
+      error: unknown;
+    }> => {
+      if (legacyAccounts.length === 0) return { response: null, error: null };
+      try {
+        const postRequest = {
+          targets: legacyAccounts.map((account) => ({
+            platform: account.platform,
+            userId: account.userId,
+          })),
+          content: nonEmptyPosts,
+        } satisfies CreatePostRequest;
+
+        return { response: await apiClient.social.posts.create(postRequest), error: null };
+      } catch (error) {
+        console.error("API post error:", error);
+        return { response: null, error };
+      } finally {
+        tickProgress(legacyAccounts.length);
+      }
+    };
+
+    // All legs run concurrently — legs never reject (each catches internally)
+    const [nearSocialOutcome, legacyOutcome] = await Promise.all([
+      runNearSocialLeg(),
+      runLegacyLeg(),
+      Promise.all(twitterAccounts.map(runXLeg)),
+    ]);
+    nearSocialSuccess = !nearSocialOutcome.error;
+    nearSocialSkipped = nearSocialOutcome.skipped;
+    nearSocialError = nearSocialOutcome.error;
+    apiResponse = legacyOutcome.response;
+    apiError = legacyOutcome.error;
 
     // --- Replies/quotes have no working backend for non-NEAR platforms yet ---
     if (postType !== "post") {
@@ -207,22 +307,8 @@ export function useSubmitPost() {
       }
     }
 
-    // --- Post to remaining platforms via the legacy API (no live connector path yet) ---
-    if (legacyAccounts.length > 0) {
-      try {
-        const postRequest = {
-          targets: legacyAccounts.map((account) => ({
-            platform: account.platform,
-            userId: account.userId,
-          })),
-          content: nonEmptyPosts,
-        } satisfies CreatePostRequest;
-
-        apiResponse = await apiClient.social.posts.create(postRequest);
-      } catch (error) {
-        apiError = error;
-        console.error("API post error:", error);
-      }
+    if (progressId) {
+      toast.dismiss(progressId);
     }
 
     // --- Process Results ---
@@ -235,7 +321,7 @@ export function useSubmitPost() {
     let finalResults: SuccessDetail[] = [];
     let finalErrors: ErrorDetail[] = [];
 
-    const nearSocialResultCount = nearSocialAccounts.length;
+    const nearSocialAttempted = nearSocialAccounts.length - nearSocialSkipped;
     const apiResultCount = legacyAccounts.length;
 
     // Process API results
@@ -278,12 +364,10 @@ export function useSubmitPost() {
     // Combine NEAR Social results
     const totalSucceeded =
       finalSummary.succeeded +
-      (nearSocialSuccess ? nearSocialResultCount : 0) +
+      (nearSocialSuccess ? nearSocialAttempted : 0) +
       connectorResults.length;
     const totalFailed =
-      finalSummary.failed +
-      (!nearSocialSuccess ? nearSocialResultCount : 0) +
-      connectorErrors.length;
+      finalSummary.failed + (!nearSocialSuccess ? nearSocialAttempted : 0) + connectorErrors.length;
     const totalAttempted = totalSucceeded + totalFailed;
 
     const combinedSummary = {
@@ -388,5 +472,7 @@ export function useSubmitPost() {
     result,
     submitPost,
     isPosting: status === "posting",
+    nearSocialFallbackReason: fallbackRequest?.reason ?? null,
+    resolveNearSocialFallback: resolveFallback,
   };
 }

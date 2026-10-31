@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { Effect } from "effect";
+import { XPOST_BUY_URL } from "../contract";
 import {
   clampTiers,
   formatThreshold,
@@ -242,9 +243,15 @@ export const enforceXpostGate = (
     const minimum = formatThreshold(gate.tier1);
     if (!nearAccountId) {
       return yield* Effect.fail(
-        new ORPCError("BAD_REQUEST", {
+        new ORPCError("GATE_REFUSED", {
           message:
             "XPOST gate requires a connected NEAR account — sign in with your NEAR wallet first",
+          data: {
+            reason: "no_near_account",
+            minimum,
+            balance: null,
+            buyUrl: XPOST_BUY_URL,
+          },
         }),
       );
     }
@@ -256,8 +263,14 @@ export const enforceXpostGate = (
     const minimumRaw = BigInt(Math.ceil(gate.tier1 * 10 ** decimals));
     if (balance < minimumRaw) {
       return yield* Effect.fail(
-        new ORPCError("BAD_REQUEST", {
+        new ORPCError("GATE_REFUSED", {
           message: `XPOST balance too low — hold at least ${minimum} XPOST to post on the app's key, or bring your own OutLayer wallet`,
+          data: {
+            reason: "balance_too_low",
+            minimum,
+            balance: toHumanUnits(balance, decimals),
+            buyUrl: XPOST_BUY_URL,
+          },
         }),
       );
     }

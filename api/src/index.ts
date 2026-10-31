@@ -20,7 +20,11 @@ export interface AuthContext {
     email?: string;
     name?: string;
   };
-  nearAccountId?: string;
+  near?: {
+    primaryAccountId?: string | null;
+    linkedAccounts?: { accountId: string; network: string; publicKey: string }[];
+    hasNearAccount?: boolean;
+  };
   organizationId?: string;
   organizationRole?: string;
   reqHeaders?: Headers;
@@ -55,16 +59,19 @@ export default createPlugin.withPlugins<PluginsClient>()({
         name: z.string().optional(),
       })
       .optional(),
-    nearAccountId: z.string().optional(),
-    nearAccounts: z
-      .array(
-        z.object({
-          accountId: z.string(),
-          network: z.string(),
-          publicKey: z.string(),
-          isPrimary: z.boolean().optional(),
-        }),
-      )
+    near: z
+      .object({
+        primaryAccountId: z.string().nullable(),
+        linkedAccounts: z.array(
+          z.object({
+            accountId: z.string(),
+            network: z.string(),
+            publicKey: z.string(),
+            isPrimary: z.boolean().optional(),
+          }),
+        ),
+        hasNearAccount: z.boolean(),
+      })
       .optional(),
     organizationId: z.string().optional(),
     organizationRole: z.string().optional(),
@@ -147,7 +154,11 @@ export default createPlugin.withPlugins<PluginsClient>()({
             const auth = requireAuthContext(context);
             const social = yield* SocialServiceTag;
             return yield* Effect.promise(() =>
-              social.completeConnect(auth.userId, input, context.nearAccountId),
+              social.completeConnect(
+                auth.userId,
+                input,
+                context.near?.primaryAccountId ?? undefined,
+              ),
             );
           }),
 

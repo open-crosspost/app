@@ -61,14 +61,51 @@ describe("xpost gate (gate on: tier-1 minimum 2 XPOST)", () => {
     });
     try {
       const client = await getPluginClient({ userId: "user-1", nearAccountId: "poor.test" });
-      await expect(
-        client.outlayerCall({
+      const error = await client
+        .outlayerCall({
           agentId: "agent-gate-poor",
           connector: "work.efiz.near/x",
           operation: "status",
           input: {},
-        }),
-      ).rejects.toThrow(/XPOST balance too low/);
+        })
+        .catch((e: unknown) => e);
+      expect((error as Error).message).toMatch(/XPOST balance too low/);
+      expect((error as { code?: string }).code).toBe("GATE_REFUSED");
+      expect((error as { data?: Record<string, unknown> }).data).toMatchObject({
+        reason: "balance_too_low",
+        minimum: "2",
+        balance: "1",
+      });
+      expect((error as { data?: { buyUrl?: string } }).data?.buyUrl).toMatch(/^https:\/\//);
+    } finally {
+      restore();
+    }
+  });
+
+  it("refuses a caller with no NEAR account before reading any balance", async () => {
+    const restore = mockUpstream((url, init) => {
+      if (url.startsWith("https://rpc.test")) {
+        return methodName(init) === "ft_metadata"
+          ? viewResult({ decimals: 2, symbol: "XPOST" })
+          : viewResult("0");
+      }
+      throw new Error("the connector call must never fire when the gate refuses");
+    });
+    try {
+      const client = await getPluginClient({ userId: "user-1", nearAccountId: null });
+      const error = await client
+        .outlayerCall({
+          agentId: "agent-gate-anon",
+          connector: "work.efiz.near/x",
+          operation: "status",
+          input: {},
+        })
+        .catch((e: unknown) => e);
+      expect((error as { code?: string }).code).toBe("GATE_REFUSED");
+      expect((error as { data?: Record<string, unknown> }).data).toMatchObject({
+        reason: "no_near_account",
+        balance: null,
+      });
     } finally {
       restore();
     }

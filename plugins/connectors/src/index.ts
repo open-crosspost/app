@@ -4,7 +4,7 @@ import { createPlugin } from "every-plugin";
 import { z } from "zod";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
-import { ContextSchema } from "./lib/context";
+import { ContextSchema, resolveNearAccountId } from "./lib/context";
 import { formatThreshold } from "./lib/gate-math";
 import type { PluginsClient } from "./lib/plugins-client.gen";
 import type { UpstreamError } from "./lib/upstream";
@@ -17,6 +17,7 @@ import {
   resolveGate,
 } from "./services/gate";
 import { GateConfigStore, gateConfigStoreLayer } from "./services/gate-config";
+import { outlayerKeyRemainingUsd, viewAccountBalance, yoctoToNear } from "./services/sponsor";
 import { BridgeStore, bridgeStoreLayer } from "./services/store";
 
 /**
@@ -62,6 +63,8 @@ interface ConnectorConfigShape extends GateDeps {
   agentApiBaseUrl: string;
   outlayerApiUrl: string;
   appPaymentKey: string | null;
+  SPONSOR_WARN_NEAR: string;
+  SPONSOR_WARN_USD: string;
 }
 
 const fetchJson = (url: string, init?: RequestInit) =>
@@ -241,6 +244,14 @@ export default createPlugin.withPlugins<PluginsClient>()({
       .string()
       .default(REF_NEAR_USD_TOKEN_DEFAULT)
       .describe("The USD token in the NEAR/USD pool (USDT mainnet FT)"),
+    SPONSOR_WARN_NEAR: z
+      .string()
+      .default("5")
+      .describe("Sponsor wallet NEAR balance floor (human units) — below this the dashboard warns"),
+    SPONSOR_WARN_USD: z
+      .string()
+      .default("10")
+      .describe("OutLayer key remaining USD floor — below this the dashboard warns"),
   }),
 
   secrets: z.object({
@@ -283,6 +294,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
         REF_XPOST_NEAR_POOL_ID: config.variables.REF_XPOST_NEAR_POOL_ID,
         REF_NEAR_USD_POOL_ID: config.variables.REF_NEAR_USD_POOL_ID,
         REF_NEAR_USD_TOKEN_ID: config.variables.REF_NEAR_USD_TOKEN_ID,
+        SPONSOR_WARN_NEAR: config.variables.SPONSOR_WARN_NEAR,
+        SPONSOR_WARN_USD: config.variables.SPONSOR_WARN_USD,
       });
       if (config.variables.XPOST_TIER_REFRESH_ENABLED) {
         const gateDeps: GateDeps = {
@@ -647,7 +660,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
         const gateStore = yield* GateConfigStore;
 
         const gate = yield* resolveGate(config, gateStore);
-        yield* enforceXpostGate(config, gate, context.nearAccountId);
+        yield* enforceXpostGate(config, gate, resolveNearAccountId(context));
 
         const walletId = input.walletId ?? null;
         let paymentKey = input.paymentKey ?? null;
@@ -780,7 +793,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
         const config = yield* ConnectorConfig;
         const gateStore = yield* GateConfigStore;
         const gate = yield* resolveGate(config, gateStore);
-        const caller = yield* callerGateStatus(config, gate, context.nearAccountId);
+        const caller = yield* callerGateStatus(config, gate, resolveNearAccountId(context));
         return {
           enabled: gate.enabled,
           tier1: formatThreshold(gate.tier1),
@@ -790,7 +803,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
           priceUsd: gate.priceUsd,
           refreshedAt: gate.refreshedAt,
           caller: {
-            nearAccountId: context.nearAccountId ?? null,
+            nearAccountId: resolveNearAccountId(context),
             balance: caller.balance,
             tier: caller.tier,
           },
@@ -840,6 +853,55 @@ export default createPlugin.withPlugins<PluginsClient>()({
           source: row.source,
           priceUsd: row.priceUsd,
           refreshedAt: row.refreshedAt.toISOString(),
+        };
+      }),
+
+      sponsorStats: builder.sponsorStats.effect(function* () {
+        const store = yield* BridgeStore;
+        const totals = yield* store.sponsorTotals();
+        return {
+          sponsoredPosts: totals.posts,
+          sponsoredUsdMicros: totals.usdMicros,
+          lastSponsoredAt: totals.lastSponsoredAt,
+        };
+      }),
+
+      appSponsorStatus: builder.appSponsorStatus.effect(function* ({ context }) {
+        requireAdmin(context);
+        const config = yield* ConnectorConfig;
+        const store = yield* BridgeStore;
+        const series = yield* store.sponsorSeries(30);
+
+        let walletOwner: string | null = null;
+        let keyNonce: string | null = null;
+        let nearBalanceYocto: string | null = null;
+        let keyRemainingUsd: string | null = null;
+        if (config.appPaymentKey) {
+          const [owner, nonce] = config.appPaymentKey.split(":");
+          walletOwner = owner ?? null;
+          keyNonce = nonce ?? null;
+          if (walletOwner) {
+            nearBalanceYocto = yield* viewAccountBalance(config.nearRpcUrl, walletOwner);
+          }
+          keyRemainingUsd = yield* outlayerKeyRemainingUsd(
+            config.outlayerApiUrl,
+            config.appPaymentKey,
+          );
+        }
+
+        return {
+          configured: !!config.appPaymentKey,
+          walletOwner,
+          keyNonce,
+          nearBalanceYocto,
+          nearBalanceNear: nearBalanceYocto ? yoctoToNear(nearBalanceYocto) : null,
+          outlayerKeyRemainingUsd: keyRemainingUsd,
+          windows: { day: series.day, week: series.week, month: series.month },
+          daily: series.daily,
+          thresholds: {
+            warnNear: config.SPONSOR_WARN_NEAR,
+            warnUsd: config.SPONSOR_WARN_USD,
+          },
         };
       }),
 
