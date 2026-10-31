@@ -156,6 +156,30 @@ export const UpdateCampaignSchema = z
     { message: "Update must change name, description, actions, or status" },
   );
 
+export const CampaignDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export const CampaignSeedRecordSchema = z
+  .object({
+    campaignId: CampaignIdSchema,
+    date: CampaignDateSchema.optional(),
+    nearPostId: z.string().min(1).max(120).optional(),
+    xPostId: z.string().min(1).max(64).optional(),
+  })
+  .refine((input) => Boolean(input.nearPostId ?? input.xPostId), {
+    message: "Record at least one of nearPostId or xPostId",
+  });
+
+export const CampaignSeedSchema = z.object({
+  campaignId: CampaignIdSchema,
+  date: CampaignDateSchema,
+  nearPostId: z.string().nullable(),
+  xPostId: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+});
+
+export type CampaignSeed = z.infer<typeof CampaignSeedSchema>;
+export type CampaignSeedRecord = z.infer<typeof CampaignSeedRecordSchema>;
+
 export const JobTargetSchema = z.object({
   platform: z.enum(["twitter", "near-social", "farcaster"]),
   accountUserId: z.string().min(1).max(100),

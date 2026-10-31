@@ -94,4 +94,27 @@ describe("CampaignRepository", () => {
     const activeList = await repository.listActive();
     expect(activeList.map((campaign) => campaign.id)).not.toContain("gm");
   });
+
+  describe("daily seeds", () => {
+    it("records a seed, merges legs across calls, and reads today's seed", async () => {
+      const date = "2026-11-01";
+
+      const seeded = await repository.upsertSeed("gm", date, { nearPostId: "1759140000000" });
+      expect(seeded.nearPostId).toBe("1759140000000");
+      expect(seeded.xPostId).toBeNull();
+
+      const merged = await repository.upsertSeed("gm", date, { xPostId: "1852180000000" });
+      expect(merged.nearPostId).toBe("1759140000000");
+      expect(merged.xPostId).toBe("1852180000000");
+
+      const reSaved = await repository.upsertSeed("gm", date, { nearPostId: "1759140000999" });
+      expect(reSaved.nearPostId).toBe("1759140000999");
+      expect(reSaved.xPostId).toBe("1852180000000");
+
+      const read = await repository.getSeed("gm", date);
+      expect(read?.createdAt).toBeTruthy();
+
+      expect(await repository.getSeed("gm", "2026-11-02")).toBeNull();
+    });
+  });
 });

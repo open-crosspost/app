@@ -294,11 +294,39 @@ prompt-driven campaign management, they register a key and talk to `/api/mcp`.
    A: confirmed first-class reply support in social-kv/1. B: confirmed NOT
    supported upstream — X gms post standalone until the connector gains a
    reply field. S: feasible with the AddKey-vault-relayer design above.
-3. **Phase 3 — seed recording route (`social.campaigns.seedRecord`,
-   `campaign_daily_seeds` table) + owner-instance contract** (seed exec
-   script lives in the owner's instance; this app only ships the route).
+3. **Phase 3 — seed recording route + owner-instance contract.**
+   ✅ DONE (2026-11-01): `campaign_daily_seeds` table;
+   `social.campaigns.seedRecord` (owner-gated upsert — Legs merge across
+   calls: record the NEAR leg and the X leg independently; last write of a
+   leg wins) and `social.campaigns.seedToday` (read today's seed, nullable —
+   the editor prefill and the phase-5 spawn gate consume this).
+
+   **Owner instance contract** (script lives on the owner's Railway/Hermes
+   instance; app holds no crosspost.near key):
+
+   1. Daily cron fires at the configured seed time.
+   2. NEAR leg: post `gm` to NEAR Social directly with the instance's own
+      fn-call key (`__fastdata_kv` on `social`, `post/{Date.now()}: {text}`)
+      — remember the post id (the timestamp).
+   3. NEAR record: `POST /api/social/campaigns/seed` with
+      `x-api-key: <owner's key from /settings/api-keys>` and
+      `{"campaignId":"gm","nearPostId":"<post-key-ts>"}` → the seed row is
+      created (server stamps UTC date).
+   4. X leg: post through the bridge-sponsored key —
+      `POST /api/outlayer/call` (connectors plugin) with
+      `{"agentId":"<owner session id>","connector":"connectors.outlayer.near/x",
+      "operation":"post","input":{"text":"gm"}}` → output carries `tweet_id`.
+   5. X record: `POST /api/social/campaigns/seed` with
+      `{"campaignId":"gm","xPostId":"<tweet_id>"}` (same day ⇒ merges into
+      the same row; both legs now present).
+   6. Read: `GET /api/social/campaigns/gm/seed` →
+      `{ "seed": { ..., "nearPostId": "…", "xPostId": "…" } | "seed": null }`.
+
+   Invariant: until a seed row exists for today, nothing spawns (phase 5).
 4. **Phase 4 — reply threading (NEAR Social leg only)** in editor + submit
-   paths per Spike A; X stays standalone.
+   paths per Spike A; X stays standalone (upstream reply ticket in flight:
+   open-crosspost/connectors#1 — owner confirmed `reply_to` will land; when
+   it does, pass it through `postToX` and record the reply-side tweet ids).
 5. **Phase 5 — join/automate UI, enrollment, sealed keys, spawning.**
 
 ## Verification

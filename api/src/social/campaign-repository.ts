@@ -1,8 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { Database } from "../db";
-import { campaignParticipants, campaigns } from "../db/schema";
-import { type Campaign, CampaignSchema, type CreateCampaign, type UpdateCampaign } from "./types";
+import { campaignDailySeeds, campaignParticipants, campaigns } from "../db/schema";
+import {
+  type Campaign,
+  CampaignSchema,
+  type CampaignSeed,
+  CampaignSeedSchema,
+  type CreateCampaign,
+  type UpdateCampaign,
+} from "./types";
 
 export type ParticipantMode = "manual" | "auto";
 
@@ -74,6 +81,22 @@ export class CampaignRepository {
     await this.db.execute(`
       CREATE UNIQUE INDEX IF NOT EXISTS campaign_participants_campaign_user_idx
       ON campaign_participants (campaign_id, user_id)
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS campaign_daily_seeds (
+        id text PRIMARY KEY,
+        campaign_id text NOT NULL,
+        date text NOT NULL,
+        near_post_id text,
+        x_post_id text,
+        created_at text NOT NULL
+      )
+    `);
+
+    await this.db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS campaign_daily_seeds_campaign_date_idx
+      ON campaign_daily_seeds (campaign_id, date)
     `);
   }
 
@@ -231,5 +254,56 @@ export class CampaignRepository {
       )
       .limit(1);
     return rows[0] ? (rows[0].mode === "auto" ? "auto" : "manual") : null;
+  }
+
+  async upsertSeed(
+    campaignId: string,
+    date: string,
+    legs: { nearPostId?: string | null; xPostId?: string | null },
+  ): Promise<CampaignSeed> {
+    const existing = await this.getSeed(campaignId, date);
+    const nearPostId = legs.nearPostId ?? existing?.nearPostId ?? null;
+    const xPostId = legs.xPostId ?? existing?.xPostId ?? null;
+
+    await this.db
+      .insert(campaignDailySeeds)
+      .values({
+        id: randomUUID(),
+        campaignId,
+        date,
+        nearPostId,
+        xPostId,
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: [campaignDailySeeds.campaignId, campaignDailySeeds.date],
+        set: { nearPostId, xPostId },
+      });
+
+    const read = await this.getSeed(campaignId, date);
+    if (!read) {
+      throw new Error(`Seed upsert for ${campaignId} on ${date} did not persist`);
+    }
+    return read;
+  }
+
+  async getSeed(campaignId: string, date: string): Promise<CampaignSeed | null> {
+    const rows = await this.db
+      .select({
+        campaignId: campaignDailySeeds.campaignId,
+        date: campaignDailySeeds.date,
+        nearPostId: campaignDailySeeds.nearPostId,
+        xPostId: campaignDailySeeds.xPostId,
+        createdAt: campaignDailySeeds.createdAt,
+      })
+      .from(campaignDailySeeds)
+      .where(and(eq(campaignDailySeeds.campaignId, campaignId), eq(campaignDailySeeds.date, date)))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+    return CampaignSeedSchema.parse(row);
   }
 }

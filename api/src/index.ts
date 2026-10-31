@@ -280,7 +280,20 @@ export default createPlugin.withPlugins<PluginsClient>()({
             const social = yield* SocialServiceTag;
             return yield* Effect.promise(() => social.removeCampaign(auth.userId, input.id));
           }),
+
+          seedRecord: builder.social.campaigns.seedRecord.effect(function* ({ context, input }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.seedRecord(auth.userId, input));
+          }),
+
+          seedToday: builder.social.campaigns.seedToday.effect(function* ({ input }) {
+            const social = yield* SocialServiceTag;
+            const seed = yield* Effect.promise(() => social.seedToday(input.campaignId));
+            return { seed };
+          }),
         },
+
         jobs: {
           specs: {
             create: builder.social.jobs.specs.create.effect(function* ({ context, input }) {

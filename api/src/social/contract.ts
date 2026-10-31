@@ -8,6 +8,8 @@ import {
   AuthRevokeResponseSchema,
   AuthStatusResponseSchema,
   CampaignSchema,
+  CampaignSeedRecordSchema,
+  CampaignSeedSchema,
   ConnectedAccountSchema,
   ConnectedAccountsResponseSchema,
   CreateCampaignSchema,
@@ -142,6 +144,18 @@ const campaignsContract = oc.router({
     .route({ method: "DELETE", path: "/social/campaigns" })
     .input(z.object({ id: z.string() }))
     .output(CampaignSchema)
+    .errors(PluginErrors),
+
+  seedRecord: oc
+    .route({ method: "POST", path: "/social/campaigns/seed" })
+    .input(CampaignSeedRecordSchema)
+    .output(CampaignSeedSchema)
+    .errors(PluginErrors),
+
+  seedToday: oc
+    .route({ method: "GET", path: "/social/campaigns/{campaignId}/seed" })
+    .input(z.object({ campaignId: z.string() }))
+    .output(z.object({ seed: CampaignSeedSchema.nullable() }))
     .errors(PluginErrors),
 });
 

@@ -110,10 +110,8 @@ function CampaignsPage() {
                   {campaign.actions.map((action) => `Posts “${action.text}”`).join(", ")}
                 </p>
               </div>
-              <Button asChild className="shrink-0">
-                <Link to="/campaigns/$campaignId" params={{ campaignId: campaign.id }}>
-                  Join
-                </Link>
+              <Button variant="secondary" className="shrink-0" disabled>
+                Join soon
               </Button>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">

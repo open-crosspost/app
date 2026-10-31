@@ -81,6 +81,24 @@ export const jobRuns = pgTable(
   }),
 );
 
+export const campaignDailySeeds = pgTable(
+  "campaign_daily_seeds",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull(),
+    date: text("date").notNull(),
+    nearPostId: text("near_post_id"),
+    xPostId: text("x_post_id"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => ({
+    campaignDateUnique: uniqueIndex("campaign_daily_seeds_campaign_date_idx").on(
+      table.campaignId,
+      table.date,
+    ),
+  }),
+);
+
 export const socialConnectedAccounts = pgTable(
   "social_connected_accounts",
   {

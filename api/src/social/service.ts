@@ -6,6 +6,8 @@ import type {
   AccountPostsQuery,
   ActivityLeaderboardQuery,
   Campaign,
+  CampaignSeed,
+  CampaignSeedRecord,
   CreateCampaign,
   CreatePostRequest,
   DeletePostRequest,
@@ -34,6 +36,15 @@ import {
   type XClientCredentials,
   XConnectFlow,
 } from "./x-connect";
+
+function assertCampaignDate(date: string): void {
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Invalid seed date: ${date} (expected UTC YYYY-MM-DD)`,
+    });
+  }
+}
 
 function unavailableMessage(subject: string, action: string): string {
   return `${action} for ${subject} is not implemented yet.`;
@@ -120,6 +131,36 @@ export class SocialService {
       throw new ORPCError("NOT_FOUND", { message: `Campaign ${id} not found` });
     }
     return removed;
+  }
+
+  async seedRecord(userId: string, input: CampaignSeedRecord): Promise<CampaignSeed> {
+    const ownerUserId = await this.campaignRepository.ownerIdOf(input.campaignId);
+    if (!ownerUserId) {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Campaign ${input.campaignId} not found`,
+      });
+    }
+    if (ownerUserId !== userId) {
+      throw new ORPCError("FORBIDDEN", {
+        message: `Only the campaign owner can record seeds for ${input.campaignId}`,
+      });
+    }
+
+    const date = input.date ?? new Date().toISOString().slice(0, 10);
+    assertCampaignDate(date);
+
+    return this.campaignRepository.upsertSeed(input.campaignId, date, {
+      nearPostId: input.nearPostId ?? null,
+      xPostId: input.xPostId ?? null,
+    });
+  }
+
+  async seedToday(campaignId: string): Promise<CampaignSeed | null> {
+    const campaign = await this.campaignRepository.get(campaignId);
+    if (!campaign) {
+      throw new ORPCError("NOT_FOUND", { message: `Campaign ${campaignId} not found` });
+    }
+    return this.campaignRepository.getSeed(campaignId, new Date().toISOString().slice(0, 10));
   }
 
   async createJobSpec(
