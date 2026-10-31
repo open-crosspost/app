@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import type { Database } from "../db";
 import { socialActivity, socialConnectedAccounts, socialPlatformCredentials } from "../db/schema";
 import type {
@@ -234,6 +235,38 @@ export class SocialRepository {
       .where(eq(socialConnectedAccounts.id, account[0].id));
 
     return true;
+  }
+
+  async recordConnectedAccount(
+    userId: string,
+    platform: Platform,
+    input: { platformUserId: string; username?: string },
+  ) {
+    const now = new Date().toISOString();
+    await this.db
+      .insert(socialConnectedAccounts)
+      .values({
+        id: randomUUID(),
+        userId,
+        platform,
+        platformUserId: input.platformUserId,
+        username: input.username ?? null,
+        profileImageUrl: null,
+        connectedAt: now,
+        status: "connected",
+        error: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [
+          socialConnectedAccounts.userId,
+          socialConnectedAccounts.platform,
+          socialConnectedAccounts.platformUserId,
+        ],
+        set: { username: input.username ?? null, status: "connected", error: null, updatedAt: now },
+      });
+    return this.getAccount(userId, platform, input.platformUserId);
   }
 
   async touchAccount(userId: string, platform: Platform, platformUserId: string) {

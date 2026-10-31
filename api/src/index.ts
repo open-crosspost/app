@@ -101,6 +101,11 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
   createRouter: (builder, plugins) => {
     socialService?.attachTwitter(plugins.twitter ? () => plugins.twitter.client() : undefined);
+    socialService?.attachConnectors(
+      plugins.connectors
+        ? (userId: string) => plugins.connectors!.client({ userId }) as unknown
+        : undefined,
+    );
 
     return {
       ping: builder.ping.effect(function* () {

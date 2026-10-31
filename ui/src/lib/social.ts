@@ -88,6 +88,15 @@ export async function listConnectedAccounts(apiClient: ApiClient): Promise<Conne
   return response.accounts;
 }
 
+export async function getTwitterConnectedAccount(
+  apiClient: ApiClient,
+): Promise<ConnectedAccount | null> {
+  const accounts = await listConnectedAccounts(apiClient);
+  return (
+    accounts.find((account) => account.platform === Platform.TWITTER && !account.error) ?? null
+  );
+}
+
 export async function disconnectSocialAccount(
   apiClient: ApiClient,
   platform: PlatformName,

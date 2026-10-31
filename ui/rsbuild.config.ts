@@ -118,6 +118,9 @@ function createClientConfig() {
       define: {
         "import.meta.env.APP_NAME": JSON.stringify(bosConfig.domain),
         "import.meta.env.APP_ACCOUNT": JSON.stringify(bosConfig.account),
+        "import.meta.env.X_CONNECTOR_PROJECT": JSON.stringify(
+          process.env.X_CONNECTOR_PROJECT ?? "connectors.outlayer.near/x",
+        ),
       },
     },
     resolve: {

@@ -25,6 +25,7 @@ function unavailableMessage(subject: string, action: string): string {
 
 export class SocialService {
   private twitterFactory?: TwitterPluginClient;
+  private connectorsFactory?: (userId: string) => unknown;
   private readonly xCredentials: XClientCredentials;
 
   constructor(
@@ -42,6 +43,10 @@ export class SocialService {
    */
   attachTwitter(factory?: TwitterPluginClient) {
     this.twitterFactory = factory;
+  }
+
+  attachConnectors(factory?: (userId: string) => unknown) {
+    this.connectorsFactory = factory;
   }
 
   private get xConnect(): XConnectFlow | undefined {
@@ -88,7 +93,36 @@ export class SocialService {
       });
     }
 
-    return await this.xConnect.complete({ userId, ...input });
+    const response = await this.xConnect.complete({ userId, ...input });
+
+    await this.repository.recordConnectedAccount(userId, input.platform, {
+      platformUserId: response.xUserId,
+      username: response.username,
+    });
+
+    const connectors = this.connectorsFactory?.(userId) as
+      | {
+          outlayerWalletConnect: (input: {
+            agentId: string;
+            walletApiKey: string;
+          }) => Promise<unknown>;
+        }
+      | undefined;
+    if (connectors) {
+      try {
+        await connectors.outlayerWalletConnect({
+          agentId: userId,
+          walletApiKey: input.walletApiKey,
+        });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        throw new ORPCError("BAD_GATEWAY", {
+          message: `X connected, but the OutLayer wallet registration failed: ${detail}`,
+        });
+      }
+    }
+
+    return response;
   }
 
   async disconnectAccount(userId: string, input: SocialAccountMutation) {

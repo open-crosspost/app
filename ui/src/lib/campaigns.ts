@@ -34,7 +34,7 @@ const campaigns: Campaign[] = [
         text: "GM",
         destinations: [
           { id: "near-social", label: "Near Social", enabled: true },
-          { id: "twitter", label: "X", enabled: false },
+          { id: "twitter", label: "X", enabled: true },
         ],
       },
     ],

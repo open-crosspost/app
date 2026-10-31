@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type Campaign, getCampaign, listCampaigns } from "./campaigns";
 
 describe("campaigns", () => {
-  it("registers the GM campaign with Near Social enabled and X disabled", () => {
+  it("registers the GM campaign with Near Social and X enabled", () => {
     expect(getCampaign("gm")).toMatchObject({
       id: "gm",
       name: "GM Campaign",
@@ -13,7 +13,7 @@ describe("campaigns", () => {
           label: "GM",
           destinations: [
             { id: "near-social", label: "Near Social", enabled: true },
-            { id: "twitter", label: "X", enabled: false },
+            { id: "twitter", label: "X", enabled: true },
           ],
         },
       ],
@@ -34,7 +34,7 @@ describe("campaigns", () => {
           text: "GN",
           destinations: [
             { id: "near-social", label: "Near Social", enabled: true },
-            { id: "twitter", label: "X", enabled: false },
+            { id: "twitter", label: "X", enabled: true },
           ],
         },
       ],

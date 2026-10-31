@@ -29,12 +29,14 @@ function accountLabel(account: ConnectedAccount): string {
 function CampaignPostForm({
   action,
   nearSocialAccount,
+  twitterAccount,
   accountsLoading,
   connectHref,
   onPost,
 }: {
   action: CampaignPostAction;
   nearSocialAccount: ConnectedAccount | null;
+  twitterAccount: ConnectedAccount | null;
   accountsLoading: boolean;
   connectHref: string;
   onPost: (input: {
@@ -61,15 +63,24 @@ function CampaignPostForm({
     action.destinations.find((destination) => destination.id === selectedDestination) ?? null;
   const canUseNearSocial =
     activeDestination?.id === "near-social" && activeDestination.enabled && !!nearSocialAccount;
-  const canSubmit = canUseNearSocial && outcome.state !== "pending";
+  const canUseTwitter =
+    activeDestination?.id === "twitter" && activeDestination.enabled && !!twitterAccount;
+  const canSubmit = (canUseNearSocial || canUseTwitter) && outcome.state !== "pending";
 
   const handleSubmit = async () => {
-    if (pendingRef.current || !activeDestination?.enabled || !nearSocialAccount) {
+    if (pendingRef.current || !activeDestination?.enabled) {
       return;
     }
-    if (activeDestination.id !== "near-social") {
+    if (activeDestination.id === "near-social" && !nearSocialAccount) {
       return;
     }
+    if (activeDestination.id === "twitter" && !twitterAccount) {
+      return;
+    }
+    const accountId =
+      activeDestination.id === "near-social"
+        ? (nearSocialAccount?.userId ?? "")
+        : (twitterAccount?.userId ?? "");
 
     pendingRef.current = true;
     setOutcome({ state: "pending" });
@@ -78,7 +89,7 @@ function CampaignPostForm({
       const result = await onPost({
         destination: activeDestination.id,
         text: action.text,
-        accountId: nearSocialAccount.userId,
+        accountId,
       });
       setOutcome({
         state: "success",
@@ -145,7 +156,20 @@ function CampaignPostForm({
       {accountsLoading ? (
         <p className="text-sm text-muted-foreground">Loading accounts...</p>
       ) : activeDestination?.id === "twitter" ? (
-        <p className="text-sm text-muted-foreground">X posting is not enabled yet.</p>
+        twitterAccount ? (
+          <p className="text-sm text-muted-foreground">
+            Posting as {accountLabel(twitterAccount)} on X
+          </p>
+        ) : (
+          <div className="space-y-3 rounded-md border bg-card p-4 text-card-foreground">
+            <p className="text-sm text-muted-foreground">
+              Connect your X account through your OutLayer wallet to post GM.
+            </p>
+            <Button asChild>
+              <a href={connectHref}>Connect X</a>
+            </Button>
+          </div>
+        )
       ) : nearSocialAccount ? (
         <p className="text-sm text-muted-foreground">
           Posting as {accountLabel(nearSocialAccount)} on Near Social
@@ -167,7 +191,9 @@ function CampaignPostForm({
 
       {outcome.state === "success" ? (
         <p className="text-sm text-success" role="status">
-          Posted “{action.text}” to Near Social as {outcome.accountId}
+          {outcome.destination === "twitter"
+            ? `Posted “${action.text}” on X as ${outcome.accountId}`
+            : `Posted “${action.text}” to Near Social as ${outcome.accountId}`}
           {outcome.txHash ? ` (tx ${outcome.txHash.slice(0, 8)}…)` : ""}.
         </p>
       ) : null}
@@ -190,6 +216,7 @@ function CampaignPostForm({
 export function CampaignScreen({
   campaign,
   nearSocialAccount,
+  twitterAccount = null,
   accountsLoading = false,
   connectHref,
   onPost,
@@ -197,6 +224,7 @@ export function CampaignScreen({
 }: {
   campaign: Campaign;
   nearSocialAccount: ConnectedAccount | null;
+  twitterAccount?: ConnectedAccount | null;
   accountsLoading?: boolean;
   connectHref: string;
   onPost: (input: {
@@ -219,6 +247,7 @@ export function CampaignScreen({
             key={action.id}
             action={action}
             nearSocialAccount={nearSocialAccount}
+            twitterAccount={twitterAccount}
             accountsLoading={accountsLoading}
             connectHref={connectHref}
             onPost={onPost}

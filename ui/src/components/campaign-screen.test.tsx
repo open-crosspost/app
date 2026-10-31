@@ -1,4 +1,5 @@
-import type { ConnectedAccount, Platform } from "@crosspost/plugin/types";
+import type { ConnectedAccount } from "@crosspost/plugin/types";
+import { Platform } from "@crosspost/plugin/types";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getCampaign } from "@/lib/campaigns";
@@ -19,8 +20,22 @@ const nearSocialAccount: ConnectedAccount = {
   },
 };
 
+const twitterAccount = {
+  platform: Platform.TWITTER,
+  userId: "1877554594651451392",
+  connectedAt: "",
+  profile: {
+    userId: "1877554594651451392",
+    username: "open_crosspost",
+    profileImageUrl: "",
+    platform: Platform.TWITTER,
+    lastUpdated: 0,
+  },
+} as ConnectedAccount;
+
 function renderCampaign(options?: {
   nearSocialAccount?: ConnectedAccount | null;
+  twitterAccount?: ConnectedAccount | null;
   onPost?: (input: {
     destination: "near-social" | "twitter";
     text: string;
@@ -46,6 +61,7 @@ function renderCampaign(options?: {
           ? (options.nearSocialAccount ?? null)
           : nearSocialAccount
       }
+      twitterAccount={options?.twitterAccount ?? null}
       connectHref="/manage"
       onPost={onPost}
     />,
@@ -65,8 +81,34 @@ describe("GM campaign screen", () => {
     expect(screen.getByRole("heading", { name: "GM Campaign" })).toBeTruthy();
     expect(screen.getByText(/Post GM from your account\./)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Near Social/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /X/ }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText("Coming soon")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /X/ }).hasAttribute("disabled")).toBe(false);
+    expect(screen.queryByText("Coming soon")).toBeNull();
+  });
+
+  it("asks to connect X when the X destination is selected without an X account", async () => {
+    const { userEvent } = await import("@testing-library/user-event").then((mod) => ({
+      userEvent: mod.default ?? mod,
+    }));
+    renderCampaign();
+    await userEvent.click(screen.getByRole("button", { name: /X/ }));
+
+    expect(screen.getByRole("link", { name: "Connect X" }).getAttribute("href")).toBe("/manage");
+    expect(screen.getByRole("button", { name: "GM" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("posts GM to X when the X account is connected", async () => {
+    const { userEvent } = await import("@testing-library/user-event").then((mod) => ({
+      userEvent: mod.default ?? mod,
+    }));
+    const { onPost } = renderCampaign({ twitterAccount });
+    await userEvent.click(screen.getByRole("button", { name: /X/ }));
+    await userEvent.click(screen.getByRole("button", { name: "GM" }));
+
+    expect(onPost).toHaveBeenCalledWith({
+      destination: "twitter",
+      text: "GM",
+      accountId: "1877554594651451392",
+    });
   });
 
   it("asks to connect the wallet when Near Social is missing", () => {

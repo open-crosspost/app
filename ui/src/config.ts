@@ -5,6 +5,22 @@ interface EVMChain {
   rpc: string;
 }
 
+const OUTLAYER_X_DEFAULT_PROJECT = "connectors.outlayer.near/x";
+
+declare global {
+  interface ImportMetaEnv {
+    X_CONNECTOR_PROJECT?: string;
+  }
+}
+
+/**
+ * The connector project the GM campaign's X leg calls — `owner/name`
+ * (the preview project) until OutLayer's curation activates
+ * `connectors.outlayer.near/x`.
+ */
+export const X_CONNECTOR_PROJECT =
+  import.meta.env.X_CONNECTOR_PROJECT ?? OUTLAYER_X_DEFAULT_PROJECT;
+
 interface EVMWalletChains {
   [key: string]: EVMChain;
 }
