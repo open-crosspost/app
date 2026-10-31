@@ -1,6 +1,9 @@
+import { ORPCError } from "@orpc/server";
 import { Context, Effect, Layer } from "effect";
 import { createPlugin } from "every-plugin";
 import { z } from "zod";
+import { isKnownCampaign } from "./activity/campaigns";
+import { ActivityPublisher, utcDayBucket } from "./activity/publisher";
 import { contract } from "./contract";
 import { createDatabaseDriver } from "./db";
 import { requireAuthContext } from "./lib/auth";
@@ -11,6 +14,11 @@ import { SocialService } from "./social/service";
 export class SocialServiceTag extends Context.Service<SocialServiceTag, SocialService>()(
   "api/SocialService",
 ) {}
+
+export class ActivityPublisherTag extends Context.Service<
+  ActivityPublisherTag,
+  ActivityPublisher
+>()("api/ActivityPublisher") {}
 
 export interface AuthContext {
   userId: string;
@@ -47,6 +55,9 @@ export default createPlugin.withPlugins<PluginsClient>()({
     X_CONNECT_PROJECT: z.string().optional(),
     X_POLICY_MAX_PER_DAY: z.string().optional(),
     OUTLAYER_APP_WALLET_KEY: z.string().optional(),
+    ACTIVITY_API_KEY: z.string().optional(),
+    ACTIVITY_SOURCE_ID: z.string().optional(),
+    ACTIVITY_API_BASE_URL: z.string().optional(),
   }),
 
   context: z.object({
@@ -108,9 +119,18 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
       socialService = social;
 
+      const activityPublisher = new ActivityPublisher({
+        apiBaseUrl: config.secrets.ACTIVITY_API_BASE_URL ?? "https://activity.nearbuilders.org/api",
+        apiKey: config.secrets.ACTIVITY_API_KEY ?? null,
+        sourceId: config.secrets.ACTIVITY_SOURCE_ID ?? null,
+      });
+
       yield* Effect.logInfo("[API] Services Initialized");
 
-      return Layer.succeed(SocialServiceTag, social);
+      return Layer.mergeAll(
+        Layer.succeed(SocialServiceTag, social),
+        Layer.succeed(ActivityPublisherTag, activityPublisher),
+      );
     }),
 
   createRouter: (builder, plugins) => {
@@ -154,13 +174,23 @@ export default createPlugin.withPlugins<PluginsClient>()({
           callback: builder.social.accounts.callback.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
             const social = yield* SocialServiceTag;
-            return yield* Effect.promise(() =>
+            const response = yield* Effect.promise(() =>
               social.completeConnect(
                 auth.userId,
                 input,
                 context.near?.primaryAccountId ?? undefined,
               ),
             );
+            const actor = context.near?.primaryAccountId;
+            if (actor) {
+              (yield* ActivityPublisherTag).enqueue({
+                eventType: "account.connected",
+                actor,
+                idempotencyKey: `opencrosspost:connect:${actor}:${input.platform}:${response.xUserId}:${utcDayBucket()}`,
+                payload: { platform: input.platform },
+              });
+            }
+            return response;
           }),
 
           disconnect: builder.social.accounts.disconnect.effect(function* ({ context, input }) {
@@ -250,6 +280,33 @@ export default createPlugin.withPlugins<PluginsClient>()({
             return yield* Effect.promise(() => social.removeCampaign(auth.userId, input.id));
           }),
         },
+      },
+
+      activity: {
+        campaignCompleted: builder.activity.campaignCompleted.effect(function* ({
+          context,
+          input,
+        }) {
+          requireAuthContext(context);
+          const actor = context.near?.primaryAccountId;
+          if (!isKnownCampaign(input.campaignId)) {
+            throw new ORPCError("NOT_FOUND", {
+              message: `Unknown campaign: ${input.campaignId}`,
+            });
+          }
+          if (!actor) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "No NEAR account linked to the session",
+            });
+          }
+          (yield* ActivityPublisherTag).enqueue({
+            eventType: "campaign.completed",
+            actor,
+            idempotencyKey: `opencrosspost:campaign:${input.campaignId}:${actor}:${utcDayBucket()}`,
+            payload: { campaignId: input.campaignId },
+          });
+          return { recorded: true };
+        }),
       },
     };
   },

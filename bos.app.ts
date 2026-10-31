@@ -26,6 +26,8 @@ export default App({
       "X_CONNECT_PROJECT",
       "X_POLICY_MAX_PER_DAY",
       "OUTLAYER_APP_WALLET_KEY",
+      "ACTIVITY_API_KEY",
+      "ACTIVITY_SOURCE_ID",
     ],
   },
   plugins: {
@@ -56,6 +58,8 @@ export default App({
         "NEAR_INTENTS_AGENT_API_KEY",
         "CONNECTORS_DATABASE_URL",
         "OUTLAYER_APP_PAYMENT_KEY",
+        "ACTIVITY_API_KEY",
+        "ACTIVITY_SOURCE_ID",
       ],
     },
     twitter: {

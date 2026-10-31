@@ -1,5 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
+import { activityContract } from "./activity/contract";
 import { socialContract } from "./social/contract";
 
 export const contract = oc.router({
@@ -18,6 +19,8 @@ export const contract = oc.router({
   ),
 
   social: socialContract,
+
+  activity: activityContract,
 });
 
 export type ContractType = typeof contract;

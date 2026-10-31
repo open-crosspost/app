@@ -9,6 +9,7 @@ import { formatThreshold } from "./lib/gate-math";
 import type { PluginsClient } from "./lib/plugins-client.gen";
 import type { UpstreamError } from "./lib/upstream";
 import { mapUpstreamError } from "./lib/upstream";
+import { ActivityPublisher } from "./services/activity-publisher";
 import {
   callerGateStatus,
   enforceXpostGate,
@@ -63,6 +64,7 @@ interface ConnectorConfigShape extends GateDeps {
   agentApiBaseUrl: string;
   outlayerApiUrl: string;
   appPaymentKey: string | null;
+  activityPublisher: ActivityPublisher;
   SPONSOR_WARN_NEAR: string;
   SPONSOR_WARN_USD: string;
 }
@@ -269,6 +271,18 @@ export default createPlugin.withPlugins<PluginsClient>()({
       .string()
       .default("pglite:.bos/connectors/:memory:")
       .describe("Database connection string. Use pglite: for local, postgres:// for production."),
+    ACTIVITY_API_KEY: z
+      .string()
+      .optional()
+      .describe("Source API key (act_…) for activity.nearbuilders.org event publishing"),
+    ACTIVITY_SOURCE_ID: z
+      .string()
+      .optional()
+      .describe("The registered Activity source id (opencrosspost.com)"),
+    ACTIVITY_API_BASE_URL: z
+      .string()
+      .optional()
+      .describe("Activity API base URL override (defaults to the production gateway)"),
   }),
 
   context: ContextSchema,
@@ -285,6 +299,12 @@ export default createPlugin.withPlugins<PluginsClient>()({
         agentApiBaseUrl: config.variables.agentApiBaseUrl,
         outlayerApiUrl: config.variables.outlayerApiUrl,
         appPaymentKey: config.secrets.OUTLAYER_APP_PAYMENT_KEY ?? null,
+        activityPublisher: new ActivityPublisher({
+          apiBaseUrl:
+            config.secrets.ACTIVITY_API_BASE_URL ?? "https://activity.nearbuilders.org/api",
+          apiKey: config.secrets.ACTIVITY_API_KEY ?? null,
+          sourceId: config.secrets.ACTIVITY_SOURCE_ID ?? null,
+        }),
         nearRpcUrl: config.variables.nearRpcUrl,
         xpostTokenContract: config.variables.xpostTokenContract,
         XPOST_GATE_ENABLED: config.variables.XPOST_GATE_ENABLED,
@@ -778,6 +798,23 @@ export default createPlugin.withPlugins<PluginsClient>()({
           connector: input.connector,
           operation: input.operation,
         });
+
+        const actor = resolveNearAccountId(context);
+        const output = result.output ?? null;
+        const published =
+          result.status === "completed" &&
+          output?.success !== false &&
+          (typeof output?.tweet_id === "string" ||
+            typeof output?.url === "string" ||
+            typeof output?.username === "string");
+        if (actor && input.operation === "post" && published && !result.error) {
+          config.activityPublisher.enqueue({
+            eventType: "post.crossposted",
+            actor,
+            idempotencyKey: `opencrosspost:post:${result.call_id ?? ""}`.slice(0, 200),
+            payload: { connector: input.connector, callId: result.call_id ?? null },
+          });
+        }
 
         return {
           callId: result.call_id ?? "",

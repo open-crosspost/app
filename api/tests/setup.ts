@@ -31,7 +31,7 @@ export function getRuntime() {
   return _runtime;
 }
 
-export async function getPluginClient(context?: { userId?: string }) {
+export async function getPluginClient(context?: { userId?: string; nearAccountId?: string }) {
   const runtime = getRuntime();
   const { createClient } = await runtime.usePlugin(pluginDevConfig.pluginId, TEST_CONFIG);
 
@@ -42,6 +42,9 @@ export async function getPluginClient(context?: { userId?: string }) {
   return createClient({
     userId: context.userId,
     user: { id: context.userId },
+    near: context.nearAccountId
+      ? { primaryAccountId: context.nearAccountId, linkedAccounts: [], hasNearAccount: true }
+      : undefined,
   });
 }
 

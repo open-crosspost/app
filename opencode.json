@@ -1,6 +1,13 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md", "LLM.txt"],
+  "mcp": {
+    "activity": {
+      "type": "remote",
+      "url": "https://activity.nearbuilders.org/api/v1/mcp",
+      "enabled": true
+    }
+  },
   "permission": {
     "skill": {
       "*": "allow"
