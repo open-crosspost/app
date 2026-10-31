@@ -206,6 +206,9 @@ catalogs:
     '@module-federation/runtime-tools':
       specifier: ^2.9.0
       version: 2.9.2
+    '@near-intents-agent-api/sdk':
+      specifier: ^0.4.1
+      version: 0.4.1
     '@opentelemetry/api':
       specifier: ^1.9.0
       version: 1.9.1
@@ -511,6 +514,155 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.4.2
+      everything-dev:
+        specifier: 'catalog:'
+        version: 2.0.0-rc.27(3f2e8fd5513e2c501e783e8d6924a7a0)
+      vite-tsconfig-paths:
+        specifier: ^5.1.4
+        version: 5.1.4(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(jsdom@30.1.3(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+
+  plugins/agent-connect:
+    dependencies:
+      '@electric-sql/pglite':
+        specifier: 'catalog:'
+        version: 0.4.6
+      '@near-intents-agent-api/sdk':
+        specifier: 'catalog:'
+        version: 0.4.1
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      '@orpc/openapi':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      '@orpc/server':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@electric-sql/pglite@0.4.6)(@libsql/client@0.17.0(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(bun-types@1.4.4)(kysely@0.29.7)(pg@8.23.1)
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-rc.117
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
+    devDependencies:
+      '@module-federation/node':
+        specifier: 'catalog:'
+        version: 2.7.52(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@7.0.2)
+      '@module-federation/runtime-tools':
+        specifier: 'catalog:'
+        version: 2.9.2
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      '@proj-airi/unplugin-drizzle-orm-migrations':
+        specifier: ^0.1.4
+        version: 0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      '@rspack/cli':
+        specifier: 'catalog:'
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+      '@rspack/core':
+        specifier: 'catalog:'
+        version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.9
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.4.2
+      drizzle-kit:
+        specifier: 'catalog:'
+        version: 0.31.11
+      every-plugin:
+        specifier: 'catalog:'
+        version: 3.0.0-rc.14(@orpc/contract@2.0.0-beta.35)(@orpc/server@2.0.0-beta.35)(@orpc/tanstack-query@2.0.0-beta.35(@tanstack/query-core@5.104.5))(@orpc/zod@2.0.0-beta.35(zod@4.6.5))(@proj-airi/unplugin-drizzle-orm-migrations@0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)))(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@tanstack/react-router@1.170.45(react-dom@19.2.9(react@19.2.9))(react@19.2.9))(@tanstack/router-generator@1.167.33(supports-color@10.2.2))(@types/react@19.3.0)(effect@4.0.0-rc.117)(esbuild@0.28.2)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)(redis@6.3.0(@opentelemetry/api@1.9.1))(rolldown@1.2.14)(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(zod@4.6.5)
+      everything-dev:
+        specifier: 'catalog:'
+        version: 2.0.0-rc.27(3f2e8fd5513e2c501e783e8d6924a7a0)
+      vite-tsconfig-paths:
+        specifier: ^5.1.4
+        version: 5.1.4(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(jsdom@30.1.3(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+
+  plugins/connectors:
+    dependencies:
+      '@electric-sql/pglite':
+        specifier: 'catalog:'
+        version: 0.4.6
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      '@orpc/openapi':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      '@orpc/server':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@electric-sql/pglite@0.4.6)(@libsql/client@0.17.0(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(bun-types@1.4.4)(kysely@0.29.7)(pg@8.23.1)
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-rc.117
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
+    devDependencies:
+      '@module-federation/node':
+        specifier: 'catalog:'
+        version: 2.7.52(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@7.0.2)
+      '@module-federation/runtime-tools':
+        specifier: 'catalog:'
+        version: 2.9.2
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
+      '@proj-airi/unplugin-drizzle-orm-migrations':
+        specifier: ^0.1.4
+        version: 0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      '@rspack/cli':
+        specifier: 'catalog:'
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+      '@rspack/core':
+        specifier: 'catalog:'
+        version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.9
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.4.2
+      drizzle-kit:
+        specifier: 'catalog:'
+        version: 0.31.11
+      every-plugin:
+        specifier: 'catalog:'
+        version: 3.0.0-rc.14(@orpc/contract@2.0.0-beta.35)(@orpc/server@2.0.0-beta.35)(@orpc/tanstack-query@2.0.0-beta.35(@tanstack/query-core@5.104.5))(@orpc/zod@2.0.0-beta.35(zod@4.6.5))(@proj-airi/unplugin-drizzle-orm-migrations@0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)))(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@tanstack/react-router@1.170.45(react-dom@19.2.9(react@19.2.9))(react@19.2.9))(@tanstack/router-generator@1.167.33(supports-color@10.2.2))(@types/react@19.3.0)(effect@4.0.0-rc.117)(esbuild@0.28.2)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)(redis@6.3.0(@opentelemetry/api@1.9.1))(rolldown@1.2.14)(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(zod@4.6.5)
       everything-dev:
         specifier: 'catalog:'
         version: 2.0.0-rc.27(3f2e8fd5513e2c501e783e8d6924a7a0)
@@ -2639,6 +2791,10 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@near-intents-agent-api/sdk@0.4.1':
+    resolution: {integrity: sha512-1b9QlOK/j2jiFPfFuSfUS9ZRox+EHOuF8gd0bfwzasAYdGZ1S5QOOIAAYS6Vv6DAhdJHWwH7xk/rgVaQmoQCQQ==}
+    engines: {node: '>=24'}
 
   '@neodrag/core@3.0.0-next.11':
     resolution: {integrity: sha512-3WQWxyrbxiaK9zS5JU2wJsW2gpoQlZBXVghduBh61JpqaeE0T0cte8R0qYK2RuJo3J2TYQYqxO19CpG/C1i5eg==}
@@ -10554,6 +10710,12 @@ snapshots:
       '@emnapi/runtime': 1.11.3
       '@tybys/wasm-util': 0.10.4
     optional: true
+
+  '@near-intents-agent-api/sdk@0.4.1':
+    dependencies:
+      '@noble/curves': 2.4.0
+      '@noble/hashes': 2.4.0
+      '@scure/base': 2.4.0
 
   '@neodrag/core@3.0.0-next.11': {}
 

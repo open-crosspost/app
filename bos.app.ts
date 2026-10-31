@@ -18,39 +18,35 @@ export default App({
     "path": "api",
     "secrets": [
       "API_DATABASE_URL",
+      "API_DATABASE_AUTH_TOKEN",
+      "BETTER_AUTH_SECRET",
       "X_CLIENT_ID",
       "X_CLIENT_SECRET"
     ]
   },
   "plugins": {
-    // "crosspost": {
-    //   "path": "plugins/crosspost",
-    //   "variables": {
-    //     "baseUrl": "https://social.invalid",
-    //     "timeout": 10000
-    //   },
-    //   "secrets": [
-    //     "nearAuthData"
-    //   ]
-    // },
-    // "twitter": {
-    //   "path": "plugins/twitter",
-    //   "secrets": [
-    //     "X_CLIENT_ID",
-    //     "X_CLIENT_SECRET"
-    //   ]
-    // },
-    // "farcaster": {
-    //   "path": "plugins/farcaster",
-    //   "variables": {
-    //     "ipfsGatewayUrl": "https://gateway.pinata.cloud/ipfs",
-    //     "timeout": 10000
-    //   },
-    //   "secrets": [
-    //     "farcasterDeveloperMnemonic",
-    //     "neynarApiKey",
-    //     "pinataJwt"
-    //   ]
-    // }
+    "agent-connect": {
+      "path": "plugins/agent-connect",
+      "secrets": [
+        "NEAR_INTENTS_AGENT_API_KEY",
+        "AGENT_CONNECT_ENCRYPTION_KEY",
+        "AGENT_CONNECT_DATABASE_URL"
+      ]
+    },
+    "connectors": {
+      "path": "plugins/connectors",
+      "dependsOn": ["agent-connect"],
+      "secrets": [
+        "NEAR_INTENTS_AGENT_API_KEY",
+        "CONNECTORS_DATABASE_URL"
+      ]
+    },
+    "twitter": {
+      "path": "plugins/twitter",
+      "secrets": [
+        "X_CLIENT_ID",
+        "X_CLIENT_SECRET"
+      ]
+    }
   }
 });
