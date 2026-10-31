@@ -73,7 +73,7 @@ function CampaignPage() {
         } catch (error) {
           if (error instanceof NearSocialStorageRequiredError) {
             throw new Error(
-              "Add NEAR Social storage on Manage Accounts before posting GM.",
+              "Your Near Social account needs a small storage deposit before you can post. Add storage from Manage Accounts, then try again.",
             );
           }
           throw error;

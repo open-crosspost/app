@@ -1,6 +1,8 @@
 import type { ConnectedAccount } from "@crosspost/plugin/types";
+import { AlertCircle } from "lucide-react";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import type { Campaign, CampaignDestinationId, CampaignPostAction } from "@/lib/campaigns";
+import { toNearSocialUserError } from "@/lib/near-social-post";
 import { Button } from "./ui/button";
 
 export type CampaignPostResult = {
@@ -87,8 +89,7 @@ function CampaignPostForm({
     } catch (error) {
       setOutcome({
         state: "error",
-        message:
-          error instanceof Error && error.message ? error.message : "Could not post to Near Social.",
+        message: toNearSocialUserError(error),
       });
     } finally {
       pendingRef.current = false;
@@ -169,9 +170,16 @@ function CampaignPostForm({
         </p>
       ) : null}
       {outcome.state === "error" ? (
-        <p className="text-sm text-destructive" role="alert">
-          {outcome.message}
-        </p>
+        <div
+          className="flex gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-4"
+          role="alert"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-destructive">Couldn’t post GM</p>
+            <p className="text-sm text-muted-foreground">{outcome.message}</p>
+          </div>
+        </div>
       ) : null}
     </div>
   );

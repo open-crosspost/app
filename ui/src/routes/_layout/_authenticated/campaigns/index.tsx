@@ -22,7 +22,7 @@ function CampaignsPage() {
             key={campaign.id}
             to="/campaigns/$campaignId"
             params={{ campaignId: campaign.id }}
-            className="block rounded-md border bg-card p-4 text-card-foreground"
+            className="block rounded-md border-2 border-primary bg-card p-4 text-card-foreground"
           >
             <h2 className="text-xl font-semibold">{campaign.name}</h2>
             <p className="text-sm text-muted-foreground">{campaign.description}</p>

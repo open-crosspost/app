@@ -25,7 +25,7 @@ const campaigns: Campaign[] = [
   {
     id: "gm",
     name: "GM Campaign",
-    description: "Post GM from a selected account. Near Social works now; X is ready when enabled.",
+    description: "GM Campaign - Post GM from your account.",
     actions: [
       {
         id: "gm",

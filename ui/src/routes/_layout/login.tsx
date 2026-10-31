@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, redirect } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 import { type SessionData, sessionQueryOptions, useAuthClient } from "@/app";
+import { markCampaignsTourForNewUser } from "@/components/campaigns-tour";
 import { Button } from "@/components/ui/button";
 
 type SearchParams = {
@@ -28,14 +31,106 @@ export const Route = createFileRoute("/_layout/login")({
   component: LoginPage,
 });
 
+async function waitForSession(authClient: ReturnType<typeof useAuthClient>) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const { data } = await authClient.getSession();
+    if (data?.user) {
+      return data;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return null;
+}
+
+function walletIsConnected(authClient: ReturnType<typeof useAuthClient>) {
+  try {
+    return authClient.near.isWalletConnected() || !!authClient.near.getAccountId();
+  } catch {
+    return false;
+  }
+}
+
+async function signInWithNear(authClient: ReturnType<typeof useAuthClient>) {
+  const failure: { error: Error | null } = { error: null };
+  await authClient.signIn.near({
+    onError: (error) => {
+      failure.error = error;
+    },
+  });
+  return failure.error;
+}
+
 function LoginPage() {
   const authClient = useAuthClient();
   const { data: session } = useQuery(sessionQueryOptions(authClient));
-  const { redirect } = Route.useSearch();
+  const { redirect: redirectPath } = Route.useSearch();
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const openSignedInApp = (message: string, userId?: string) => {
+    if (userId) {
+      markCampaignsTourForNewUser(userId);
+    }
+    toast.success(message);
+    const nextPath = redirectPath?.startsWith("/") ? redirectPath : "/campaigns";
+    window.location.assign(nextPath);
+  };
+
+  const nearMutation = useMutation({
+    mutationFn: async () => {
+      let error = await signInWithNear(authClient);
+      if (error && walletIsConnected(authClient)) {
+        error = await signInWithNear(authClient);
+      }
+      if (error) {
+        throw error;
+      }
+
+      const signedInSession = await waitForSession(authClient);
+      if (!signedInSession?.user) {
+        throw new Error("The wallet approved the request, but this app did not create a session.");
+      }
+      return signedInSession;
+    },
+    onSuccess: (signedInSession) => {
+      openSignedInApp("Signed in with NEAR", signedInSession.user.id);
+    },
+    onError: (error) => {
+      const message = error.message || "Failed to sign in with NEAR";
+      setFormError(message);
+      toast.error(message);
+    },
+  });
+
+  const guestMutation = useMutation({
+    mutationFn: async () => {
+      const result = await authClient.signIn.anonymous();
+      if (result.error) {
+        throw new Error(result.error.message || "Failed to continue as guest");
+      }
+      const signedInSession = await waitForSession(authClient);
+      if (!signedInSession?.user) {
+        throw new Error("Guest sign-in finished, but this app did not create a session.");
+      }
+      return signedInSession;
+    },
+    onSuccess: (signedInSession) => {
+      openSignedInApp("Signed in as guest", signedInSession.user.id);
+    },
+    onError: (error) => {
+      const message = error.message || "Failed to continue as guest";
+      setFormError(message);
+      toast.error(message);
+    },
+  });
+
+  const busy = nearMutation.isPending || guestMutation.isPending;
 
   if (session?.user) {
-    const redirectTo = redirect?.startsWith("/") ? redirect : "/";
-    return <Navigate to={redirectTo} replace search={{}} />;
+    if (redirectPath?.startsWith("/") && redirectPath !== "/" && redirectPath !== "/campaigns") {
+      window.location.assign(redirectPath);
+      return null;
+    }
+    return <Navigate to={redirectPath === "/" ? "/" : "/campaigns"} replace search={{}} />;
   }
 
   return (
@@ -49,8 +144,16 @@ function LoginPage() {
         </div>
 
         <div className="space-y-3">
-          <Button disabled className="w-full" size="lg">
-            Connect NEAR Wallet
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={busy}
+            onClick={() => {
+              setFormError(null);
+              nearMutation.mutate();
+            }}
+          >
+            {nearMutation.isPending ? "Connecting…" : "Connect NEAR Wallet"}
           </Button>
 
           <div className="relative">
@@ -62,10 +165,25 @@ function LoginPage() {
             </div>
           </div>
 
-          <Button disabled className="w-full" size="lg">
-            Continue as Guest
+          <Button
+            className="w-full"
+            size="lg"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              setFormError(null);
+              guestMutation.mutate();
+            }}
+          >
+            {guestMutation.isPending ? "Continuing…" : "Continue as Guest"}
           </Button>
         </div>
+
+        {formError ? (
+          <p className="text-sm text-destructive text-center" role="alert">
+            {formError}
+          </p>
+        ) : null}
 
         <p className="text-xs text-muted-foreground text-center leading-relaxed">
           Connect your NEAR wallet for secure, decentralized authentication

@@ -9,14 +9,54 @@ type SocialStorageBalance = {
   total: string;
 } | null;
 
+const RELAYER_UNAVAILABLE_MESSAGE =
+  "Posting is temporarily unavailable. Please try again later.";
+const WALLET_REQUIRED_MESSAGE = "Connect your NEAR wallet, then try again.";
+const STORAGE_REQUIRED_MESSAGE =
+  "Your Near Social account needs a small storage deposit before you can post.";
+const GENERIC_POST_ERROR_MESSAGE = "Something went wrong while posting. Please try again.";
+
 export class NearSocialStorageRequiredError extends Error {
   readonly requiredDeposit: bigint;
 
   constructor(requiredDeposit: bigint) {
-    super("NEAR Social storage is required before relayed posts can be sent.");
+    super(STORAGE_REQUIRED_MESSAGE);
     this.name = "NearSocialStorageRequiredError";
     this.requiredDeposit = requiredDeposit;
   }
+}
+
+export function toNearSocialUserError(error: unknown): string {
+  if (error instanceof NearSocialStorageRequiredError) {
+    return STORAGE_REQUIRED_MESSAGE;
+  }
+
+  const message = error instanceof Error ? error.message.trim() : "";
+  if (!message) {
+    return GENERIC_POST_ERROR_MESSAGE;
+  }
+
+  if (/wallet not connected|connect your wallet/i.test(message)) {
+    return WALLET_REQUIRED_MESSAGE;
+  }
+
+  if (
+    /relayer|not configured|503|service unavailable|private.?key|\.env|bun run|zero balance|fund it/i.test(
+      message,
+    )
+  ) {
+    return RELAYER_UNAVAILABLE_MESSAGE;
+  }
+
+  if (/storage is required|storage deposit/i.test(message)) {
+    return STORAGE_REQUIRED_MESSAGE;
+  }
+
+  if (/failed|unavailable|try again/i.test(message) && !/[A-Z_]{6,}|ed25519|\.env/.test(message)) {
+    return message;
+  }
+
+  return GENERIC_POST_ERROR_MESSAGE;
 }
 
 export function buildNearSocialPostData(
@@ -84,7 +124,7 @@ export async function postToNearSocial(
   const connected = await near.ensureConnected();
   const accountId = near.getAccountId();
   if (!connected || !accountId) {
-    throw new Error("NEAR wallet not connected. Connect your wallet first.");
+    throw new Error(WALLET_REQUIRED_MESSAGE);
   }
 
   const data = buildNearSocialPostData(accountId, text);
@@ -114,16 +154,11 @@ export async function postToNearSocial(
 
   const relayerInfo = await near.getRelayerInfo({ network: NETWORK_ID });
   if (relayerInfo.error || !relayerInfo.data?.enabled) {
-    throw new Error(
-      relayerInfo.error?.message ||
-        "NEAR relayer is not configured. Set NEAR_RELAYER_PRIVATE_KEY_MAINNET in .env (funded ed25519 key), restart bun run dev, then try again.",
-    );
+    throw new Error(RELAYER_UNAVAILABLE_MESSAGE);
   }
 
   if (BigInt(relayerInfo.data.balance || "0") === 0n) {
-    throw new Error(
-      `NEAR relayer ${relayerInfo.data.accountId} has zero balance. Fund it with NEAR, then try again.`,
-    );
+    throw new Error(RELAYER_UNAVAILABLE_MESSAGE);
   }
 
   const payload = await near.buildSignedDelegateAction(
@@ -133,13 +168,11 @@ export async function postToNearSocial(
   );
   const relayed = await near.relayTransaction({ payload });
   if (relayed.error || !relayed.data?.txHash) {
-    const message = relayed.error?.message || "NEAR relay failed.";
-    if (/not configured|503|service unavailable/i.test(message)) {
-      throw new Error(
-        "NEAR relayer is not configured. Set NEAR_RELAYER_PRIVATE_KEY_MAINNET in .env (funded ed25519 key), restart bun run dev, then try again.",
-      );
+    const message = relayed.error?.message || "";
+    if (/not configured|503|service unavailable|relayer|private.?key/i.test(message) || !message) {
+      throw new Error(RELAYER_UNAVAILABLE_MESSAGE);
     }
-    throw new Error(message);
+    throw new Error(GENERIC_POST_ERROR_MESSAGE);
   }
 
   return { accountId, txHash: relayed.data.txHash };

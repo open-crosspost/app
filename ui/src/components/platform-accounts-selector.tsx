@@ -1,6 +1,7 @@
 import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { AlertCircle } from "lucide-react";
 import { useApiClient, useAuthClient } from "@/app";
 import { AccountItem } from "@/components/account-item";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,27 @@ import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
 
 interface PlatformAccountsSelectorProps {
   disabledPlatforms?: PlatformName[];
+}
+
+function accountsLoadMessage(error: unknown): {
+  title: string;
+  body: string;
+  isAuth: boolean;
+} {
+  const raw = error instanceof Error ? error.message : "";
+  if (/authentication required|unauthorized|401|session|forbidden/i.test(raw)) {
+    return {
+      title: "Sign in required",
+      body: "Your session expired. Sign in again to see your connected accounts.",
+      isAuth: true,
+    };
+  }
+
+  return {
+    title: "Couldn't load accounts",
+    body: "Something went wrong while loading your accounts. Please try again.",
+    isAuth: false,
+  };
 }
 
 export function PlatformAccountsSelector({
@@ -35,6 +57,8 @@ export function PlatformAccountsSelector({
     data: connectedAccounts = [],
     isLoading,
     error: globalError,
+    refetch,
+    isFetching,
   } = useQuery({
     queryKey: socialAccountsQueryKey,
     queryFn: () => listConnectedAccounts(apiClient),
@@ -51,46 +75,66 @@ export function PlatformAccountsSelector({
     navigate({ to: "/manage" });
   };
 
+  const handleSignIn = () => {
+    navigate({ to: "/login", search: { redirect: "/editor" } });
+  };
+
   if (isLoading) {
     return (
-      <div className="border-2 border-gray-200 rounded-md p-3 sm:p-4 w-full">
-        <div className="flex justify-between items-center mb-2">
+      <div className="w-full rounded-md border-2 border-border p-3 sm:p-4">
+        <div className="mb-2 flex items-center justify-between">
           <h3 className="font-medium">Connected Accounts</h3>
           <Button size="sm" onClick={handleConnectAccounts}>
             Manage
           </Button>
         </div>
         <div className="flex justify-center py-4">
-          <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </div>
     );
   }
 
-  if (globalError) {
+  if (globalError && allAccounts.length === 0) {
+    const { title, body, isAuth } = accountsLoadMessage(globalError);
     return (
-      <div className="border-2 border-red-200 bg-red-50 rounded-md p-3 sm:p-4 w-full">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-medium text-red-700">Error Loading Accounts</h3>
-          <Button size="sm" onClick={handleConnectAccounts}>
-            Manage
-          </Button>
+      <div
+        className="flex w-full gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 sm:p-4"
+        role="alert"
+      >
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium text-destructive">{title}</h3>
+            <p className="text-sm text-muted-foreground">{body}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {isAuth ? (
+              <Button size="sm" onClick={handleSignIn}>
+                Sign in
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => void refetch()} disabled={isFetching}>
+                {isFetching ? "Retrying…" : "Try again"}
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={handleConnectAccounts}>
+              Manage accounts
+            </Button>
+          </div>
         </div>
-        <p className="text-sm text-red-600">
-          {globalError instanceof Error ? globalError.message : "Failed to load connected accounts"}
-        </p>
       </div>
     );
   }
 
   if (allAccounts.length === 0) {
     return (
-      <div className="border-2 border-gray-200 rounded-md p-3 sm:p-4 w-full">
-        <div className="flex justify-between items-center mb-2">
+      <div className="w-full rounded-md border-2 border-border p-3 sm:p-4">
+        <div className="mb-2 flex items-center justify-between">
           <h3 className="font-medium">Connected Accounts</h3>
         </div>
-        <div className="text-center py-4">
-          <p className="text-gray-500 mb-4">No accounts connected yet</p>
+        <div className="py-4 text-center">
+          <p className="mb-4 text-muted-foreground">No accounts connected yet</p>
           <Button onClick={handleConnectAccounts}>Connect Accounts</Button>
         </div>
       </div>
@@ -98,15 +142,27 @@ export function PlatformAccountsSelector({
   }
 
   return (
-    <div className="border-2 border-gray-200 dark:border-gray-800 rounded-md p-3 sm:p-4 w-full">
-      <div className="flex justify-between items-center mb-2">
+    <div className="w-full rounded-md border-2 border-border p-3 sm:p-4">
+      <div className="mb-2 flex items-center justify-between">
         <h3 className="font-medium">Post to</h3>
         <Button size="sm" onClick={handleConnectAccounts}>
           Manage
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 w-full">
+      {globalError ? (
+        <div
+          className="mb-3 flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"
+          role="status"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+          <p className="text-sm text-muted-foreground">
+            Some accounts couldn’t be loaded. You can still post with the accounts shown below.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
         {allAccounts.map((account: ConnectedAccount) => {
           const isPlatformDisabled = disabledPlatforms.includes(account.platform);
           const accountHasError = !!account.error;

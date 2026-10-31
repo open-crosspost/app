@@ -64,7 +64,7 @@ describe("GM campaign screen", () => {
     renderCampaign();
 
     expect(screen.getByRole("heading", { name: "GM Campaign" })).toBeTruthy();
-    expect(screen.getByText(/Near Social works now/)).toBeTruthy();
+    expect(screen.getByText("Post GM from your account.")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Near Social/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /X/ }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("Coming soon")).toBeTruthy();
@@ -126,7 +126,27 @@ describe("GM campaign screen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "GM" }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("NEAR wallet not connected");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Couldn’t post GM");
+    expect(alert.textContent).toContain("Connect your NEAR wallet, then try again.");
     expect(screen.queryByRole("status")).toBeNull();
   });
+
+  it("hides technical relayer details from users", async () => {
+    const onPost = vi.fn(async () => {
+      throw new Error(
+        "NEAR relayer is not configured. Set NEAR_RELAYER_PRIVATE_KEY_MAINNET in .env",
+      );
+    });
+    renderCampaign({ onPost });
+
+    fireEvent.click(screen.getByRole("button", { name: "GM" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Couldn’t post GM");
+    expect(alert.textContent).toContain("Posting is temporarily unavailable. Please try again later.");
+    expect(alert.textContent).not.toContain("NEAR_RELAYER_PRIVATE_KEY_MAINNET");
+    expect(alert.textContent).not.toContain(".env");
+  });
 });
+
