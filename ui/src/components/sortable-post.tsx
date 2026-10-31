@@ -39,7 +39,11 @@ function SortablePostComponent({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="w-full min-w-0 rounded-lg bg-background p-1 sm:p-2">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="w-full min-w-0 rounded-lg bg-background p-1 sm:p-2"
+    >
       <div className="flex w-full min-w-0 gap-1.5 sm:gap-2">
         <div className="w-6 flex-none sm:w-8">
           <div

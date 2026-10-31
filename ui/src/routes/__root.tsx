@@ -207,7 +207,9 @@ function RootError() {
     <div className="min-h-dvh bg-background text-foreground flex items-center justify-center px-6">
       <div className="max-w-md text-center space-y-4">
         <h1 className="text-3xl font-semibold tracking-tight">Application error</h1>
-        <p className="text-sm text-muted-foreground">Something went wrong before the app layout could render.</p>
+        <p className="text-sm text-muted-foreground">
+          Something went wrong before the app layout could render.
+        </p>
       </div>
     </div>
   );

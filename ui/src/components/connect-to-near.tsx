@@ -3,7 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
-import { type SessionData, sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
+import { sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";
 import { markCampaignsTourForNewUser } from "@/components/campaigns-tour";
 import { Button } from "@/components/ui/button";
 
@@ -104,11 +104,7 @@ export function ConnectToNearButton({
       }
     >
       <Wallet size={16} aria-hidden />
-      {isSignedIn && displayAccountId
-        ? "Disconnect"
-        : busy
-          ? "Connecting…"
-          : "Connect NEAR"}
+      {isSignedIn && displayAccountId ? "Disconnect" : busy ? "Connecting…" : "Connect NEAR"}
     </Button>
   );
 }

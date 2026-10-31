@@ -7,7 +7,7 @@
 
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, type useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import {
   adminClient,
@@ -213,8 +213,10 @@ export const sessionQueryKey = ["session"] as const;
  * then run `pnpm run typecheck`.
  */
 export function resolveSessionFromCache(
-  queryClient: ReturnType<typeof useQueryClient> | { getQueryData: (key: readonly unknown[]) => unknown },
-  session: SessionData | null | undefined
+  queryClient:
+    | ReturnType<typeof useQueryClient>
+    | { getQueryData: (key: readonly unknown[]) => unknown },
+  session: SessionData | null | undefined,
 ): SessionData | null {
   const cached = queryClient.getQueryData(sessionQueryKey);
   if (cached !== undefined) return cached as SessionData | null;

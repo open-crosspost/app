@@ -5,10 +5,7 @@ import { BackButton } from "@/components/back-button";
 import { CampaignScreen } from "@/components/campaign-screen";
 import { Button } from "@/components/ui/button";
 import { getCampaign } from "@/lib/campaigns";
-import {
-  NearSocialStorageRequiredError,
-  postToNearSocial,
-} from "@/lib/near-social-post";
+import { NearSocialStorageRequiredError, postToNearSocial } from "@/lib/near-social-post";
 import { getNearSocialAccount, nearSocialAccountQueryKey } from "@/lib/social";
 
 export const Route = createFileRoute("/_authenticated/campaigns/$campaignId")({

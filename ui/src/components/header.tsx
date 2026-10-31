@@ -1,15 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import {
-  ChevronDown,
-  LogOut,
-  Megaphone,
-  Moon,
-  PenSquare,
-  Sun,
-  Trophy,
-  User,
-} from "lucide-react";
+import { ChevronDown, LogOut, Megaphone, Moon, PenSquare, Sun, Trophy, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import type * as React from "react";
 import { sessionQueryKey, sessionQueryOptions, useAuthClient } from "@/app";

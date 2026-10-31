@@ -1,5 +1,4 @@
-import type { ConnectedAccount } from "@crosspost/plugin/types";
-import { Platform } from "@crosspost/plugin/types";
+import type { ConnectedAccount, Platform } from "@crosspost/plugin/types";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getCampaign } from "@/lib/campaigns";
@@ -64,7 +63,7 @@ describe("GM campaign screen", () => {
     renderCampaign();
 
     expect(screen.getByRole("heading", { name: "GM Campaign" })).toBeTruthy();
-    expect(screen.getByText("Post GM from your account.")).toBeTruthy();
+    expect(screen.getByText(/Post GM from your account\./)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Near Social/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /X/ }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("Coming soon")).toBeTruthy();
@@ -114,7 +113,7 @@ describe("GM campaign screen", () => {
     });
 
     expect((await screen.findByRole("status")).textContent).toContain(
-      'Posted “GM” to Near Social as alice.near',
+      "Posted “GM” to Near Social as alice.near",
     );
   });
 
@@ -144,9 +143,10 @@ describe("GM campaign screen", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Couldn’t post GM");
-    expect(alert.textContent).toContain("Posting is temporarily unavailable. Please try again later.");
+    expect(alert.textContent).toContain(
+      "Posting is temporarily unavailable. Please try again later.",
+    );
     expect(alert.textContent).not.toContain("NEAR_RELAYER_PRIVATE_KEY_MAINNET");
     expect(alert.textContent).not.toContain(".env");
   });
 });
-

@@ -9,8 +9,7 @@ type SocialStorageBalance = {
   total: string;
 } | null;
 
-const RELAYER_UNAVAILABLE_MESSAGE =
-  "Posting is temporarily unavailable. Please try again later.";
+const RELAYER_UNAVAILABLE_MESSAGE = "Posting is temporarily unavailable. Please try again later.";
 const WALLET_REQUIRED_MESSAGE = "Connect your NEAR wallet, then try again.";
 const STORAGE_REQUIRED_MESSAGE =
   "Your Near Social account needs a small storage deposit before you can post.";
@@ -161,10 +160,8 @@ export async function postToNearSocial(
     throw new Error(RELAYER_UNAVAILABLE_MESSAGE);
   }
 
-  const payload = await near.buildSignedDelegateAction(
-    SOCIAL_CONTRACT_ID,
-    (builder, receiverId) =>
-      builder.functionCall(receiverId, "set", { data }, { gas: "100 Tgas", attachedDeposit: 0n }),
+  const payload = await near.buildSignedDelegateAction(SOCIAL_CONTRACT_ID, (builder, receiverId) =>
+    builder.functionCall(receiverId, "set", { data }, { gas: "100 Tgas", attachedDeposit: 0n }),
   );
   const relayed = await near.relayTransaction({ payload });
   if (relayed.error || !relayed.data?.txHash) {

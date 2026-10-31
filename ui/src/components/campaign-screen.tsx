@@ -98,7 +98,9 @@ function CampaignPostForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Posts “{action.text}” from the account you select.</p>
+      <p className="text-sm text-muted-foreground">
+        Posts “{action.text}” from the account you select.
+      </p>
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Post to</p>
