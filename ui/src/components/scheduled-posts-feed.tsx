@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
   Calendar,
@@ -32,7 +33,7 @@ const StatusIcon: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) =
     case "failed":
       return <XCircle size={16} className="text-red-500" />;
     default:
-      return <AlertCircle size={16} className="text-gray-500" />;
+      return <AlertCircle size={16} className="text-muted-foreground" />;
   }
 };
 
@@ -48,7 +49,7 @@ const StatusBadge: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) 
       case "failed":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       default:
-        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200";
+        return "bg-muted text-foreground";
     }
   };
 
@@ -73,7 +74,7 @@ const ScheduledPostItem: React.FC<ScheduledPostItemProps> = ({ post, onDelete })
   };
 
   return (
-    <div className="p-4 base-component rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+    <div className="p-4 base-component rounded-md hover:bg-muted/50 transition-colors">
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <StatusIcon status={post.status} />
@@ -91,12 +92,12 @@ const ScheduledPostItem: React.FC<ScheduledPostItemProps> = ({ post, onDelete })
 
       <div className="space-y-2">
         {post.posts && post.posts.length > 0 && (
-          <div className="p-3 bg-gray-50 dark:bg-black rounded">
-            <div className="text-gray-700 dark:text-white line-clamp-2">
-              {post.posts[0]?.text?.replace("ㅤ", "").trim() || "No text content"}
+          <div className="p-3 bg-muted rounded">
+            <div className="text-foreground line-clamp-2">
+              {post.posts[0]?.text?.trim() || "No text content"}
             </div>
             {post.posts[0]?.media && post.posts[0].media.length > 0 && (
-              <div className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+              <div className="text-muted-foreground text-xs mt-1">
                 + {post.posts[0].media.length} media file
                 {post.posts[0].media.length !== 1 ? "s" : ""}
               </div>
@@ -105,13 +106,13 @@ const ScheduledPostItem: React.FC<ScheduledPostItemProps> = ({ post, onDelete })
         )}
 
         {post.status === "failed" && post.error && (
-          <div className="mt-2 p-2 bg-red-50 dark:bg-red-900 rounded text-sm text-red-700 dark:text-red-300">
+          <div className="mt-2 rounded border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">
             <strong>Error:</strong> {post.error}
           </div>
         )}
 
         {post.executedAt && (
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+          <div className="text-xs text-muted-foreground mt-3">
             {post.status === "completed" ? "Completed" : "Failed"} at:{" "}
             {new Date(post.executedAt).toLocaleDateString()} •{" "}
             {new Date(post.executedAt).toLocaleTimeString([], {
@@ -158,48 +159,56 @@ export const ScheduledPostsFeed: React.FC = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Scheduled Posts</h2>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="flex items-center gap-2 max-w-32">
-              {filter === "all" && `All (${scheduledPosts.length})`}
-              {filter === "pending" && `Pending (${pendingCount})`}
-              {filter === "completed" && `Completed (${completedCount})`}
-              {filter === "failed" && `Failed (${failedCount})`}
-              <ChevronDown size={14} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => setFilter("all")}
-              className={filter === "all" ? "bg-accent" : ""}
-            >
-              All ({scheduledPosts.length})
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setFilter("pending")}
-              className={filter === "pending" ? "bg-accent" : ""}
-            >
-              Pending ({pendingCount})
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setFilter("completed")}
-              className={filter === "completed" ? "bg-accent" : ""}
-            >
-              Completed ({completedCount})
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setFilter("failed")}
-              className={filter === "failed" ? "bg-accent" : ""}
-            >
-              Failed ({failedCount})
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/results"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Results
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-2 max-w-32">
+                {filter === "all" && `All (${scheduledPosts.length})`}
+                {filter === "pending" && `Pending (${pendingCount})`}
+                {filter === "completed" && `Completed (${completedCount})`}
+                {filter === "failed" && `Failed (${failedCount})`}
+                <ChevronDown size={14} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setFilter("all")}
+                className={filter === "all" ? "bg-accent" : ""}
+              >
+                All ({scheduledPosts.length})
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setFilter("pending")}
+                className={filter === "pending" ? "bg-accent" : ""}
+              >
+                Pending ({pendingCount})
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setFilter("completed")}
+                className={filter === "completed" ? "bg-accent" : ""}
+              >
+                Completed ({completedCount})
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setFilter("failed")}
+                className={filter === "failed" ? "bg-accent" : ""}
+              >
+                Failed ({failedCount})
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {sortedPosts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          <Calendar size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+        <div className="text-center py-8 text-muted-foreground">
+          <Calendar size={48} className="mx-auto mb-4 text-muted-foreground/50" />
           <p className="text-lg font-medium mb-2">No scheduled posts</p>
           <p>
             {filter === "all"

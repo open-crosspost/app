@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getImageUrl, getProfile } from "@/lib/utils/near-social-node";
+import { getProfile } from "@/lib/utils/near-social-node";
 
 const fallbackUrl =
   "https://ipfs.near.social/ipfs/bafkreibmiy4ozblcgv3fm3gc6q62s55em33vconbavfd2ekkuliznaq3zm";
@@ -19,9 +19,8 @@ export const Avatar = ({ url, accountId, size = 48, className = "" }: AvatarProp
     if (!url && accountId) {
       getProfile(accountId)
         .then((profile) => {
-          const imageUrl = getImageUrl(profile?.image);
-          if (imageUrl) {
-            setProfileUrl(imageUrl);
+          if (profile?.avatarUrl) {
+            setProfileUrl(profile.avatarUrl);
           }
           if (profile?.name) {
             setProfileName(profile.name);

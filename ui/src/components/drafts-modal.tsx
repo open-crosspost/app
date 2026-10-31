@@ -52,10 +52,10 @@ export function DraftsModal({ onSelect }: DraftsModalProps): React.ReactElement 
                   {drafts.map((draft) => (
                     <div
                       key={draft.id}
-                      className="border-2 border-primary  bg-gray-100 dark:bg-gray-800 p-3 sm:p-4 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:bg-gray-200 dark:hover:bg-gray-700"
+                      className="border-2 border-primary bg-white p-3 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:bg-gray-50 dark:bg-black dark:shadow-[2px_2px_0_rgba(255,255,255,0.3)] dark:hover:bg-gray-900 sm:p-4"
                     >
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                        <span className="text-sm text-gray-600 dark:text-white">
+                        <span className="text-sm text-muted-foreground">
                           {formatDistanceToNow(new Date(draft.createdAt), {
                             addSuffix: true,
                           })}

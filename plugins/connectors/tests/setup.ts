@@ -18,12 +18,33 @@ const TEST_CONFIG = {
     ...(pluginDevConfig.config.variables ?? {}),
     agentApiBaseUrl: "https://agent-api.test",
     outlayerApiUrl: "https://outlayer.test",
+    nearRpcUrl: "https://rpc.test",
+    xpostTokenContract: "xpost-token.test",
+    XPOST_GATE_ENABLED: false,
+    XPOST_TIER_REFRESH_ENABLED: false,
   },
   secrets: {
     ...(pluginDevConfig.config.secrets ?? {}),
     NEAR_INTENTS_AGENT_API_KEY: "naa_test_key",
+    OUTLAYER_APP_PAYMENT_KEY: "appowner.test:1:pk_app_shared",
   },
 };
+
+/**
+ * Set BEFORE the first getPluginClient call in a test file that needs its own
+ * runtime config (the plugin initializes once per process).
+ */
+export function configureTestConfig(overrides: {
+  variables?: Record<string, unknown>;
+  secrets?: Record<string, unknown>;
+}) {
+  if (overrides.variables) {
+    TEST_CONFIG.variables = { ...TEST_CONFIG.variables, ...overrides.variables };
+  }
+  if (overrides.secrets) {
+    TEST_CONFIG.secrets = { ...TEST_CONFIG.secrets, ...overrides.secrets };
+  }
+}
 
 const TEST_REGISTRY = {
   [TEST_PLUGIN_ID]: {
@@ -85,7 +106,11 @@ export function mockUpstream(
   };
 }
 
-export async function getPluginClient(context?: { userId?: string; near?: unknown }) {
+export async function getPluginClient(context?: {
+  userId?: string;
+  nearAccountId?: string;
+  role?: string;
+}) {
   if (!server) {
     const { router, initialized } = await runtime.usePlugin(
       TEST_PLUGIN_ID,
@@ -106,6 +131,21 @@ export async function getPluginClient(context?: { userId?: string; near?: unknow
         let requestContext: Record<string, unknown> = {};
         if (req.headers["x-test-user"]) {
           requestContext = { ...requestContext, userId: req.headers["x-test-user"] as string };
+        }
+        if (req.headers["x-test-near"]) {
+          requestContext = {
+            ...requestContext,
+            nearAccountId: JSON.parse(req.headers["x-test-near"] as string) as string,
+          };
+        }
+        if (req.headers["x-test-role"]) {
+          requestContext = {
+            ...requestContext,
+            user: {
+              id: (req.headers["x-test-user"] as string | undefined) ?? "test-user",
+              role: req.headers["x-test-role"] as string,
+            },
+          };
         }
         const result = await rpcHandler.handle(req, res, {
           prefix: "/rpc",
@@ -131,7 +171,10 @@ export async function getPluginClient(context?: { userId?: string; near?: unknow
     headers: context
       ? {
           ...(context.userId && { "x-test-user": context.userId }),
-          ...(context.near !== undefined && { "x-test-near": JSON.stringify(context.near) }),
+          ...(context.nearAccountId !== undefined && {
+            "x-test-near": JSON.stringify(context.nearAccountId),
+          }),
+          ...(context.role && { "x-test-role": context.role }),
         }
       : {},
   });

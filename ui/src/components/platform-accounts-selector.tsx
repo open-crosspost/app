@@ -2,7 +2,7 @@ import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
-import { useApiClient, useAuthClient } from "@/app";
+import { pluginHref, useApiClient, useAuthClient } from "@/app";
 import { AccountItem } from "@/components/account-item";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,7 +76,7 @@ export function PlatformAccountsSelector({
   };
 
   const handleSignIn = () => {
-    navigate({ to: "/login", search: { redirect: "/editor" } });
+    navigate({ href: pluginHref("/login", { redirect: "/editor" }) });
   };
 
   if (isLoading) {
@@ -118,7 +118,7 @@ export function PlatformAccountsSelector({
                 {isFetching ? "Retrying…" : "Try again"}
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={handleConnectAccounts}>
+            <Button size="sm" onClick={handleConnectAccounts}>
               Manage accounts
             </Button>
           </div>

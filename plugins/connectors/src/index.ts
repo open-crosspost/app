@@ -1,11 +1,22 @@
 import { ORPCError } from "@orpc/server";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schedule } from "effect";
 import { createPlugin } from "every-plugin";
 import { z } from "zod";
 import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
 import { ContextSchema } from "./lib/context";
+import { formatThreshold } from "./lib/gate-math";
 import type { PluginsClient } from "./lib/plugins-client.gen";
+import type { UpstreamError } from "./lib/upstream";
+import { mapUpstreamError } from "./lib/upstream";
+import {
+  callerGateStatus,
+  enforceXpostGate,
+  type GateDeps,
+  refreshGateConfig,
+  resolveGate,
+} from "./services/gate";
+import { GateConfigStore, gateConfigStoreLayer } from "./services/gate-config";
 import { BridgeStore, bridgeStoreLayer } from "./services/store";
 
 /**
@@ -24,29 +35,33 @@ import { BridgeStore, bridgeStoreLayer } from "./services/store";
 
 const AGENT_API_DEFAULT = "https://api.agentsonintents.com";
 const OUTLAYER_API_DEFAULT = "https://api.outlayer.ai";
+const NEAR_RPC_DEFAULT = "https://rpc.mainnet.near.org";
+const XPOST_TOKEN_DEFAULT = "xpost-1634.meme-cooking.near";
+const REF_CONTRACT_DEFAULT = "v2.ref-finance.near";
+const REF_XPOST_NEAR_POOL_DEFAULT = "6055";
+const REF_NEAR_USD_POOL_DEFAULT = "6063";
+const REF_NEAR_USD_TOKEN_DEFAULT = "usdt.tether-token.near";
 
-type UpstreamError = ORPCError<
-  "BAD_REQUEST" | "NOT_FOUND" | "CONNECTION_ERROR" | "INTERNAL_SERVER_ERROR",
-  unknown
->;
+/**
+ * Sentinel `walletApiKey` for rows that point at the app-managed OutLayer
+ * wallet: the user holds no key, dispatch presents the app's shared payment
+ * key (`OUTLAYER_APP_PAYMENT_KEY`), and the credential row is resolved via
+ * `secrets_ref` (account = the app wallet, profile = the caller's row label).
+ */
+const APP_MANAGED_WALLET = "app-managed";
 
-const mapUpstreamError =
-  (what: string) =>
-  (error: unknown): UpstreamError => {
-    if (error instanceof ORPCError) return error as UpstreamError;
-    const detail =
-      error instanceof Error ? error.message : typeof error === "string" ? error : "unknown error";
-    return new ORPCError("CONNECTION_ERROR", { message: `${what} failed: ${detail}` });
-  };
+const describeError = (error: unknown): string =>
+  error instanceof Error ? error.message : typeof error === "string" ? error : "unknown error";
 
 class ConnectorConfig extends Context.Service<ConnectorConfig, ConnectorConfigShape>()(
   "connectors/ConnectorConfig",
 ) {}
 
-interface ConnectorConfigShape {
+interface ConnectorConfigShape extends GateDeps {
   agentApiKey: string | null;
   agentApiBaseUrl: string;
   outlayerApiUrl: string;
+  appPaymentKey: string | null;
 }
 
 const fetchJson = (url: string, init?: RequestInit) =>
@@ -184,6 +199,48 @@ export default createPlugin.withPlugins<PluginsClient>()({
       .string()
       .default(OUTLAYER_API_DEFAULT)
       .describe("OutLayer API origin (mainnet or testnet)"),
+    nearRpcUrl: z
+      .string()
+      .default(NEAR_RPC_DEFAULT)
+      .describe("NEAR JSON-RPC endpoint for the XPOST gate's balance reads"),
+    xpostTokenContract: z
+      .string()
+      .default(XPOST_TOKEN_DEFAULT)
+      .describe("XPOST NEAR FT contract the admission gate checks"),
+    XPOST_GATE_ENABLED: z
+      .boolean()
+      .default(false)
+      .describe("Require a Tier-1 XPOST balance for app-paid dispatch (fail-closed)"),
+    XPOST_TIER_REFRESH_ENABLED: z
+      .boolean()
+      .default(false)
+      .describe("Daily daemon that recomputes tier thresholds from the Ref pools"),
+    XPOST_TIER_BALANCES: z
+      .string()
+      .default("100000,1000000,10000000")
+      .describe("Fallback tier ladder (human XPOST units) used when no DB row exists"),
+    XPOST_TIER_TARGETS_USD: z
+      .string()
+      .default("1.2,12,120")
+      .describe(
+        "USD skin-in-the-game targets per tier — the daily refresh pins thresholds to these",
+      ),
+    REF_CONTRACT_ID: z
+      .string()
+      .default(REF_CONTRACT_DEFAULT)
+      .describe("Ref Finance contract for the price-refresh pool reads"),
+    REF_XPOST_NEAR_POOL_ID: z
+      .string()
+      .default(REF_XPOST_NEAR_POOL_DEFAULT)
+      .describe("Ref pool id for XPOST/wNEAR"),
+    REF_NEAR_USD_POOL_ID: z
+      .string()
+      .default(REF_NEAR_USD_POOL_DEFAULT)
+      .describe("Ref pool id for the deep wNEAR/USDT leg (the USD reference)"),
+    REF_NEAR_USD_TOKEN_ID: z
+      .string()
+      .default(REF_NEAR_USD_TOKEN_DEFAULT)
+      .describe("The USD token in the NEAR/USD pool (USDT mainnet FT)"),
   }),
 
   secrets: z.object({
@@ -191,6 +248,12 @@ export default createPlugin.withPlugins<PluginsClient>()({
       .string()
       .optional()
       .describe("Partner API key (naa_…) for Agent Connect reads and transfers"),
+    OUTLAYER_APP_PAYMENT_KEY: z
+      .string()
+      .optional()
+      .describe(
+        "The app's shared funded payment key (owner:nonce:key) — app-paid dispatch for users who hold no OutLayer key",
+      ),
     CONNECTORS_DATABASE_URL: z
       .string()
       .default("pglite:.bos/connectors/:memory:")
@@ -204,13 +267,60 @@ export default createPlugin.withPlugins<PluginsClient>()({
   initialize: (config) =>
     Effect.gen(function* () {
       yield* Effect.logInfo("[connectors] Initialized");
+      const dbLayer = DatabaseLive(config.secrets.CONNECTORS_DATABASE_URL);
+      const gateStoreLayer = gateConfigStoreLayer.pipe(Layer.provide(dbLayer));
+      const configLayer = Layer.succeed(ConnectorConfig, {
+        agentApiKey: config.secrets.NEAR_INTENTS_AGENT_API_KEY ?? null,
+        agentApiBaseUrl: config.variables.agentApiBaseUrl,
+        outlayerApiUrl: config.variables.outlayerApiUrl,
+        appPaymentKey: config.secrets.OUTLAYER_APP_PAYMENT_KEY ?? null,
+        nearRpcUrl: config.variables.nearRpcUrl,
+        xpostTokenContract: config.variables.xpostTokenContract,
+        XPOST_GATE_ENABLED: config.variables.XPOST_GATE_ENABLED,
+        XPOST_TIER_BALANCES: config.variables.XPOST_TIER_BALANCES,
+        XPOST_TIER_TARGETS_USD: config.variables.XPOST_TIER_TARGETS_USD,
+        REF_CONTRACT_ID: config.variables.REF_CONTRACT_ID,
+        REF_XPOST_NEAR_POOL_ID: config.variables.REF_XPOST_NEAR_POOL_ID,
+        REF_NEAR_USD_POOL_ID: config.variables.REF_NEAR_USD_POOL_ID,
+        REF_NEAR_USD_TOKEN_ID: config.variables.REF_NEAR_USD_TOKEN_ID,
+      });
+      if (config.variables.XPOST_TIER_REFRESH_ENABLED) {
+        const gateDeps: GateDeps = {
+          nearRpcUrl: config.variables.nearRpcUrl,
+          xpostTokenContract: config.variables.xpostTokenContract,
+          XPOST_GATE_ENABLED: config.variables.XPOST_GATE_ENABLED,
+          XPOST_TIER_BALANCES: config.variables.XPOST_TIER_BALANCES,
+          XPOST_TIER_TARGETS_USD: config.variables.XPOST_TIER_TARGETS_USD,
+          REF_CONTRACT_ID: config.variables.REF_CONTRACT_ID,
+          REF_XPOST_NEAR_POOL_ID: config.variables.REF_XPOST_NEAR_POOL_ID,
+          REF_NEAR_USD_POOL_ID: config.variables.REF_NEAR_USD_POOL_ID,
+          REF_NEAR_USD_TOKEN_ID: config.variables.REF_NEAR_USD_TOKEN_ID,
+        };
+        const daemonLayer = Layer.effectDiscard(
+          Effect.gen(function* () {
+            const gateStore = yield* GateConfigStore;
+            const loop = Effect.gen(function* () {
+              const exit = yield* Effect.exit(refreshGateConfig(gateDeps, gateStore));
+              if (exit._tag !== "Success") {
+                yield* Effect.logWarning(
+                  `[connectors] XPOST tier refresh failed (keeping the previous thresholds): ${describeError(exit.cause)}`,
+                );
+              }
+            });
+            yield* Effect.repeat(loop, Schedule.spaced("24 hours"));
+          }),
+        ).pipe(Layer.provide(gateStoreLayer));
+        return Layer.mergeAll(
+          configLayer,
+          bridgeStoreLayer.pipe(Layer.provide(dbLayer)),
+          gateStoreLayer,
+          daemonLayer,
+        );
+      }
       return Layer.mergeAll(
-        Layer.succeed(ConnectorConfig, {
-          agentApiKey: config.secrets.NEAR_INTENTS_AGENT_API_KEY ?? null,
-          agentApiBaseUrl: config.variables.agentApiBaseUrl,
-          outlayerApiUrl: config.variables.outlayerApiUrl,
-        }),
-        bridgeStoreLayer.pipe(Layer.provide(DatabaseLive(config.secrets.CONNECTORS_DATABASE_URL))),
+        configLayer,
+        bridgeStoreLayer.pipe(Layer.provide(dbLayer)),
+        gateStoreLayer,
       );
     }),
 
@@ -218,6 +328,15 @@ export default createPlugin.withPlugins<PluginsClient>()({
     const requireUser = (userId: string | null | undefined): string => {
       if (!userId) {
         throw new ORPCError("UNAUTHORIZED", { message: "Authentication required" });
+      }
+      return userId;
+    };
+
+    const requireAdmin = (context: { userId?: string | null; user?: unknown }): string => {
+      const userId = requireUser(context.userId ?? undefined);
+      const role = (context.user as { role?: unknown } | null | undefined)?.role;
+      if (role !== "admin") {
+        throw new ORPCError("FORBIDDEN", { message: "Admin role required" });
       }
       return userId;
     };
@@ -446,7 +565,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
           const row = yield* store.getWallet(userId, input.agentId);
           walletApiKey = row?.walletApiKey ?? null;
         }
-        if (!walletApiKey) {
+        if (!walletApiKey || walletApiKey === APP_MANAGED_WALLET) {
           return yield* Effect.fail(
             new ORPCError("BAD_REQUEST", {
               message:
@@ -468,20 +587,67 @@ export default createPlugin.withPlugins<PluginsClient>()({
         })) as { payment_key?: string; paymentKey?: string; nonce?: number };
 
         const paymentKey = result.payment_key ?? result.paymentKey ?? "";
-        if (userId && input.agentId && paymentKey) {
-          yield* store.setPaymentKey(userId, input.agentId, paymentKey, "funded");
+        if (!paymentKey) {
+          return yield* Effect.fail(
+            new ORPCError("BAD_REQUEST", {
+              message: "OutLayer payment key creation returned no key",
+            }),
+          );
+        }
+        const stored = !!(userId && input.agentId);
+        if (stored) {
+          yield* store.setPaymentKey(userId!, input.agentId!, paymentKey, "funded");
         }
 
         return {
-          paymentKey,
           nonce: result.nonce ?? 1,
+          stored,
+          keySource: stored ? "funded" : null,
         };
+      }),
+
+      outlayerAppWalletAttach: builder.outlayerAppWalletAttach.effect(function* ({
+        input,
+        context,
+      }) {
+        const userId = requireUser(context.userId);
+        const config = yield* ConnectorConfig;
+        if (!config.appPaymentKey) {
+          return yield* Effect.fail(
+            new ORPCError("BAD_REQUEST", {
+              message:
+                "The app payment key is not configured (OUTLAYER_APP_PAYMENT_KEY) — app-paid dispatch is unavailable",
+            }),
+          );
+        }
+        const appOwner = config.appPaymentKey.split(":")[0];
+        if (!appOwner) {
+          return yield* Effect.fail(
+            new ORPCError("BAD_REQUEST", {
+              message: "The configured app payment key is malformed — expected owner:nonce:key",
+            }),
+          );
+        }
+        const store = yield* BridgeStore;
+        yield* store.upsertWallet({
+          userId,
+          agentId: input.agentId,
+          walletApiKey: APP_MANAGED_WALLET,
+          walletId: null,
+          nearAccountId: appOwner,
+          rowProfile: input.rowProfile,
+        });
+        return { attached: true, walletAccountId: appOwner };
       }),
 
       outlayerCall: builder.outlayerCall.effect(function* ({ input, context }) {
         const userId = requireUser(context.userId);
         const config = yield* ConnectorConfig;
         const store = yield* BridgeStore;
+        const gateStore = yield* GateConfigStore;
+
+        const gate = yield* resolveGate(config, gateStore);
+        yield* enforceXpostGate(config, gate, context.nearAccountId);
 
         const walletId = input.walletId ?? null;
         let paymentKey = input.paymentKey ?? null;
@@ -491,32 +657,52 @@ export default createPlugin.withPlugins<PluginsClient>()({
         if (!row && !paymentKey) {
           return yield* Effect.fail(
             new ORPCError("BAD_REQUEST", {
-              message: "No OutLayer wallet connected — set up the wallet first",
+              message: "No OutLayer wallet connected — connect your account first",
             }),
           );
         }
-        paymentKey = paymentKey ?? row?.paymentKey ?? null;
-        if (!paymentKey) {
-          if (!row) {
+        const isAppManaged = !!row && row.walletApiKey === APP_MANAGED_WALLET;
+        const isByo = !!row && !isAppManaged;
+
+        if (!paymentKey && isByo) {
+          paymentKey = row?.paymentKey ?? null;
+        }
+        if (!paymentKey && isAppManaged) {
+          if (!config.appPaymentKey) {
             return yield* Effect.fail(
               new ORPCError("BAD_REQUEST", {
-                message: "No OutLayer wallet connected — set up the wallet first",
+                message:
+                  "The app payment key is not configured (OUTLAYER_APP_PAYMENT_KEY) — app-paid dispatch is unavailable",
               }),
             );
           }
+          paymentKey = config.appPaymentKey;
+          keySource = "app";
+        }
+        if (!paymentKey && isByo && row) {
           const created = yield* createFundedKey(config.outlayerApiUrl, row.walletApiKey);
           yield* store.setPaymentKey(userId, input.agentId, created.paymentKey!, created.source);
           paymentKey = created.paymentKey;
           keySource = created.source;
-        } else {
-          keySource = keySource ?? row?.paymentKeySource ?? null;
+        }
+        if (!paymentKey) {
+          return yield* Effect.fail(
+            new ORPCError("BAD_REQUEST", {
+              message:
+                "No OutLayer payment path — connect your account first or bring your own OutLayer wallet",
+            }),
+          );
+        }
+        if (!keySource) {
+          keySource = row?.paymentKeySource ?? null;
         }
 
         // The credential shape follows the project: the curated namespace
         // reads the wallet's own agent-secret row (X-Use-Owner-Secret: 1, no
         // secrets_ref); an ordinary project names the owner's row instead —
-        // account_id and profile are the wallet's own address unless the row
-        // is stored under another label.
+        // an app-managed row points at the app wallet under the caller's
+        // profile; a BYO row is the wallet's own address unless stored under
+        // another label.
         const project = input.connector.includes("/")
           ? input.connector
           : `connectors.outlayer.near/${input.connector}`;
@@ -527,17 +713,17 @@ export default createPlugin.withPlugins<PluginsClient>()({
           secretsRef = null;
         } else if (input.secretsRef) {
           secretsRef = input.secretsRef;
+        } else if (isAppManaged && row?.rowProfile) {
+          secretsRef = { accountId: row.nearAccountId, profile: row.rowProfile };
+        } else if (row) {
+          secretsRef = { accountId: row.nearAccountId, profile: row.nearAccountId };
         } else {
-          const owner = row?.nearAccountId ?? null;
-          if (!owner) {
-            return yield* Effect.fail(
-              new ORPCError("BAD_REQUEST", {
-                message:
-                  "No credential row reference — pass secretsRef (the account/profile the row is stored under)",
-              }),
-            );
-          }
-          secretsRef = { accountId: owner, profile: owner };
+          return yield* Effect.fail(
+            new ORPCError("BAD_REQUEST", {
+              message:
+                "No credential row reference — pass secretsRef (the account/profile the row is stored under)",
+            }),
+          );
         }
 
         const result = (yield* fetchJson(
@@ -587,6 +773,73 @@ export default createPlugin.withPlugins<PluginsClient>()({
           computeCost: result.compute_cost ?? null,
           output: result.output ?? null,
           error: result.error ?? null,
+        };
+      }),
+
+      xpostGateStatus: builder.xpostGateStatus.effect(function* ({ context }) {
+        const config = yield* ConnectorConfig;
+        const gateStore = yield* GateConfigStore;
+        const gate = yield* resolveGate(config, gateStore);
+        const caller = yield* callerGateStatus(config, gate, context.nearAccountId);
+        return {
+          enabled: gate.enabled,
+          tier1: formatThreshold(gate.tier1),
+          tier2: formatThreshold(gate.tier2),
+          tier3: formatThreshold(gate.tier3),
+          source: gate.source,
+          priceUsd: gate.priceUsd,
+          refreshedAt: gate.refreshedAt,
+          caller: {
+            nearAccountId: context.nearAccountId ?? null,
+            balance: caller.balance,
+            tier: caller.tier,
+          },
+        };
+      }),
+
+      xpostGateConfigSet: builder.xpostGateConfigSet.effect(function* ({ input, context }) {
+        requireAdmin(context);
+        const gateStore = yield* GateConfigStore;
+        const row = yield* gateStore.set({
+          tier1Balance: input.tier1,
+          tier2Balance: input.tier2,
+          tier3Balance: input.tier3,
+          priceUsd: null,
+          source: "manual",
+        });
+        return {
+          tier1: row.tier1Balance,
+          tier2: row.tier2Balance,
+          tier3: row.tier3Balance,
+          source: row.source,
+          priceUsd: row.priceUsd,
+          refreshedAt: row.refreshedAt.toISOString(),
+        };
+      }),
+
+      xpostGateConfigRefresh: builder.xpostGateConfigRefresh.effect(function* ({ context }) {
+        requireAdmin(context);
+        const config = yield* ConnectorConfig;
+        const gateStore = yield* GateConfigStore;
+        const gateDeps: GateDeps = {
+          nearRpcUrl: config.nearRpcUrl,
+          xpostTokenContract: config.xpostTokenContract,
+          XPOST_GATE_ENABLED: config.XPOST_GATE_ENABLED,
+          XPOST_TIER_BALANCES: config.XPOST_TIER_BALANCES,
+          XPOST_TIER_TARGETS_USD: config.XPOST_TIER_TARGETS_USD,
+          REF_CONTRACT_ID: config.REF_CONTRACT_ID,
+          REF_XPOST_NEAR_POOL_ID: config.REF_XPOST_NEAR_POOL_ID,
+          REF_NEAR_USD_POOL_ID: config.REF_NEAR_USD_POOL_ID,
+          REF_NEAR_USD_TOKEN_ID: config.REF_NEAR_USD_TOKEN_ID,
+        };
+        const row = yield* refreshGateConfig(gateDeps, gateStore, { force: true });
+        return {
+          tier1: row.tier1Balance,
+          tier2: row.tier2Balance,
+          tier3: row.tier3Balance,
+          source: row.source,
+          priceUsd: row.priceUsd,
+          refreshedAt: row.refreshedAt.toISOString(),
         };
       }),
 

@@ -333,7 +333,7 @@ function LeaderboardPage() {
   });
 
   return (
-    <div className="container mx-auto">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between mb-4">
         <BackButton />
         {/* Filters */}
@@ -452,20 +452,20 @@ function LeaderboardPage() {
       ) : (
         <>
           {/* Table */}
-          <div className="overflow-x-auto base-component rounded-lg relative">
+          <div className="overflow-x-auto base-component relative rounded-lg border-2 border-primary bg-white dark:bg-black">
             {isFetching && !isLoading && (
               <div className="absolute top-2 right-2 z-10">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 dark:border-blue-400"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
               </div>
             )}
             <Table className="min-w-full">
-              <TableHeader className="bg-gray-50 dark:bg-gray-800">
+              <TableHeader className="bg-white dark:bg-black [&_tr]:border-b-2 [&_tr]:border-primary [&_tr]:hover:bg-transparent">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         <div className="flex items-center gap-1">

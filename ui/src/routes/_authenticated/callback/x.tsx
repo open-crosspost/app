@@ -1,9 +1,6 @@
 import { Platform } from "@crosspost/plugin/types";
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps, Link } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useApiClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import { socialAccountsQueryKey, X_CONNECT_WALLET_KEY_STORAGE_KEY } from "@/lib/social";
 
@@ -14,18 +11,10 @@ type XCallbackSearch = {
   error_description?: string;
 };
 
-type ConnectResult = {
-  scope: string[];
-  xUserId: string;
-  username?: string;
-};
-
-type CallbackStatus =
-  | { kind: "pending" }
-  | { kind: "connected"; result: ConnectResult }
-  | { kind: "error"; message: string };
+class XCallbackError extends Error {}
 
 export const Route = createFileRoute("/_authenticated/callback/x")({
+  ssr: false,
   validateSearch: (search: Record<string, unknown>): XCallbackSearch => ({
     code: typeof search.code === "string" ? search.code : undefined,
     state: typeof search.state === "string" ? search.state : undefined,
@@ -33,107 +22,113 @@ export const Route = createFileRoute("/_authenticated/callback/x")({
     error_description:
       typeof search.error_description === "string" ? search.error_description : undefined,
   }),
-  component: XCallbackPage,
-});
-
-function XCallbackPage() {
-  const { code, state, error, error_description } = Route.useSearch();
-  const apiClient = useApiClient();
-  const queryClient = useQueryClient();
-  const hasRun = useRef(false);
-  const [status, setStatus] = useState<CallbackStatus>({ kind: "pending" });
-
-  useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
-
+  loaderDeps: ({ search }) => ({
+    code: search.code,
+    state: search.state,
+    error: search.error,
+    errorDescription: search.error_description,
+  }),
+  loader: async ({ context, deps }) => {
     const walletApiKey = sessionStorage.getItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
     const clearStoredWalletKey = () => sessionStorage.removeItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
 
-    if (error) {
+    const fail = (message: string): XCallbackError => {
       clearStoredWalletKey();
-      setStatus({
-        kind: "error",
-        message: error_description || `X authorization was not completed (${error}).`,
-      });
-      return;
+      return new XCallbackError(message);
+    };
+
+    if (deps.error) {
+      throw fail(deps.errorDescription || `X authorization was not completed (${deps.error}).`);
     }
 
-    if (!code || !state) {
+    if (!deps.code || !deps.state) {
+      throw fail("The X callback is missing its code or state.");
+    }
+
+    try {
+      const result = await context.apiClient.social.accounts.callback({
+        platform: Platform.TWITTER,
+        code: deps.code,
+        state: deps.state,
+        ...(walletApiKey ? { walletApiKey } : {}),
+      });
       clearStoredWalletKey();
-      setStatus({ kind: "error", message: "The X callback is missing its code or state." });
-      return;
+      void context.queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey });
+      return { result };
+    } catch (callbackError) {
+      throw fail(
+        callbackError instanceof Error && callbackError.message
+          ? callbackError.message
+          : "Failed to connect your X account.",
+      );
     }
+  },
+  pendingComponent: CallbackPending,
+  errorComponent: CallbackError,
+  component: XCallbackPage,
+});
 
-    if (!walletApiKey) {
-      setStatus({
-        kind: "error",
-        message: "Your OutLayer wallet API key was not found. Start the connection again.",
-      });
-      return;
-    }
-
-    apiClient.social.accounts
-      .callback({ platform: Platform.TWITTER, code, state, walletApiKey })
-      .then((result) => {
-        clearStoredWalletKey();
-        setStatus({ kind: "connected", result });
-        void queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey });
-      })
-      .catch((callbackError: unknown) => {
-        clearStoredWalletKey();
-        setStatus({
-          kind: "error",
-          message:
-            callbackError instanceof Error && callbackError.message
-              ? callbackError.message
-              : "Failed to connect your X account.",
-        });
-      });
-  }, [apiClient, queryClient, code, state, error, error_description]);
-
+function CallbackPending() {
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="border-b pb-4 mb-6">
+    <CallbackFrame>
+      <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+        <RefreshCw size={16} className="animate-spin" />
+        Connecting your X account...
+      </div>
+    </CallbackFrame>
+  );
+}
+
+function CallbackError({ error }: ErrorComponentProps) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    <CallbackFrame>
+      <div className="rounded-md border bg-card p-4 text-card-foreground space-y-3">
+        <div className="flex items-center gap-2 text-lg font-medium">
+          <AlertCircle size={20} className="text-destructive" />X connection failed
+        </div>
+        <p className="text-sm text-muted-foreground">{message}</p>
+        <BackToManage />
+      </div>
+    </CallbackFrame>
+  );
+}
+
+function BackToManage() {
+  return (
+    <Button asChild>
+      <Link to="/manage">Back to Manage Accounts</Link>
+    </Button>
+  );
+}
+
+function CallbackFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-auto w-full max-w-2xl">
+      <div className="mb-6 border-b pb-4">
         <h1 className="text-2xl font-bold">Connect X Account</h1>
       </div>
-
-      {status.kind === "pending" && (
-        <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-          <RefreshCw size={16} className="animate-spin" />
-          Connecting your X account...
-        </div>
-      )}
-
-      {status.kind === "connected" && (
-        <div className="rounded-md border bg-card p-4 text-card-foreground space-y-3">
-          <div className="flex items-center gap-2 text-lg font-medium">
-            <CheckCircle2 size={20} className="text-success" />
-            connected ✓
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Account: {status.result.username ? `@${status.result.username}` : status.result.xUserId}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Granted scope: {status.result.scope.join(", ")}
-          </p>
-          <Button asChild>
-            <Link to="/manage">Back to Manage Accounts</Link>
-          </Button>
-        </div>
-      )}
-
-      {status.kind === "error" && (
-        <div className="rounded-md border bg-card p-4 text-card-foreground space-y-3">
-          <div className="flex items-center gap-2 text-lg font-medium">
-            <AlertCircle size={20} className="text-destructive" />X connection failed
-          </div>
-          <p className="text-sm text-muted-foreground">{status.message}</p>
-          <Button asChild>
-            <Link to="/manage">Back to Manage Accounts</Link>
-          </Button>
-        </div>
-      )}
+      {children}
     </div>
+  );
+}
+
+function XCallbackPage() {
+  const { result } = Route.useLoaderData();
+
+  return (
+    <CallbackFrame>
+      <div className="rounded-md border bg-card p-4 text-card-foreground space-y-3">
+        <div className="flex items-center gap-2 text-lg font-medium">
+          <CheckCircle2 size={20} className="text-success" />
+          connected ✓
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Account: {result.username ? `@${result.username}` : result.xUserId}
+        </p>
+        <p className="text-sm text-muted-foreground">Granted scope: {result.scope.join(", ")}</p>
+        <BackToManage />
+      </div>
+    </CallbackFrame>
   );
 }

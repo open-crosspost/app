@@ -1,36 +1,28 @@
 import { getErrorMessage } from "@/lib/error-utils";
 
-// Client-side utility for fetching profile data from NEAR Social API
-// This is shared by the rspack.config.ts
+// Client-side utility for reading NEAR Social data via the official indexer
+// API (see https://near.social/skill.md).
 
-export const API_SERVER = "https://api.near.social";
+const API_SERVER = "https://api2.near.social";
 
 export type Profile = {
   name?: string;
-  description?: string;
-  image?: SocialImage;
-  backgroundImage?: SocialImage;
-  linktree?: Record<string, string>;
+  about?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  location?: string;
+  links?: Record<string, string>;
 };
 
+/** Legacy image shape — profiles written through the old contract still carry IPFS refs. */
 export type SocialImage = {
   url?: string;
   ipfs_cid?: string;
 };
 
 export async function getProfile(accountId: string): Promise<Profile | null> {
-  const keys = [`${accountId}/profile/**`];
-
   try {
-    const response = await fetch(`${API_SERVER}/get`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        keys,
-      }),
-    });
+    const response = await fetch(`${API_SERVER}/v1/accounts/${accountId}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -38,11 +30,18 @@ export async function getProfile(accountId: string): Promise<Profile | null> {
 
     const data = await response.json();
 
-    if (data?.[accountId]?.profile) {
-      return data[accountId].profile as Profile;
-    } else {
+    if (!data || data.has_profile === false) {
       return null;
     }
+
+    return {
+      name: data.name ?? undefined,
+      about: data.about ?? undefined,
+      avatarUrl: data.avatar_url ?? undefined,
+      bannerUrl: data.banner_url ?? undefined,
+      location: data.location ?? undefined,
+      links: data.links ?? {},
+    };
   } catch (error) {
     console.error("Error fetching profile:", getErrorMessage(error));
     return null;
@@ -57,15 +56,3 @@ export const getImageUrl = (image: SocialImage | undefined, fallback?: string): 
   if (image?.ipfs_cid) return `https://ipfs.near.social/ipfs/${image.ipfs_cid}`;
   return fallback || FALLBACK_URL;
 };
-
-export function getSocialLink(platform: string, username: string): string {
-  const links: Record<string, string> = {
-    github: `https://github.com/${username}`,
-    telegram: `https://t.me/${username}`,
-    linkedin: `https://linkedin.com/in/${username}`,
-    twitter: `https://twitter.com/${username}`,
-    farcaster: `https://warpcast.com/${username}`,
-    website: `https://${username}`,
-  };
-  return links[platform] || "#";
-}

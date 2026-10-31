@@ -1,5 +1,5 @@
-import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { and, desc, eq } from "drizzle-orm";
 import type { Database } from "../db";
 import { socialActivity, socialConnectedAccounts, socialPlatformCredentials } from "../db/schema";
 import type {

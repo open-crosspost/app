@@ -1,6 +1,6 @@
 import "@orpc/openapi/extensions/route";
 import { oc } from "@orpc/contract";
-import { BAD_REQUEST, CONNECTION_ERROR, UNAUTHORIZED } from "every-plugin/errors";
+import { BAD_REQUEST, CONNECTION_ERROR, FORBIDDEN, UNAUTHORIZED } from "every-plugin/errors";
 import { z } from "zod";
 
 /**
@@ -190,7 +190,7 @@ export const contract = oc.router({
       path: "/outlayer/payment-key",
       summary: "Create and fund an OutLayer payment key",
       description:
-        "Creates a funded OutLayer payment key from the wallet's USDC or NEAR balance. The key pays per-call for connector invocations.",
+        "Creates a funded OutLayer payment key from the wallet's USDC or NEAR balance and stores it server-side — the key string never leaves the server.",
       tags: ["Connectors Bridge"],
     })
     .input(
@@ -212,8 +212,36 @@ export const contract = oc.router({
     )
     .output(
       z.object({
-        paymentKey: z.string(),
         nonce: z.number(),
+        stored: z.boolean(),
+        keySource: z.string().nullable(),
+      }),
+    )
+    .errors({ UNAUTHORIZED, BAD_REQUEST, CONNECTION_ERROR }),
+
+  outlayerAppWalletAttach: oc
+    .route({
+      method: "POST",
+      path: "/outlayer/app-wallet/attach",
+      summary: "Attach the caller's credential row to the app-managed OutLayer wallet",
+      description:
+        "Records that the caller's connector credential row (stored by the api under rowProfile) lives on the app-managed OutLayer wallet. Dispatch then presents the app's shared payment key and resolves the row via secrets_ref — the user never holds an OutLayer key.",
+      tags: ["Connectors Bridge"],
+    })
+    .input(
+      z.object({
+        agentId: z.string().min(1).describe("Agent account id (for event attribution)"),
+        rowProfile: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe("The profile label the caller's credential row is stored under"),
+      }),
+    )
+    .output(
+      z.object({
+        attached: z.boolean(),
+        walletAccountId: z.string(),
       }),
     )
     .errors({ UNAUTHORIZED, BAD_REQUEST, CONNECTION_ERROR }),
@@ -272,6 +300,83 @@ export const contract = oc.router({
       }),
     )
     .errors({ UNAUTHORIZED, BAD_REQUEST, CONNECTION_ERROR }),
+
+  xpostGateStatus: oc
+    .route({
+      method: "GET",
+      path: "/xpost/gate-status",
+      summary: "Read the XPOST gate's tier thresholds and the caller's resolved tier",
+      description:
+        "Public: returns the gate state, the tier ladder (human XPOST units, dynamic via the daily Ref-pool refresh), and — when the caller has a NEAR account in session — their balance and resolved tier.",
+      tags: ["Connectors Bridge"],
+    })
+    .input(z.object({}).optional())
+    .output(
+      z.object({
+        enabled: z.boolean(),
+        tier1: z.string(),
+        tier2: z.string(),
+        tier3: z.string(),
+        source: z.string(),
+        priceUsd: z.string().nullable(),
+        refreshedAt: z.string().nullable(),
+        caller: z.object({
+          nearAccountId: z.string().nullable(),
+          balance: z.string().nullable(),
+          tier: z.number().nullable(),
+        }),
+      }),
+    )
+    .errors({ BAD_REQUEST, CONNECTION_ERROR }),
+
+  xpostGateConfigSet: oc
+    .route({
+      method: "POST",
+      path: "/xpost/gate-config",
+      summary: "Pin the tier ladder by hand (admin)",
+      description:
+        "Writes the singleton gate_config row with source 'manual' — the daily refresh respects a manual pin until a forced refresh clears it.",
+      tags: ["Connectors Bridge"],
+    })
+    .input(
+      z.object({
+        tier1: z.string().min(1).describe("Tier 1 minimum in human XPOST units"),
+        tier2: z.string().min(1).describe("Tier 2 minimum in human XPOST units"),
+        tier3: z.string().min(1).describe("Tier 3 minimum in human XPOST units"),
+      }),
+    )
+    .output(
+      z.object({
+        tier1: z.string(),
+        tier2: z.string(),
+        tier3: z.string(),
+        source: z.string(),
+        priceUsd: z.string().nullable(),
+        refreshedAt: z.string(),
+      }),
+    )
+    .errors({ UNAUTHORIZED, FORBIDDEN, BAD_REQUEST, CONNECTION_ERROR }),
+
+  xpostGateConfigRefresh: oc
+    .route({
+      method: "POST",
+      path: "/xpost/gate-config/refresh",
+      summary: "Recompute the tier ladder from the Ref pools now (admin)",
+      description:
+        "Runs the same price refresh the daily daemon performs, forced — it overrides a manual pin. Fails without writing when the pool reads fail (fail-safe: previous thresholds are kept).",
+      tags: ["Connectors Bridge"],
+    })
+    .output(
+      z.object({
+        tier1: z.string(),
+        tier2: z.string(),
+        tier3: z.string(),
+        source: z.string(),
+        priceUsd: z.string().nullable(),
+        refreshedAt: z.string(),
+      }),
+    )
+    .errors({ UNAUTHORIZED, FORBIDDEN, BAD_REQUEST, CONNECTION_ERROR }),
 
   events: oc
     .route({

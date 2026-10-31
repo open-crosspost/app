@@ -5,18 +5,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverAnchor, PopoverContent } from "./ui/popover";
 
 const seenKey = (userId: string) => `crosspost:campaigns-tour-seen:${userId}`;
-const PENDING_KEY = "crosspost:campaigns-tour-pending";
 const AUTO_HIDE_MS = 4000;
-
-export function markCampaignsTourForNewUser(userId: string) {
-  if (typeof window === "undefined" || !userId) {
-    return;
-  }
-  if (localStorage.getItem(seenKey(userId)) === "1") {
-    return;
-  }
-  sessionStorage.setItem(PENDING_KEY, userId);
-}
 
 type CampaignsTourProps = {
   userId: string;
@@ -30,9 +19,6 @@ export function CampaignsTour({ userId, children }: CampaignsTourProps) {
   const dismiss = useCallback(() => {
     if (userId) {
       localStorage.setItem(seenKey(userId), "1");
-      if (sessionStorage.getItem(PENDING_KEY) === userId) {
-        sessionStorage.removeItem(PENDING_KEY);
-      }
     }
     setOpen(false);
   }, [userId]);
@@ -65,7 +51,7 @@ export function CampaignsTour({ userId, children }: CampaignsTourProps) {
       <PopoverAnchor asChild>
         <div
           className={cn(
-            "inline-flex rounded-sm transition-shadow",
+            "inline-flex rounded-md p-1 transition-shadow",
             open && "ring-2 ring-primary ring-offset-2 ring-offset-background",
           )}
         >

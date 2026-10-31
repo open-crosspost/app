@@ -5,7 +5,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, RefreshCw, Wallet } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { type AuthClient, sessionQueryKey, useApiClient, useAuthClient } from "@/app";
+import { pluginPath, sessionQueryKey, useApiClient, useAuthClient } from "@/app";
 import { BackButton } from "@/components/back-button";
 import { PlatformAccountItem } from "@/components/platform-account";
 import { PlatformAccountList } from "@/components/platform-account-list";
@@ -30,40 +30,7 @@ import {
   X_CONNECT_CALLBACK_PATH,
   X_CONNECT_WALLET_KEY_STORAGE_KEY,
 } from "@/lib/social";
-import { convertAtomicToStandard } from "@/lib/utils/string";
 import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
-
-const NEAR_SOCIAL_STORAGE_QUERY_KEY = ["social", "near-storage"] as const;
-const SOCIAL_CONTRACT_ID = NETWORK_ID === "mainnet" ? "social.near" : "v1.social08.testnet";
-
-type SocialStorageBalance = {
-  available: string;
-  total: string;
-} | null;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function fetchNearSocialStorageBalance(
-  near: AuthClient["near"],
-  accountId: string,
-): Promise<SocialStorageBalance> {
-  return (
-    await near.view({
-      contractId: SOCIAL_CONTRACT_ID,
-      methodName: "storage_balance_of",
-      args: { account_id: accountId },
-    })
-  )?.data?.result as SocialStorageBalance;
-}
-
-function formatNearAmount(atomicAmount: string): string {
-  const standardAmount = Number(convertAtomicToStandard(atomicAmount, 24));
-  return standardAmount.toLocaleString(undefined, {
-    maximumFractionDigits: 4,
-  });
-}
 
 export const Route = createFileRoute("/_authenticated/manage/")({
   component: ManageAccountsPage,
@@ -94,14 +61,10 @@ function ManageAccountsPage() {
     queryFn: () => getNearSocialAccount(authClient, nearAccountId),
     enabled: !!nearAccountId,
   });
-  const { data: storageBalance, isLoading: isLoadingStorage } = useQuery({
-    queryKey: [...NEAR_SOCIAL_STORAGE_QUERY_KEY, nearAccountId],
-    queryFn: async () => {
-      if (!nearAccountId) return null;
-
-      return await fetchNearSocialStorageBalance(near, nearAccountId);
-    },
-    enabled: !!nearAccountId,
+  const { data: gateStatus } = useQuery({
+    queryKey: ["connectors", "xpostGateStatus"] as const,
+    queryFn: () => apiClient.connectors.xpostGateStatus(),
+    staleTime: 60 * 1000,
   });
   const { selectedAccountIds } = usePlatformAccountsStore();
 
@@ -122,7 +85,6 @@ function ManageAccountsPage() {
         queryClient.invalidateQueries({ queryKey: ["near", "accountId"] as const }),
         queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
         queryClient.invalidateQueries({ queryKey: socialAccountsQueryKey }),
-        queryClient.invalidateQueries({ queryKey: NEAR_SOCIAL_STORAGE_QUERY_KEY }),
       ]);
       toast.success("Signed in with NEAR");
     },
@@ -131,74 +93,35 @@ function ManageAccountsPage() {
     },
   });
 
-  const addStorageMutation = useMutation({
-    mutationFn: async () => {
-      const connected = await near.ensureConnected();
-      const signerId = near.getAccountId();
-      if (!connected || !signerId) {
-        throw new Error("Reconnect your NEAR wallet to add storage.");
-      }
-
-      await near
-        .getNearClient()
-        .transaction(signerId)
-        .functionCall(
-          SOCIAL_CONTRACT_ID,
-          "storage_deposit",
-          {},
-          {
-            gas: "30 Tgas",
-            attachedDeposit: 100000000000000000000000n,
-          },
-        )
-        .send();
-
-      let latestBalance: SocialStorageBalance = storageBalance ?? null;
-      const previousTotal = storageBalance ? BigInt(storageBalance.total) : 0n;
-
-      for (let attempt = 0; attempt < 6; attempt++) {
-        await sleep(1000);
-        latestBalance = await fetchNearSocialStorageBalance(near, signerId);
-
-        if (latestBalance && BigInt(latestBalance.total) > previousTotal) {
-          break;
-        }
-      }
-
-      return latestBalance;
-    },
-    onSuccess: async (latestBalance) => {
-      queryClient.setQueryData([...NEAR_SOCIAL_STORAGE_QUERY_KEY, nearAccountId], latestBalance);
-      await queryClient.invalidateQueries({ queryKey: NEAR_SOCIAL_STORAGE_QUERY_KEY });
-      toast.success("NEAR Social storage added");
-    },
-    onError: (error) => {
-      console.error("Failed to add NEAR Social storage:", error);
-      toast.error(error.message || "Failed to add NEAR Social storage");
-    },
-  });
-
   const [isXConnectOpen, setXConnectOpen] = useState(false);
   const [walletApiKey, setWalletApiKey] = useState("");
 
+  const startXConnect = async (byoWalletApiKey?: string) => {
+    if (byoWalletApiKey) {
+      sessionStorage.setItem(X_CONNECT_WALLET_KEY_STORAGE_KEY, byoWalletApiKey);
+    }
+
+    const result = await apiClient.social.accounts.connect({
+      platform: Platform.TWITTER,
+      redirectUri: window.location.origin + X_CONNECT_CALLBACK_PATH,
+    });
+
+    if (result.status !== "redirect" || !result.url) {
+      throw new Error(result.message || "X account connection is unavailable right now.");
+    }
+
+    window.location.assign(result.url);
+  };
+
   const connectXMutation = useMutation({
-    mutationFn: async (key: string) => {
-      sessionStorage.setItem(X_CONNECT_WALLET_KEY_STORAGE_KEY, key);
-
-      const result = await apiClient.social.accounts.connect({
-        platform: Platform.TWITTER,
-        redirectUri: window.location.origin + X_CONNECT_CALLBACK_PATH,
-      });
-
-      if (result.status !== "redirect" || !result.url) {
-        throw new Error(result.message || "X account connection is unavailable right now.");
-      }
-
-      return result.url;
+    mutationFn: () => startXConnect(),
+    onError: (error) => {
+      toast.error(error.message || "Failed to start X account connection");
     },
-    onSuccess: (url) => {
-      window.location.assign(url);
-    },
+  });
+
+  const byoConnectXMutation = useMutation({
+    mutationFn: (key: string) => startXConnect(key),
     onError: (error) => {
       sessionStorage.removeItem(X_CONNECT_WALLET_KEY_STORAGE_KEY);
       toast.error(error.message || "Failed to start X account connection");
@@ -216,17 +139,15 @@ function ManageAccountsPage() {
     event.preventDefault();
     const key = walletApiKey.trim();
     if (!key) return;
-    connectXMutation.mutate(key);
+    byoConnectXMutation.mutate(key);
   };
-
-  const hasAvailableStorage = storageBalance ? BigInt(storageBalance.available) > 0n : false;
 
   const handleContinue = () => {
     navigate({ to: "/editor" });
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <div className="border-b pb-4 mb-6">
         <div className="flex items-center mb-4">
           <BackButton />
@@ -244,7 +165,7 @@ function ManageAccountsPage() {
             <h2 className="text-xl font-semibold">Near Social Account</h2>
           </div>
 
-          {isLoadingProfile || isLoadingStorage ? (
+          {isLoadingProfile ? (
             <div className="flex justify-center py-8">
               <RefreshCw size={16} className={"animate-spin"} />
             </div>
@@ -256,54 +177,30 @@ function ManageAccountsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <CheckCircle2
-                        size={16}
-                        className={hasAvailableStorage ? "text-green-600" : "text-muted-foreground"}
-                      />
-                      {hasAvailableStorage
-                        ? "Ready for relayed posts"
-                        : "Storage needed before relayed posts"}
+                      <CheckCircle2 size={16} className="text-muted-foreground" />
+                      Ready for relayed posts
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {hasAvailableStorage
-                        ? "Gas is relayed for posts. Your wallet only needs enough NEAR Social storage."
-                        : "Posts are relayed gaslessly, but your account still needs NEAR Social storage before posting."}
+                      Posts publish through the gasless relayer — no storage deposit needed.
+                      {NETWORK_ID !== "mainnet"
+                        ? " NEAR Social posting itself is mainnet-only."
+                        : ""}
                     </p>
-                    {storageBalance ? (
-                      <div className="text-sm text-muted-foreground">
-                        <span>Available: {formatNearAmount(storageBalance.available)} NEAR</span>
-                        <span className="mx-2">·</span>
-                        <span>Total deposited: {formatNearAmount(storageBalance.total)} NEAR</span>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">
-                        No NEAR Social storage deposited yet.
-                      </div>
-                    )}
                     {!connectedNearAccountId && nearWalletDisplay && (
                       <p className="text-sm text-muted-foreground">
-                        Reconnect @{nearWalletDisplay} in this browser before adding storage or
-                        relaying posts.
+                        Reconnect @{nearWalletDisplay} in this browser before relaying posts.
                       </p>
                     )}
                   </div>
 
-                  {connectedNearAccountId ? (
-                    <Button
-                      onClick={() => addStorageMutation.mutate()}
-                      disabled={addStorageMutation.isPending}
-                      variant={hasAvailableStorage ? "outline" : "default"}
-                    >
-                      {addStorageMutation.isPending ? "Adding Storage..." : "Add 0.1 NEAR Storage"}
-                    </Button>
-                  ) : (
+                  {!connectedNearAccountId && nearWalletDisplay ? (
                     <Button
                       onClick={() => connectNearMutation.mutate()}
                       disabled={connectNearMutation.isPending}
                     >
                       {connectNearMutation.isPending ? "Connecting..." : "Reconnect NEAR"}
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -315,7 +212,7 @@ function ManageAccountsPage() {
                 Please sign in with your NEAR wallet to use NEAR Social
               </p>
               <Button asChild className="mt-4">
-                <Link to="/login">Connect NEAR</Link>
+                <Link to={pluginPath("/login")}>Connect NEAR</Link>
               </Button>
             </div>
           )}
@@ -328,9 +225,30 @@ function ManageAccountsPage() {
             platform={platform}
             accounts={accounts}
             isLoading={isLoading}
-            onConnect={isPlatformConnectable(platform) ? () => setXConnectOpen(true) : undefined}
+            onConnect={
+              isPlatformConnectable(platform) ? () => connectXMutation.mutate() : undefined
+            }
           />
         ))}
+
+        {gateStatus?.enabled && (
+          <p className="text-sm text-muted-foreground">
+            {gateStatus.caller.tier
+              ? `Sponsored posting: XPOST Tier ${gateStatus.caller.tier} of 3`
+              : `Sponsored posting needs ${gateStatus.tier1} XPOST — you hold ${gateStatus.caller.balance ?? "0"}.`}
+          </p>
+        )}
+
+        <p className="text-sm text-muted-foreground">
+          By default the app pays for posting — no keys needed.{" "}
+          <button
+            type="button"
+            className="underline underline-offset-2 hover:text-foreground"
+            onClick={() => setXConnectOpen(true)}
+          >
+            Advanced: use your own OutLayer wallet
+          </button>
+        </p>
 
         <Dialog open={isXConnectOpen} onOpenChange={handleXConnectOpenChange}>
           <DialogContent className="border bg-background text-foreground">
@@ -353,20 +271,22 @@ function ManageAccountsPage() {
                   placeholder="wk_…"
                   value={walletApiKey}
                   onChange={(event) => setWalletApiKey(event.target.value)}
-                  disabled={connectXMutation.isPending}
+                  disabled={byoConnectXMutation.isPending}
                 />
               </div>
               <DialogFooter>
                 <Button
                   type="button"
-                  variant="outline"
                   onClick={() => handleXConnectOpenChange(false)}
-                  disabled={connectXMutation.isPending}
+                  disabled={byoConnectXMutation.isPending}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={!walletApiKey.trim() || connectXMutation.isPending}>
-                  {connectXMutation.isPending ? "Redirecting..." : "Continue to X"}
+                <Button
+                  type="submit"
+                  disabled={!walletApiKey.trim() || byoConnectXMutation.isPending}
+                >
+                  {byoConnectXMutation.isPending ? "Redirecting..." : "Continue to X"}
                 </Button>
               </DialogFooter>
             </form>

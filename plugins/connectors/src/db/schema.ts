@@ -37,6 +37,7 @@ export const bridgeWallets = pgTable(
     walletApiKey: text("wallet_api_key").notNull(),
     walletId: text("wallet_id"),
     nearAccountId: text("near_account_id").notNull(),
+    rowProfile: text("row_profile"),
     paymentKey: text("payment_key"),
     paymentKeySource: text("payment_key_source"),
     connectedAt: timestamp("connected_at", { mode: "date", withTimezone: true })
@@ -46,3 +47,21 @@ export const bridgeWallets = pgTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.agentId] })],
 );
+
+/**
+ * Dynamic tier thresholds for the XPOST admission gate — a singleton row
+ * (`id = 'xpost'`). Balances are human-unit strings; the daily price refresh
+ * recomputes them from the Ref pools (source: "auto") and an admin can pin
+ * them by hand (source: "manual"). Absent row = the plugin-variable ladder.
+ */
+export const gateConfig = pgTable("gate_config", {
+  id: text("id").primaryKey().default("xpost"),
+  tier1Balance: text("tier1_balance").notNull(),
+  tier2Balance: text("tier2_balance").notNull(),
+  tier3Balance: text("tier3_balance").notNull(),
+  priceUsd: text("price_usd"),
+  source: text("source").notNull().default("auto"),
+  refreshedAt: timestamp("refreshed_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

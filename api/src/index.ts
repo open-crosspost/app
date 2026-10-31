@@ -41,6 +41,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
     X_CLIENT_ID: z.string().optional(),
     X_CLIENT_SECRET: z.string().optional(),
     X_CONNECT_PROJECT: z.string().optional(),
+    X_POLICY_MAX_PER_DAY: z.string().optional(),
+    OUTLAYER_APP_WALLET_KEY: z.string().optional(),
   }),
 
   context: z.object({
@@ -84,10 +86,14 @@ export default createPlugin.withPlugins<PluginsClient>()({
       );
 
       const socialRepository = new SocialRepository(driver.db);
+      const maxPerDayRaw = config.secrets.X_POLICY_MAX_PER_DAY;
+      const maxPerDay = maxPerDayRaw ? Number.parseInt(maxPerDayRaw, 10) : undefined;
       const social = new SocialService(socialRepository, {
         clientId: config.secrets.X_CLIENT_ID,
         clientSecret: config.secrets.X_CLIENT_SECRET,
         project: config.secrets.X_CONNECT_PROJECT,
+        appWalletKey: config.secrets.OUTLAYER_APP_WALLET_KEY,
+        maxPerDay: Number.isFinite(maxPerDay) ? maxPerDay : undefined,
       });
 
       yield* Effect.promise(() => social.ensureSchema());
@@ -140,7 +146,9 @@ export default createPlugin.withPlugins<PluginsClient>()({
           callback: builder.social.accounts.callback.effect(function* ({ context, input }) {
             const auth = requireAuthContext(context);
             const social = yield* SocialServiceTag;
-            return yield* Effect.promise(() => social.completeConnect(auth.userId, input));
+            return yield* Effect.promise(() =>
+              social.completeConnect(auth.userId, input, context.nearAccountId),
+            );
           }),
 
           disconnect: builder.social.accounts.disconnect.effect(function* ({ context, input }) {

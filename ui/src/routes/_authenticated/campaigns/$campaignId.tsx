@@ -7,7 +7,7 @@ import { CampaignScreen } from "@/components/campaign-screen";
 import { Button } from "@/components/ui/button";
 import { X_CONNECTOR_PROJECT } from "@/config";
 import { getCampaign } from "@/lib/campaigns";
-import { NearSocialStorageRequiredError, postToNearSocial } from "@/lib/near-social-post";
+import { postToNearSocial, toNearSocialUserError } from "@/lib/near-social-post";
 import {
   getNearSocialAccount,
   getTwitterConnectedAccount,
@@ -105,12 +105,7 @@ function CampaignPage() {
             txHash: result.txHash,
           };
         } catch (error) {
-          if (error instanceof NearSocialStorageRequiredError) {
-            throw new Error(
-              "Your Near Social account needs a small storage deposit before you can post. Add storage from Manage Accounts, then try again.",
-            );
-          }
-          throw error;
+          throw new Error(toNearSocialUserError(error));
         }
       }}
     />

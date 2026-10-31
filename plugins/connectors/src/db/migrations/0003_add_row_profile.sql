@@ -1,0 +1,1 @@
+ALTER TABLE "bridge_wallets" ADD COLUMN "row_profile" text;

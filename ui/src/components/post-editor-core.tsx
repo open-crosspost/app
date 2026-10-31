@@ -21,7 +21,7 @@ interface PostEditorCoreProps {
   onPostsChange: (posts: EditorContent[]) => void;
   onTextChange: (index: number, text: string) => void;
   onMediaUpload: (index: number, file: File) => void;
-  onMediaRemove: (index: number) => void;
+  onMediaRemove: (index: number, mediaIndex?: number) => void;
   onAddThread: () => void;
   onRemoveThread: (index: number) => void;
   onOpenMediaModal: (src: string, type: string) => void;

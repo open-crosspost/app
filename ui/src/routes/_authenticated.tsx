@@ -1,67 +1,19 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import type { Organization, SessionData } from "@/app";
-
-interface AuthContext {
-  isAuthenticated: boolean;
-  user: SessionData["user"] | null;
-  session: SessionData["session"] | null;
-  activeOrganizationId: string | null;
-  isAnonymous: boolean;
-  isAdmin: boolean;
-  isBanned: boolean;
-}
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { AppShell } from "@/components/app-shell";
+import { useScheduledPostsExecutor } from "@/hooks/use-scheduled-posts-executor";
+import { requireSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async ({ context, location }) => {
-    const session = context.session as SessionData | null | undefined;
-
-    if (!session?.user) {
-      throw redirect({
-        to: "/login",
-        search: {
-          redirect: location.href,
-        },
-      });
-    }
-
-    if (session.user.banned) {
-      throw redirect({
-        to: "/login",
-        hash: "banned",
-      });
-    }
-
-    const auth: AuthContext = {
-      isAuthenticated: true,
-      user: session.user,
-      session: session.session,
-      activeOrganizationId: session.session?.activeOrganizationId || null,
-      isAnonymous: session.user.isAnonymous || false,
-      isAdmin: session.user.role === "admin",
-      isBanned: session.user.banned || false,
-    };
-
-    await context.queryClient.ensureQueryData({
-      queryKey: ["organizations"],
-      queryFn: async () => {
-        const { data } = await context.authClient.organization.list();
-        return (data || []) as Organization[];
-      },
-      staleTime: 30 * 1000,
-    });
-
-    return {
-      auth,
-      session,
-    };
-  },
+  beforeLoad: requireSession,
   component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
+  useScheduledPostsExecutor();
+
   return (
-    <div className="min-h-screen">
+    <AppShell>
       <Outlet />
-    </div>
+    </AppShell>
   );
 }

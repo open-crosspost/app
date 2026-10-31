@@ -257,8 +257,49 @@ export declare const contract: {
         initialDepositUsdc: z.ZodOptional<z.ZodString>;
         initialDepositNear: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        paymentKey: z.ZodString;
         nonce: z.ZodNumber;
+        stored: z.ZodBoolean;
+        keySource: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>, {
+        UNAUTHORIZED: {
+            readonly status: 401;
+            readonly data: z.ZodObject<{
+                apiKeyProvided: z.ZodBoolean;
+                provider: z.ZodOptional<z.ZodString>;
+                authType: z.ZodOptional<z.ZodEnum<{
+                    apiKey: "apiKey";
+                    oauth: "oauth";
+                    token: "token";
+                }>>;
+            }, z.core.$strip>;
+        };
+        BAD_REQUEST: {
+            readonly status: 400;
+            readonly data: z.ZodObject<{
+                invalidFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                validationErrors: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    field: z.ZodString;
+                    message: z.ZodString;
+                    code: z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>>>;
+            }, z.core.$strip>;
+        };
+        CONNECTION_ERROR: {
+            readonly status: 502;
+            readonly data: z.ZodObject<{
+                errorCode: z.ZodOptional<z.ZodString>;
+                host: z.ZodOptional<z.ZodString>;
+                port: z.ZodOptional<z.ZodNumber>;
+                suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+    }>;
+    outlayerAppWalletAttach: import("@orpc/contract").ProcedureContract<z.ZodObject<{
+        agentId: z.ZodString;
+        rowProfile: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        attached: z.ZodBoolean;
+        walletAccountId: z.ZodString;
     }, z.core.$strip>, {
         UNAUTHORIZED: {
             readonly status: 401;
@@ -322,6 +363,141 @@ export declare const contract: {
                     oauth: "oauth";
                     token: "token";
                 }>>;
+            }, z.core.$strip>;
+        };
+        BAD_REQUEST: {
+            readonly status: 400;
+            readonly data: z.ZodObject<{
+                invalidFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                validationErrors: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    field: z.ZodString;
+                    message: z.ZodString;
+                    code: z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>>>;
+            }, z.core.$strip>;
+        };
+        CONNECTION_ERROR: {
+            readonly status: 502;
+            readonly data: z.ZodObject<{
+                errorCode: z.ZodOptional<z.ZodString>;
+                host: z.ZodOptional<z.ZodString>;
+                port: z.ZodOptional<z.ZodNumber>;
+                suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+    }>;
+    xpostGateStatus: import("@orpc/contract").ProcedureContract<z.ZodOptional<z.ZodObject<{}, z.core.$strip>>, z.ZodObject<{
+        enabled: z.ZodBoolean;
+        tier1: z.ZodString;
+        tier2: z.ZodString;
+        tier3: z.ZodString;
+        source: z.ZodString;
+        priceUsd: z.ZodNullable<z.ZodString>;
+        refreshedAt: z.ZodNullable<z.ZodString>;
+        caller: z.ZodObject<{
+            nearAccountId: z.ZodNullable<z.ZodString>;
+            balance: z.ZodNullable<z.ZodString>;
+            tier: z.ZodNullable<z.ZodNumber>;
+        }, z.core.$strip>;
+    }, z.core.$strip>, {
+        BAD_REQUEST: {
+            readonly status: 400;
+            readonly data: z.ZodObject<{
+                invalidFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                validationErrors: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    field: z.ZodString;
+                    message: z.ZodString;
+                    code: z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>>>;
+            }, z.core.$strip>;
+        };
+        CONNECTION_ERROR: {
+            readonly status: 502;
+            readonly data: z.ZodObject<{
+                errorCode: z.ZodOptional<z.ZodString>;
+                host: z.ZodOptional<z.ZodString>;
+                port: z.ZodOptional<z.ZodNumber>;
+                suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+    }>;
+    xpostGateConfigSet: import("@orpc/contract").ProcedureContract<z.ZodObject<{
+        tier1: z.ZodString;
+        tier2: z.ZodString;
+        tier3: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        tier1: z.ZodString;
+        tier2: z.ZodString;
+        tier3: z.ZodString;
+        source: z.ZodString;
+        priceUsd: z.ZodNullable<z.ZodString>;
+        refreshedAt: z.ZodString;
+    }, z.core.$strip>, {
+        UNAUTHORIZED: {
+            readonly status: 401;
+            readonly data: z.ZodObject<{
+                apiKeyProvided: z.ZodBoolean;
+                provider: z.ZodOptional<z.ZodString>;
+                authType: z.ZodOptional<z.ZodEnum<{
+                    apiKey: "apiKey";
+                    oauth: "oauth";
+                    token: "token";
+                }>>;
+            }, z.core.$strip>;
+        };
+        FORBIDDEN: {
+            readonly status: 403;
+            readonly data: z.ZodObject<{
+                requiredPermissions: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                action: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+        BAD_REQUEST: {
+            readonly status: 400;
+            readonly data: z.ZodObject<{
+                invalidFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                validationErrors: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    field: z.ZodString;
+                    message: z.ZodString;
+                    code: z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>>>;
+            }, z.core.$strip>;
+        };
+        CONNECTION_ERROR: {
+            readonly status: 502;
+            readonly data: z.ZodObject<{
+                errorCode: z.ZodOptional<z.ZodString>;
+                host: z.ZodOptional<z.ZodString>;
+                port: z.ZodOptional<z.ZodNumber>;
+                suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+    }>;
+    xpostGateConfigRefresh: import("@orpc/contract").ProcedureContract<import("@orpc/contract").InitialInputSchema, z.ZodObject<{
+        tier1: z.ZodString;
+        tier2: z.ZodString;
+        tier3: z.ZodString;
+        source: z.ZodString;
+        priceUsd: z.ZodNullable<z.ZodString>;
+        refreshedAt: z.ZodString;
+    }, z.core.$strip>, {
+        UNAUTHORIZED: {
+            readonly status: 401;
+            readonly data: z.ZodObject<{
+                apiKeyProvided: z.ZodBoolean;
+                provider: z.ZodOptional<z.ZodString>;
+                authType: z.ZodOptional<z.ZodEnum<{
+                    apiKey: "apiKey";
+                    oauth: "oauth";
+                    token: "token";
+                }>>;
+            }, z.core.$strip>;
+        };
+        FORBIDDEN: {
+            readonly status: 403;
+            readonly data: z.ZodObject<{
+                requiredPermissions: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                action: z.ZodOptional<z.ZodString>;
             }, z.core.$strip>;
         };
         BAD_REQUEST: {

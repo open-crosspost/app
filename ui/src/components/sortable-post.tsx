@@ -45,11 +45,11 @@ function SortablePostComponent({
       className="w-full min-w-0 rounded-lg bg-background p-1 sm:p-2"
     >
       <div className="flex w-full min-w-0 gap-1.5 sm:gap-2">
-        <div className="w-6 flex-none sm:w-8">
+        <div className="flex w-6 flex-none sm:w-8">
           <div
             {...attributes}
             {...listeners}
-            className="sticky top-0 flex h-[150px] w-6 cursor-grab items-center justify-center rounded-lg bg-muted touch-manipulation base-component sm:w-8"
+            className="flex w-6 cursor-grab touch-none items-center justify-center self-stretch rounded-sm border-2 border-primary bg-white shadow-[2px_2px_0_rgba(0,0,0,1)] active:cursor-grabbing dark:bg-black dark:shadow-[2px_2px_0_rgba(255,255,255,0.3)] sm:w-8"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -130,7 +130,7 @@ function SortablePostComponent({
                               onOpenMediaModal(srcForModal, mediaItem.mimeType);
                             }
                           }}
-                          className="block h-10 w-10 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          className="block h-10 w-10 rounded focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         >
                           {mediaItem.mimeType?.startsWith("image/") ? (
                             <img
@@ -146,7 +146,7 @@ function SortablePostComponent({
                               playsInline
                             />
                           ) : (
-                            <div className="h-full w-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+                            <div className="flex h-full w-full items-center justify-center bg-muted text-xs text-muted-foreground">
                               ?
                             </div>
                           )}
@@ -166,7 +166,7 @@ function SortablePostComponent({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-sm ${(post.text || "").length > 280 ? "text-destructive" : "text-gray-500"}`}
+                  className={`text-sm ${(post.text || "").length > 280 ? "text-destructive" : "text-muted-foreground"}`}
                 >
                   {(post.text || "").length}/280 characters
                 </span>

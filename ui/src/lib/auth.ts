@@ -7,7 +7,6 @@
 
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
-import { useQuery, type useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import {
   adminClient,
@@ -17,7 +16,6 @@ import {
   phoneNumberClient,
 } from "better-auth/client/plugins";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
-import type { RelayedTransactionT } from "better-near-auth";
 import { siwnClient } from "better-near-auth/client";
 import type { ClientRuntimeConfig } from "everything-dev/types";
 import { getRuntimeConfig } from "everything-dev/ui/runtime";
@@ -191,80 +189,20 @@ export function useAuthClient(): AuthClient {
   return useRouter().options.context.authClient;
 }
 
-export const sessionQueryKey = ["session"] as const;
-
 /**
- * LOCAL COPY — stand-in for `resolveSessionFromCache` in
- * `everything-dev/ui/auth` (the upstream canonical source; the main app's
- * ui/src/lib/auth.ts is a pure re-export of it). This local copy exists
- * because the pinned framework release predates the v2 train and does not
- * publish `ui/auth`.
- *
- * Semantics to preserve when conforming to upstream:
- *   1. Cache-first — the query cache entry wins over the server-passed
- *      session.
- *   2. An explicit signed-out `null` cache entry must be honored (return
- *      null, not the stale context session) — this is the fix for the
- *      sign-out-then-bounce-back redirect-loop class.
- *
- * Exit path (once on a framework version that publishes ui/auth): replace
- * this function and requireSession below with
- *   export { requireSession, resolveSessionFromCache } from "everything-dev/ui/auth";
- * then run `pnpm run typecheck`.
+ * Session plumbing lives in the framework (`everything-dev/ui/auth`) — the
+ * local-copy era is over at this pin. Re-exported here so route code keeps
+ * importing from the app seam.
  */
-export function resolveSessionFromCache(
-  queryClient:
-    | ReturnType<typeof useQueryClient>
-    | { getQueryData: (key: readonly unknown[]) => unknown },
-  session: SessionData | null | undefined,
-): SessionData | null {
-  const cached = queryClient.getQueryData(sessionQueryKey);
-  if (cached !== undefined) return cached as SessionData | null;
-  return session ?? null;
-}
-
-/**
- * LOCAL COPY — stand-in for `requireSession` in `everything-dev/ui/auth`.
- * See resolveSessionFromCache above for why this local copy exists and how
- * to migrate off it.
- *
- * Semantics to preserve when conforming to upstream: this is the single
- * shared session gate for authed mounts — every guard must delegate here
- * (rather than inlining sessionQueryOptions/authClient.getSession) so all
- * guards share one resolution semantics and cannot disagree into a
- * /login <-> protected-route redirect ping-pong.
- */
-export function requireSession(session: SessionData | null | undefined): SessionData {
-  if (!session?.user) {
-    throw new Error("No active session");
-  }
-  return session;
-}
-
-export function sessionQueryOptions(authClient: AuthClient, initialSession?: SessionData | null) {
-  const baseOptions = {
-    queryKey: sessionQueryKey,
-    queryFn: async () => {
-      const { data: session } = await authClient.getSession();
-      return session ?? null;
-    },
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  };
-
-  return initialSession === undefined
-    ? baseOptions
-    : { ...baseOptions, initialData: initialSession };
-}
-
-export function useRelayHistory(session: SessionData | null | undefined, authClient: AuthClient) {
-  return useQuery({
-    queryKey: ["relay-history"],
-    queryFn: async (): Promise<RelayedTransactionT[]> => {
-      const res = await authClient.near.relayHistory();
-      return res?.data?.transactions ?? [];
-    },
-    enabled: !!session,
-    refetchInterval: 2000,
-  });
-}
+export {
+  clearAuthenticatedQueries,
+  pluginHref,
+  pluginPath,
+  pluginSearch,
+  refreshSessionCache,
+  requireAdmin,
+  requireSession,
+  resolveSessionFromCache,
+  sessionQueryKey,
+  sessionQueryOptions,
+} from "everything-dev/ui/auth";

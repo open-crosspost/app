@@ -16,13 +16,20 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { getRemoteScripts, getThemeInitScript } from "everything-dev/ui/head";
+import {
+  getRemotePreloadLinks,
+  getRemoteScripts,
+  getThemeInitScript,
+} from "everything-dev/ui/head";
 import { getSocialImageMeta } from "everything-dev/ui/metadata";
 import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import type { RouterContext } from "@/app";
 import { getBaseStyles } from "@/app";
+import { AppFrame } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { VersionRefreshBanner } from "@/components/version-refresh-banner";
 import { useMediaQuery } from "@/hooks";
 import { AppI18nProvider } from "@/i18n/runtime";
 import { resolveSessionFromCache, sessionQueryKey } from "@/lib/auth";
@@ -76,7 +83,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         { charSet: "utf-8" },
         {
           name: "viewport",
-          content: "width=device-width, initial-scale=1.0, viewport-fit=cover",
+          content:
+            "width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content",
         },
         { title },
         { name: "description", content: description },
@@ -101,6 +109,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         }),
       ],
       links: [
+        ...(runtimeConfig ? getRemotePreloadLinks(runtimeConfig) : []),
         {
           rel: "stylesheet",
           href: `${assetsUrl ?? ""}/static/css/style.css${runtimeConfig?.ui?.integrity ? `?v=${encodeURIComponent(runtimeConfig.ui.integrity)}` : ""}`,
@@ -138,7 +147,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  const { cspNonce, session } = Route.useRouteContext();
+  const { cspNonce, session, runtimeConfig } = Route.useRouteContext();
   const isDesktop = useMediaQuery("(min-width: 640px)");
   const isSsr = typeof window === "undefined";
   return (
@@ -155,13 +164,19 @@ function RootComponent() {
       <body>
         <MotionConfig reducedMotion="user">
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem nonce={cspNonce}>
-            <div id="root">
+            <div
+              id="root"
+              className="safe-area-inset flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground"
+            >
               <AppI18nProvider
                 preferredLocale={(session?.user as { locale?: string | null } | undefined)?.locale}
               >
                 <Outlet />
               </AppI18nProvider>
             </div>
+            <ClientOnly>
+              <VersionRefreshBanner runtimeConfig={runtimeConfig} />
+            </ClientOnly>
             <Toaster position={isDesktop ? "bottom-right" : "top-center"} closeButton />
             <ClientOnly>
               <TanStackDevtools
@@ -185,32 +200,29 @@ function RootComponent() {
 
 function RootNotFound() {
   return (
-    <div className="min-h-dvh bg-background text-foreground flex items-center justify-center px-6">
-      <div className="max-w-md text-center space-y-4">
+    <AppFrame>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <h1 className="text-3xl font-semibold tracking-tight">Page not found</h1>
         <p className="text-sm text-muted-foreground">The page you requested doesn't exist here.</p>
         <div>
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center h-10 px-4 border border-border bg-card hover:bg-accent transition-colors"
-          >
-            Back home
-          </Link>
+          <Button asChild>
+            <Link to="/">Back home</Link>
+          </Button>
         </div>
       </div>
-    </div>
+    </AppFrame>
   );
 }
 
 function RootError() {
   return (
-    <div className="min-h-dvh bg-background text-foreground flex items-center justify-center px-6">
-      <div className="max-w-md text-center space-y-4">
+    <AppFrame>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <h1 className="text-3xl font-semibold tracking-tight">Application error</h1>
         <p className="text-sm text-muted-foreground">
           Something went wrong before the app layout could render.
         </p>
       </div>
-    </div>
+    </AppFrame>
   );
 }

@@ -1,15 +1,13 @@
-import type { PlatformName } from "@crosspost/plugin/types";
-import { SUPPORTED_PLATFORMS } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Eye, FileText, MoreHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { useApiClient, useAuthClient } from "@/app";
 import { DraftsModal } from "@/components/drafts-modal";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { PlatformAccountsSelector } from "@/components/platform-accounts-selector";
 import { PostEditorCore } from "@/components/post-editor-core";
-import { PostInteractionSelector, type PostType } from "@/components/post-interaction-selector";
+import { PostInteractionSelector } from "@/components/post-interaction-selector";
 import { PreviewModal } from "@/components/preview-modal";
 import { SchedulePostModal } from "@/components/schedule-post-modal";
 import { ScheduledPostsFeed } from "@/components/scheduled-posts-feed";
@@ -20,23 +18,43 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { usePostManagement } from "@/hooks/use-post-management";
-import { usePostMedia } from "@/hooks/use-post-media";
 import { useSubmitPost } from "@/hooks/use-submit-post";
 import { toast } from "@/hooks/use-toast";
 import {
-  getNearSocialAccount,
-  listConnectedAccounts,
+  connectedAccountsQueryOptions,
   mergeConnectedAccounts,
-  nearSocialAccountQueryKey,
-  socialAccountsQueryKey,
+  nearAccountIdQueryOptions,
+  nearSocialAccountQueryOptions,
 } from "@/lib/social";
-import { detectPlatformFromUrl } from "@/lib/utils/url-utils";
+import { useDebounce } from "@/lib/utils/debounce";
 import type { EditorContent, EditorMedia } from "@/store/drafts-store";
 import { useDraftsStore } from "@/store/drafts-store";
 import { usePlatformAccountsStore } from "@/store/platform-accounts-store";
+import {
+  disabledPlatformsFor,
+  editorReducer,
+  initEditorState,
+  isEditorEmpty,
+  mimeTypeFromDataUrl,
+} from "./-editor-state";
 
 export const Route = createFileRoute("/_authenticated/editor/")({
+  loader: async ({ context }) => {
+    const { queryClient, authClient, apiClient } = context;
+    await queryClient.ensureQueryData(nearAccountIdQueryOptions(authClient));
+    const nearAccountId = queryClient.getQueryData<string | null>(
+      nearAccountIdQueryOptions(authClient).queryKey,
+    );
+    // Preload best-effort: an unavailable API must not take the route down —
+    // the selector's inline error state handles degradation with a retry.
+    await Promise.allSettled([
+      queryClient.ensureQueryData(connectedAccountsQueryOptions(apiClient)),
+      nearAccountId
+        ? queryClient.ensureQueryData(nearSocialAccountQueryOptions(authClient, nearAccountId))
+        : Promise.resolve(null),
+    ]);
+    return { nearAccountId: nearAccountId ?? null };
+  },
   component: EditorPage,
 });
 
@@ -44,23 +62,15 @@ function EditorPage() {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
   const { data: session } = authClient.useSession();
-  const { data: nearAccountId } = useQuery({
-    queryKey: ["near", "accountId"] as const,
-    queryFn: () => authClient.near.getAccountId(),
-    enabled: !!session?.user,
-    staleTime: 60 * 1000,
-  });
+  const isEnabled = !!session?.user;
+  const { data: nearAccountId } = useQuery(nearAccountIdQueryOptions(authClient, isEnabled));
   const selectedAccountIds = usePlatformAccountsStore((state) => state.selectedAccountIds);
-  const { data: connectedAccounts = [] } = useQuery({
-    queryKey: socialAccountsQueryKey,
-    queryFn: () => listConnectedAccounts(apiClient),
-    enabled: !!session?.user,
-  });
-  const { data: nearSocialAccount } = useQuery({
-    queryKey: nearSocialAccountQueryKey(nearAccountId),
-    queryFn: () => getNearSocialAccount(authClient, nearAccountId),
-    enabled: !!nearAccountId,
-  });
+  const { data: connectedAccounts = [] } = useQuery(
+    connectedAccountsQueryOptions(apiClient, isEnabled),
+  );
+  const { data: nearSocialAccount } = useQuery(
+    nearSocialAccountQueryOptions(authClient, nearAccountId),
+  );
   const allAccounts = useMemo(
     () => mergeConnectedAccounts(connectedAccounts, nearSocialAccount ?? null),
     [connectedAccounts, nearSocialAccount],
@@ -73,73 +83,110 @@ function EditorPage() {
   const { setModalOpen, autosave, saveAutoSave, clearAutoSave, saveDraft, isModalOpen } =
     useDraftsStore();
 
-  const [posts, setPosts] = useState<EditorContent[]>([DEFAULT_EMPTY_POST]);
-  const [postType, setPostType] = useState<PostType>("post");
-  const [targetUrl, setTargetUrl] = useState("");
-  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [modalMediaContent, setModalMediaContent] = useState<{
-    src: string;
-    type: string;
-  } | null>(null);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"editor" | "scheduled">("editor");
-
-  // Detect platform from URL and determine which platforms to disable
-  const disabledPlatforms = useMemo<PlatformName[]>(() => {
-    if (postType === "post") {
-      return []; // No platforms disabled for regular posts
-    }
-
-    const detectedPlatform = detectPlatformFromUrl(targetUrl);
-    if (!detectedPlatform) {
-      return []; // If no platform detected, don't disable any yet
-    }
-
-    // Return all platforms except the detected one
-    return Object.values(SUPPORTED_PLATFORMS).filter(
-      (platform) => platform !== detectedPlatform,
-    ) as PlatformName[];
-  }, [postType, targetUrl]);
-
-  const { handleMediaUpload, removeMedia } = usePostMedia(setPosts, toast, saveAutoSave);
-
-  const { handleTextChange, addThread, removeThread, cleanup } = usePostManagement(
-    posts,
-    setPosts,
-    saveAutoSave,
+  const [state, dispatch] = useReducer(editorReducer, undefined, () =>
+    initEditorState(autosave?.posts),
   );
+  const { posts, postType, targetUrl, activeTab } = state;
 
-  const handleTextFocus = useCallback(
-    (index: number) => {
-      if (posts[index]?.text === "ㅤ") {
-        handleTextChange(index, "");
-      }
-    },
-    [posts, handleTextChange],
-  );
-
-  const handleTextBlur = useCallback(
-    (index: number) => {
-      if (posts[index]?.text === "") {
-        handleTextChange(index, "ㅤ");
-      }
-    },
-    [posts, handleTextChange],
-  );
-
-  // Load auto-saved content on mount and handle cleanup
+  const { debouncedFn: queueAutoSave, cleanup: cancelAutoSave } = useDebounce(saveAutoSave);
   useEffect(() => {
-    if (autosave?.posts && autosave.posts.length > 0) {
-      setPosts(autosave.posts);
-    }
+    queueAutoSave(posts);
+  }, [posts, queueAutoSave]);
+  useEffect(() => cancelAutoSave, [cancelAutoSave]);
 
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [autosave, cleanup]);
+  const disabledPlatforms = useMemo(
+    () => disabledPlatformsFor(postType, targetUrl),
+    [postType, targetUrl],
+  );
 
-  // Memoized draft save handler
+  const handleMediaUpload = useCallback(
+    (index: number, file: File) => {
+      if (!file) return;
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Media files must be under 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.match(/^(image|video)\//)) {
+        toast({
+          title: "Invalid File Type",
+          description: "Only images and videos are supported",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const post = posts[index];
+      const existingMedia = post?.media || [];
+      const hasImage = existingMedia.some((item) => item.mimeType?.startsWith("image/"));
+      const hasVideo = existingMedia.some((item) => item.mimeType?.startsWith("video/"));
+
+      if (file.type.startsWith("video/") && hasImage) {
+        toast({
+          title: "Cannot Add Video",
+          description: "Videos cannot be added when multiple images are attached",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (file.type.startsWith("image/") && hasVideo) {
+        toast({
+          title: "Cannot Add Image",
+          description: "Multiple images cannot be added when a video is attached",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = event.target?.result;
+        if (typeof data === "string") {
+          const item: EditorMedia = {
+            data,
+            mimeType: file.type,
+            id: URL.createObjectURL(file),
+            preview: data,
+          };
+          dispatch({ type: "media_added", index, item });
+        }
+      };
+      reader.readAsDataURL(file);
+    },
+    [posts],
+  );
+
+  const handleMediaRemove = useCallback((index: number, mediaIndex: number) => {
+    dispatch({ type: "media_removed", index, mediaIndex });
+  }, []);
+
+  const revokeRemovedMedia = useCallback(
+    (index: number, mediaIndex: number) => {
+      const mediaItem = posts[index]?.media?.[mediaIndex];
+      if (mediaItem?.id && typeof mediaItem.id === "string" && mediaItem.id.startsWith("blob:")) {
+        URL.revokeObjectURL(mediaItem.id);
+      }
+    },
+    [posts],
+  );
+
+  const handleRemoveMedia = useCallback(
+    (index: number, mediaIndex = 0) => {
+      revokeRemovedMedia(index, mediaIndex);
+      handleMediaRemove(index, mediaIndex);
+    },
+    [handleMediaRemove, revokeRemovedMedia],
+  );
+
+  const handlePostsReplaced = useCallback((newPosts: EditorContent[]) => {
+    dispatch({ type: "posts_replaced", posts: newPosts });
+  }, []);
+
   const handleSaveDraft = useCallback(() => {
     saveDraft(posts);
     toast({
@@ -147,95 +194,57 @@ function EditorPage() {
       description: "Your draft has been saved successfully.",
     });
     clearAutoSave();
-    setPosts([DEFAULT_EMPTY_POST]);
-  }, [saveDraft, posts, toast, setPosts, clearAutoSave]);
+    dispatch({ type: "editor_reset" });
+  }, [saveDraft, posts, clearAutoSave]);
 
-  const handleSchedulePost = useCallback(() => {
-    setPosts([DEFAULT_EMPTY_POST]);
+  const handleScheduled = useCallback(() => {
     clearAutoSave();
+    dispatch({ type: "editor_reset" });
   }, [clearAutoSave]);
 
-  // Helper function to extract MIME type from data URL
-  function getMimeTypeFromDataUrl(dataUrl: string): string {
-    if (!dataUrl?.startsWith("data:")) return "application/octet-stream";
-    const match = dataUrl.match(/^data:([^;]+);/);
-    return match ? match[1] : "application/octet-stream";
-  }
+  const handleLoadDraft = useCallback(
+    (draftPosts: EditorContent[]) => {
+      if (draftPosts.length === 0) return;
 
-  // Handle posts change (e.g., after drag and drop)
-  const handlePostsChange = useCallback(
-    (newPosts: EditorContent[]) => {
-      setPosts(newPosts);
-      saveAutoSave(newPosts);
+      const formattedPosts = draftPosts.map((post) => ({
+        text: post.text,
+        media:
+          post.media?.map((media) => ({
+            id: null,
+            preview: media.data,
+            mimeType: media.mimeType,
+          })) || [],
+      })) as EditorContent[];
+
+      handlePostsReplaced(formattedPosts);
     },
-    [saveAutoSave],
+    [handlePostsReplaced],
   );
 
-  // Handle post submission
   const handleSubmit = useCallback(async () => {
-    // Convert posts to EditorContent format
-    const editorContents: EditorContent[] = posts.map((post) => {
-      // Handle multiple media items
-      const media =
+    const editorContents: EditorContent[] = posts.map((post) => ({
+      text: post.text || "",
+      media:
         post.media && post.media.length > 0
           ? post.media.map((item) => ({
               data: item.preview || "",
-              mimeType: item.mimeType || getMimeTypeFromDataUrl(item.preview || ""),
+              mimeType: item.mimeType || mimeTypeFromDataUrl(item.preview || ""),
               id: item.id,
               preview: item.preview,
             }))
-          : [];
+          : [],
+    }));
 
-      return {
-        text: post.text || "",
-        media,
-      };
-    });
-
-    // Submit the post
     const postStatus = await submitPost(editorContents, selectedAccounts, postType, targetUrl);
 
-    // Only clear form on complete success
     if (postStatus === "success" && editorContents.length > 0) {
-      setPosts([DEFAULT_EMPTY_POST]);
       clearAutoSave();
+      dispatch({ type: "editor_reset" });
     }
-    // Keep the editor content for partial success or failure
-  }, [posts, selectedAccounts, postType, targetUrl, submitPost, setPosts, clearAutoSave]);
-
-  // Handle load draft
-  const handleLoadDraft = useCallback(
-    (draftPosts: EditorContent[]) => {
-      if (draftPosts.length > 0) {
-        // Convert to the format expected by the editor
-        const formattedPosts = draftPosts.map((post) => {
-          const media =
-            post.media?.map((media) => ({
-              id: null,
-              preview: media.data,
-              mimeType: media.mimeType,
-            })) || [];
-
-          return {
-            text: post.text,
-            media: media,
-          } as EditorContent;
-        });
-
-        setPosts(formattedPosts);
-      }
-    },
-    [setPosts],
-  );
+  }, [posts, selectedAccounts, postType, targetUrl, submitPost, clearAutoSave]);
 
   const openMediaModal = useCallback((src: string, type: string) => {
-    setModalMediaContent({ src, type });
-    setIsMediaModalOpen(true);
-  }, []);
-
-  const closeMediaModal = useCallback(() => {
-    setIsMediaModalOpen(false);
-    setModalMediaContent(null);
+    dispatch({ type: "media_modal_opened", media: { src, type } });
   }, []);
 
   return (
@@ -249,7 +258,7 @@ function EditorPage() {
                 ? "border-primary bg-muted text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => setActiveTab("editor")}
+            onClick={() => dispatch({ type: "tab_changed", tab: "editor" })}
           >
             Editor
           </button>
@@ -260,7 +269,7 @@ function EditorPage() {
                 ? "border-primary bg-muted text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => setActiveTab("scheduled")}
+            onClick={() => dispatch({ type: "tab_changed", tab: "scheduled" })}
           >
             Scheduled
           </button>
@@ -279,8 +288,10 @@ function EditorPage() {
                   <PostInteractionSelector
                     postType={postType}
                     targetUrl={targetUrl}
-                    onPostTypeChange={setPostType}
-                    onTargetUrlChange={setTargetUrl}
+                    onPostTypeChange={(next) =>
+                      dispatch({ type: "post_type_changed", postType: next })
+                    }
+                    onTargetUrlChange={(url) => dispatch({ type: "target_url_changed", url })}
                   />
                 </div>
                 <div className="shrink-0 lg:hidden">
@@ -292,8 +303,8 @@ function EditorPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => setIsPreviewOpen(true)}
-                        disabled={posts.every((p) => !(p.text || "").trim() || p.text === "ㅤ")}
+                        onClick={() => dispatch({ type: "preview_opened" })}
+                        disabled={isEditorEmpty(posts)}
                       >
                         <Eye className="mr-2 h-4 w-4" />
                         Preview
@@ -308,8 +319,8 @@ function EditorPage() {
 
                 <div className="hidden shrink-0 gap-2 lg:flex">
                   <Button
-                    onClick={() => setIsPreviewOpen(true)}
-                    disabled={posts.every((p) => !(p.text || "").trim() || p.text === "ㅤ")}
+                    onClick={() => dispatch({ type: "preview_opened" })}
+                    disabled={isEditorEmpty(posts)}
                     size="sm"
                   >
                     Preview
@@ -324,15 +335,13 @@ function EditorPage() {
             <div className="flex min-w-0 flex-1 flex-col">
               <PostEditorCore
                 posts={posts}
-                onPostsChange={handlePostsChange}
-                onTextChange={handleTextChange}
+                onPostsChange={handlePostsReplaced}
+                onTextChange={(index, text) => dispatch({ type: "text_changed", index, text })}
                 onMediaUpload={handleMediaUpload}
-                onMediaRemove={removeMedia}
-                onAddThread={addThread}
-                onRemoveThread={removeThread}
+                onMediaRemove={handleRemoveMedia}
+                onAddThread={() => dispatch({ type: "thread_added" })}
+                onRemoveThread={(index) => dispatch({ type: "thread_removed", index })}
                 onOpenMediaModal={openMediaModal}
-                onTextFocus={handleTextFocus}
-                onTextBlur={handleTextBlur}
               />
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -342,28 +351,22 @@ function EditorPage() {
                 <div className="order-1 grid grid-cols-3 gap-2 sm:order-2 sm:flex">
                   <Button
                     onClick={handleSaveDraft}
-                    disabled={posts.every((p) => !(p.text || "").trim())}
+                    disabled={isEditorEmpty(posts)}
                     className="min-w-0 px-2 sm:px-4"
                   >
                     <span className="sm:hidden">Draft</span>
                     <span className="hidden sm:inline">Save Draft</span>
                   </Button>
                   <Button
-                    onClick={() => setIsScheduleModalOpen(true)}
-                    disabled={
-                      posts.every((p) => !(p.text || "").trim()) || selectedAccounts.length === 0
-                    }
+                    onClick={() => dispatch({ type: "schedule_modal_opened" })}
+                    disabled={isEditorEmpty(posts) || selectedAccounts.length === 0}
                     className="min-w-0 px-2 sm:px-4"
                   >
                     Schedule
                   </Button>
                   <Button
                     onClick={handleSubmit}
-                    disabled={
-                      isPosting ||
-                      posts.every((p) => !(p.text || "").trim()) ||
-                      selectedAccounts.length === 0
-                    }
+                    disabled={isPosting || isEditorEmpty(posts) || selectedAccounts.length === 0}
                     className="min-w-0 px-2 sm:px-4"
                   >
                     {isPosting ? "…" : "Post"}
@@ -385,29 +388,24 @@ function EditorPage() {
 
       {isModalOpen && <DraftsModal onSelect={handleLoadDraft} />}
       <MediaPreviewModal
-        isOpen={isMediaModalOpen}
-        onClose={closeMediaModal}
-        mediaSrc={modalMediaContent?.src || null}
-        mediaType={modalMediaContent?.type || null}
+        isOpen={state.isMediaModalOpen}
+        onClose={() => dispatch({ type: "media_modal_closed" })}
+        mediaSrc={state.modalMediaContent?.src || null}
+        mediaType={state.modalMediaContent?.type || null}
       />
       <SchedulePostModal
-        isOpen={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
+        isOpen={state.isScheduleModalOpen}
+        onClose={() => dispatch({ type: "schedule_modal_closed" })}
         posts={posts}
         selectedPlatforms={selectedAccounts.map((account) => account.platform)}
-        onScheduled={handleSchedulePost}
+        onScheduled={handleScheduled}
       />
       <PreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
+        isOpen={state.isPreviewOpen}
+        onClose={() => dispatch({ type: "preview_closed" })}
         posts={posts}
         selectedAccounts={selectedAccounts}
       />
     </div>
   );
 }
-
-const DEFAULT_EMPTY_POST: EditorContent = {
-  text: "ㅤ",
-  media: [] as EditorMedia[],
-};

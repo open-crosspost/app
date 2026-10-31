@@ -63,22 +63,30 @@ export default createPlugin({
 
       loginToPlatform: builder.auth.loginToPlatform.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.loginToPlatform(input.platform, input.options)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.loginToPlatform(input.platform, input.options)),
+        );
       }),
 
       refreshToken: builder.auth.refreshToken.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.refreshToken(input.platform, input.userId)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.refreshToken(input.platform, input.userId)),
+        );
       }),
 
       refreshProfile: builder.auth.refreshProfile.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.refreshProfile(input.platform, input.userId)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.refreshProfile(input.platform, input.userId)),
+        );
       }),
 
       getAuthStatus: builder.auth.getAuthStatus.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.getAuthStatus(input.platform, input.userId)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.getAuthStatus(input.platform, input.userId)),
+        );
       }),
 
       unauthorizeNear: builder.auth.unauthorizeNear.effect(function* () {
@@ -88,7 +96,9 @@ export default createPlugin({
 
       revokeAuth: builder.auth.revokeAuth.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.revokeAuth(input.platform, input.userId)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.revokeAuth(input.platform, input.userId)),
+        );
       }),
 
       getConnectedAccounts: builder.auth.getConnectedAccounts.effect(function* () {
@@ -149,14 +159,16 @@ export default createPlugin({
 
       getAccountActivity: builder.activity.getAccountActivity.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(
-          service.getAccountActivity(input.signerId, input.query),
-        ));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.getAccountActivity(input.signerId, input.query)),
+        );
       }),
 
       getAccountPosts: builder.activity.getAccountPosts.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.getAccountPosts(input.signerId, input.query)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.getAccountPosts(input.signerId, input.query)),
+        );
       }),
     },
 
@@ -168,7 +180,9 @@ export default createPlugin({
 
       getEndpointRateLimit: builder.system.getEndpointRateLimit.effect(function* ({ input }) {
         const service = yield* CrosspostServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.getEndpointRateLimit(input.endpoint)));
+        return yield* Effect.promise(() =>
+          Effect.runPromise(service.getEndpointRateLimit(input.endpoint)),
+        );
       }),
 
       getHealthStatus: builder.system.getHealthStatus.effect(function* () {

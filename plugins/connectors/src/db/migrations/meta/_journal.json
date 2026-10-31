@@ -22,6 +22,20 @@
       "when": 1793068840069,
       "tag": "0002_brown_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793469151028,
+      "tag": "0003_add_row_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793555000000,
+      "tag": "0004_add_gate_config",
+      "breakpoints": true
     }
   ]
 }

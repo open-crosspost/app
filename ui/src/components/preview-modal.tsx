@@ -50,7 +50,7 @@ export function PreviewModal({ isOpen, onClose, posts, selectedAccounts }: Previ
                 <div className="space-y-3">
                   {posts.map((post, index) => (
                     <div key={index}>
-                      {post.text && post.text.trim() !== "ㅤ" && post.text.trim() !== "" && (
+                      {post.text && post.text.trim() !== "" && (
                         <p className="text-black dark:text-white text-lg font-bold whitespace-pre-wrap">
                           {post.text}
                         </p>
@@ -96,15 +96,12 @@ export function PreviewModal({ isOpen, onClose, posts, selectedAccounts }: Previ
             </div>
           )}
 
-          {selectedAccounts.length > 0 &&
-            posts.every((p) => !(p.text || "").trim() || p.text === "ㅤ") && (
-              <div className="text-center py-8 text-gray-400">
-                <div className="mb-2">No content to preview</div>
-                <div className="text-sm">
-                  Add some text or media to your post to see the preview.
-                </div>
-              </div>
-            )}
+          {selectedAccounts.length > 0 && posts.every((p) => !(p.text || "").trim()) && (
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="mb-2">No content to preview</div>
+              <div className="text-sm">Add some text or media to your post to see the preview.</div>
+            </div>
+          )}
 
           <div className="text-xs text-gray-400 space-y-1">
             <div>• Preview shows how posts will appear on connected platforms</div>

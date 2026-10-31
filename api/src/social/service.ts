@@ -17,7 +17,12 @@ import type {
   SocialMultiStatusData,
 } from "./types";
 import { ApiErrorCode, makeUnsupportedPlatformResult } from "./types";
-import { type TwitterPluginClient, type XClientCredentials, XConnectFlow } from "./x-connect";
+import {
+  profileForUser,
+  type TwitterPluginClient,
+  type XClientCredentials,
+  XConnectFlow,
+} from "./x-connect";
 
 function unavailableMessage(subject: string, action: string): string {
   return `${action} for ${subject} is not implemented yet.`;
@@ -86,6 +91,7 @@ export class SocialService {
   async completeConnect(
     userId: string,
     input: SocialConnectCallbackInput,
+    nearAccountId?: string,
   ): Promise<SocialConnectCallbackResponse> {
     if (input.platform !== "twitter" || !this.xConnect) {
       throw new ORPCError("BAD_REQUEST", {
@@ -93,7 +99,7 @@ export class SocialService {
       });
     }
 
-    const response = await this.xConnect.complete({ userId, ...input });
+    const response = await this.xConnect.complete({ userId, nearAccountId, ...input });
 
     await this.repository.recordConnectedAccount(userId, input.platform, {
       platformUserId: response.xUserId,
@@ -106,14 +112,25 @@ export class SocialService {
             agentId: string;
             walletApiKey: string;
           }) => Promise<unknown>;
+          outlayerAppWalletAttach: (input: {
+            agentId: string;
+            rowProfile: string;
+          }) => Promise<unknown>;
         }
       | undefined;
     if (connectors) {
       try {
-        await connectors.outlayerWalletConnect({
-          agentId: userId,
-          walletApiKey: input.walletApiKey,
-        });
+        if (input.walletApiKey) {
+          await connectors.outlayerWalletConnect({
+            agentId: userId,
+            walletApiKey: input.walletApiKey,
+          });
+        } else {
+          await connectors.outlayerAppWalletAttach({
+            agentId: userId,
+            rowProfile: profileForUser(nearAccountId ?? userId),
+          });
+        }
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         throw new ORPCError("BAD_GATEWAY", {

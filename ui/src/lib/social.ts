@@ -7,6 +7,7 @@ import type {
 } from "@crosspost/plugin/types";
 import { Platform } from "@crosspost/plugin/types";
 import type { ApiClient } from "@/app";
+import { NETWORK_ID } from "@/config";
 import type { AuthClient } from "@/lib/auth";
 import { getImageUrl } from "@/lib/utils/near-social-node";
 import { capitalize } from "@/lib/utils/string";
@@ -83,6 +84,36 @@ export function nearSocialAccountQueryKey(accountId: string | null | undefined) 
   return ["social", "near-account", accountId ?? null] as const;
 }
 
+export const nearAccountIdQueryKey = ["near", "accountId"] as const;
+
+export function nearAccountIdQueryOptions(authClient: AuthClient, enabled = true) {
+  return {
+    queryKey: nearAccountIdQueryKey,
+    queryFn: () => authClient.near.getAccountId(),
+    enabled,
+    staleTime: 60 * 1000,
+  };
+}
+
+export function connectedAccountsQueryOptions(apiClient: ApiClient, enabled = true) {
+  return {
+    queryKey: socialAccountsQueryKey,
+    queryFn: () => listConnectedAccounts(apiClient),
+    enabled,
+  };
+}
+
+export function nearSocialAccountQueryOptions(
+  authClient: AuthClient,
+  nearAccountId: string | null | undefined,
+) {
+  return {
+    queryKey: nearSocialAccountQueryKey(nearAccountId),
+    queryFn: () => getNearSocialAccount(authClient, nearAccountId),
+    enabled: !!nearAccountId,
+  };
+}
+
 export async function listConnectedAccounts(apiClient: ApiClient): Promise<ConnectedAccount[]> {
   const response = await apiClient.social.accounts.list();
   return response.accounts;
@@ -148,6 +179,12 @@ export async function getNearSocialAccount(
   currentAccountId: string | null | undefined,
 ): Promise<ConnectedAccount | null> {
   if (!currentAccountId) {
+    return null;
+  }
+
+  // NEAR Social posting is mainnet-only (FastData KV standard) — don't offer
+  // it as a destination on other networks.
+  if (NETWORK_ID !== "mainnet") {
     return null;
   }
 

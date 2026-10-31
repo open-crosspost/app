@@ -65,10 +65,10 @@ function ResultsPage() {
 
   if (!summary && results.length === 0 && errors.length === 0) {
     return (
-      <div className="w-full max-w-2xl mx-auto text-center py-10">
-        <Info size={48} className="mx-auto mb-4 text-gray-400" />
+      <div className="mx-auto w-full max-w-4xl px-4 py-10 text-center sm:px-6">
+        <Info size={48} className="mx-auto mb-4 text-muted-foreground/50" />
         <h1 className="text-2xl font-bold mb-2">No Submission Results</h1>
-        <p className="text-gray-500 mb-6">
+        <p className="text-muted-foreground mb-6">
           It looks like you haven't submitted any posts yet, or the results have been cleared.
         </p>
         <Button onClick={() => navigate({ to: "/editor" })}>Go to Editor</Button>
@@ -99,7 +99,7 @@ function ResultsPage() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <div className="border-b pb-4 mb-6">
         <div className="flex items-center mb-4">
           <BackButton cleanup={handleDone} />

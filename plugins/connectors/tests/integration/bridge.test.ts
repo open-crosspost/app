@@ -415,4 +415,64 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
       restore();
     }
   });
+
+  it("the app-managed path pays with the shared app key and names the caller's row profile", async () => {
+    const restore = mockUpstream((url, init) => {
+      expect(url).toContain("outlayer.test/call/work.efiz.near/x");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["X-Payment-Key"]).toBe("appowner.test:1:pk_app_shared");
+      const body = JSON.parse(String(init?.body));
+      expect(body.secrets_ref).toEqual({ account_id: "appowner.test", profile: "work_efiz_near" });
+      return Response.json({ call_id: "call_app", status: "completed" });
+    });
+    try {
+      const client = await getPluginClient({ userId: "user-1" });
+      const attached = await client.outlayerAppWalletAttach({
+        agentId: "agent-app",
+        rowProfile: "work_efiz_near",
+      });
+      expect(attached.attached).toBe(true);
+      expect(attached.walletAccountId).toBe("appowner.test");
+
+      const call = await client.outlayerCall({
+        agentId: "agent-app",
+        connector: "work.efiz.near/x",
+        operation: "status",
+        input: {},
+      });
+      expect(call.callId).toBe("call_app");
+      expect(call.keySource).toBe("app");
+    } finally {
+      restore();
+    }
+  });
+
+  it("outlayerPaymentKey stores the key server-side and never returns the string", async () => {
+    const restore = mockUpstream((url) => {
+      if (url.includes("/wallet/v1/address")) {
+        return ADDRESS_OK();
+      }
+      if (url.includes("/create-payment-key")) {
+        return Response.json({ payment_key: "pk_secret_new", nonce: 2 });
+      }
+      return Response.json({});
+    });
+    try {
+      const client = await getPluginClient({ userId: "user-1" });
+      await client.outlayerWalletConnect({ agentId: "agent-p0", walletApiKey: "wk_test" });
+      const result = await client.outlayerPaymentKey({
+        agentId: "agent-p0",
+        walletApiKey: "wk_test",
+      });
+      expect(result.stored).toBe(true);
+      expect(result.keySource).toBe("funded");
+      expect(result.nonce).toBe(2);
+      expect(JSON.stringify(result)).not.toContain("pk_secret_new");
+
+      const info = await client.bridgeInfo({ agentId: "agent-p0" });
+      expect(info.wallet?.paymentKey).toBe("pk_secret_new");
+    } finally {
+      restore();
+    }
+  });
 });

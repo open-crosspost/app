@@ -3,6 +3,13 @@ import { Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import type { EditorContent } from "@/store/drafts-store";
 import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
@@ -15,6 +22,8 @@ interface SchedulePostModalProps {
   onScheduled: () => void;
 }
 
+const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function SchedulePostModal({
   isOpen,
   onClose,
@@ -24,15 +33,11 @@ export function SchedulePostModal({
 }: SchedulePostModalProps) {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { saveScheduledPost } = useScheduledPostsStore();
   const { data: session } = useAuthClient().useSession();
-  const currentAccountId = session?.user?.id ?? null;
   const isSignedIn = !!session?.user;
 
-  if (!isOpen) return null;
-
-  const handleSchedule = async () => {
+  const handleSchedule = () => {
     if (!selectedDate || !selectedTime) {
       toast({
         title: "Missing Information",
@@ -51,19 +56,17 @@ export function SchedulePostModal({
       return;
     }
 
-    if (!isSignedIn || !currentAccountId) {
+    if (!isSignedIn) {
       toast({
         title: "Authentication Required",
-        description: "Please connect your NEAR wallet to schedule posts.",
+        description: "Please sign in before scheduling posts.",
         variant: "destructive",
       });
       return;
     }
 
     const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
-    const now = new Date();
-
-    if (scheduledDateTime <= now) {
+    if (scheduledDateTime <= new Date()) {
       toast({
         title: "Invalid Date",
         description: "Please select a future date and time.",
@@ -72,103 +75,85 @@ export function SchedulePostModal({
       return;
     }
 
-    try {
-      setIsAuthenticating(true);
+    saveScheduledPost(posts, selectedPlatforms, scheduledDateTime);
 
-      // Save scheduled post without pre-authentication
-      // Authentication will happen at execution time
-      saveScheduledPost(posts, selectedPlatforms, scheduledDateTime);
+    toast({
+      title: "Post Scheduled",
+      description: `Scheduled for ${scheduledDateTime.toLocaleString()} (${userTimeZone}). It fires while the app is open.`,
+      variant: "success",
+    });
 
-      toast({
-        title: "Post Scheduled",
-        description: `Your post has been scheduled for ${scheduledDateTime.toLocaleString()} with fresh authentication.`,
-        variant: "success",
-      });
-
-      onScheduled();
-      onClose();
-    } catch (error) {
-      console.error("Scheduling authentication error:", error);
-      toast({
-        title: "Scheduling Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to authenticate or schedule the post. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAuthenticating(false);
-    }
+    onScheduled();
+    onClose();
   };
 
-  // Get current date and time for minimum values
   const now = new Date();
   const currentDate = now.toISOString().split("T")[0];
   const currentTime = now.toTimeString().slice(0, 5);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-black rounded-lg p-6 w-full max-w-md mx-4 base-component">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 ">
-          <Calendar size={20} />
-          Schedule Post
-        </h2>
+    <Dialog open={isOpen} onOpenChange={(open) => (open ? undefined : onClose())}>
+      <DialogContent className="border-2 border-primary bg-white shadow-custom dark:bg-black sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Calendar size={20} />
+            Schedule Post
+          </DialogTitle>
+          <DialogDescription>
+            Times are local ({userTimeZone}). Posts fire while the app is open.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="schedule-date" className="block text-sm font-medium mb-2 ">
+            <label htmlFor="schedule-date" className="mb-2 block text-sm font-medium">
               Date
             </label>
             <input
               id="schedule-date"
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(event) => setSelectedDate(event.target.value)}
               min={currentDate}
-              className="w-full p-2 border-2 border-primary  rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 "
+              className="w-full rounded border-2 border-primary bg-background p-2 focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
           <div>
-            <label htmlFor="schedule-time" className="block text-sm font-medium mb-2 ">
+            <label htmlFor="schedule-time" className="mb-2 block text-sm font-medium">
               Time
             </label>
             <input
               id="schedule-time"
               type="time"
               value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
+              onChange={(event) => setSelectedTime(event.target.value)}
               min={selectedDate === currentDate ? currentTime : undefined}
-              className="w-full p-2 border-2 border-primary  rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 "
+              className="w-full rounded border-2 border-primary bg-background p-2 focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
-          {selectedDate && selectedTime && (
-            <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded">
-              <p className="text-sm text-blue-800 dark:text-white flex items-center gap-2">
-                <Clock size={16} />
-                Scheduled for: {new Date(`${selectedDate}T${selectedTime}`).toLocaleString()}
-              </p>
+          {selectedDate && selectedTime ? (
+            <div className="flex items-center gap-2 rounded bg-muted p-3 text-sm text-muted-foreground">
+              <Clock size={16} className="shrink-0" />
+              Scheduled for: {new Date(`${selectedDate}T${selectedTime}`).toLocaleString()}
             </div>
-          )}
+          ) : null}
         </div>
 
-        <div className="flex gap-2 mt-6">
+        <div className="flex gap-2">
           <Button onClick={onClose} className="flex-1">
             Cancel
           </Button>
           <Button
             onClick={handleSchedule}
             className="flex-1"
-            disabled={
-              !selectedDate || !selectedTime || selectedPlatforms.length === 0 || isAuthenticating
-            }
+            disabled={!selectedDate || !selectedTime || selectedPlatforms.length === 0}
           >
-            {isAuthenticating ? "Authenticating..." : "Schedule Post"}
+            Schedule Post
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

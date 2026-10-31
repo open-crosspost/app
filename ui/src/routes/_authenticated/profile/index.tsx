@@ -1,28 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/profile/")({
-  component: ProfileIndexPage,
+  beforeLoad: ({ context }) => {
+    const session = context.session;
+    const accountId = session?.user?.name ?? session?.user?.id;
+    if (accountId) {
+      throw redirect({ to: "/profile/$accountId", params: { accountId } });
+    }
+    throw redirect({ to: "/" });
+  },
 });
-
-export function ProfileIndexPage() {
-  return (
-    <div className="p-8 text-center">
-      <h1 className="text-2xl font-bold mb-4">Profiles</h1>
-      <p className="mb-6">
-        View a profile by navigating to <code>/profile/accountId</code>
-      </p>
-      <div className="flex justify-center">
-        <Button
-          onClick={() => {
-            // Navigate back to the main page
-            window.history.back();
-          }}
-          className="mr-2"
-        >
-          Go Back
-        </Button>
-      </div>
-    </div>
-  );
-}

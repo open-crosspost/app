@@ -50,6 +50,7 @@ export interface BridgeWalletRow {
   walletApiKey: string;
   walletId: string | null;
   nearAccountId: string;
+  rowProfile: string | null;
   paymentKey: string | null;
   paymentKeySource: string | null;
   connectedAt: Date;
@@ -66,6 +67,7 @@ export interface BridgeStoreShape {
     walletApiKey: string;
     walletId: string | null;
     nearAccountId: string;
+    rowProfile?: string | null;
   }): Effect.Effect<BridgeWalletRow, StoreError>;
   setPaymentKey(
     userId: string,
@@ -138,6 +140,7 @@ export const bridgeStoreLayer: Layer.Layer<BridgeStore, never, DatabaseTag> = La
                 walletApiKey: input.walletApiKey,
                 walletId: input.walletId,
                 nearAccountId: input.nearAccountId,
+                rowProfile: input.rowProfile ?? null,
               })
               .onConflictDoUpdate({
                 target: [bridgeWallets.userId, bridgeWallets.agentId],
@@ -145,6 +148,7 @@ export const bridgeStoreLayer: Layer.Layer<BridgeStore, never, DatabaseTag> = La
                   walletApiKey: input.walletApiKey,
                   walletId: input.walletId,
                   nearAccountId: input.nearAccountId,
+                  rowProfile: input.rowProfile ?? null,
                   updatedAt: new Date(),
                 },
               })

@@ -12,15 +12,30 @@ export const X_OAUTH_SCOPES: string[] = [
 ];
 
 const PENDING_CONNECT_TTL_MS = 10 * 60 * 1000;
-const DEFAULT_X_DAILY_POST_CAP = 10;
-const DEFAULT_X_POLICY_JSON = JSON.stringify({ max_per_day: DEFAULT_X_DAILY_POST_CAP });
+const DEFAULT_X_DAILY_POST_CAP = 1000;
 
 export interface XClientCredentials {
   clientId?: string;
   clientSecret?: string;
   /** The connector project the handoff stores the credential row for. */
   project?: string;
+  /**
+   * The app's own OutLayer wallet key (wk_…). When set, the no-paste connect
+   * path stores the caller's credential row on the app wallet — the app's
+   * shared payment key pays for dispatch. BYO callers (who pass their own
+   * wk_) bypass this.
+   */
+  appWalletKey?: string;
+  /** The per-day post cap written into the stored credential row's policy. */
+  maxPerDay?: number;
 }
+
+/**
+ * OutLayer secret-row profiles admit letters, digits, `-` and `_` — no dots —
+ * so a NEAR account id (`work.efiz.near`) is flattened deterministically.
+ */
+export const profileForUser = (key: string): string =>
+  key.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64);
 
 export const DEFAULT_X_CONNECT_PROJECT = "connectors.outlayer.near/x";
 
@@ -90,7 +105,7 @@ export class XConnectFlow {
   }
 
   async complete(
-    input: SocialConnectCallbackInput & { userId: string },
+    input: SocialConnectCallbackInput & { userId: string; nearAccountId?: string },
   ): Promise<SocialConnectCallbackResponse> {
     pruneExpiredPendingConnects();
     const pending = pendingConnects.get(input.state);
@@ -128,17 +143,39 @@ export class XConnectFlow {
       });
     }
 
+    // Two credential shapes:
+    //   BYO (walletApiKey passed, the advanced path) — both rows live under
+    //     the caller's own wallet; the caller profile is the wallet's address.
+    //   App-managed (default, no keys touched) — the caller's row lives on
+    //     the APP wallet under the caller's flattened account id; the app's
+    //     shared payment key pays for dispatch and resolves the row via
+    //     secrets_ref. The author row (the OAuth client pair) is app-global:
+    //     stored once per wallet, re-stored idempotently.
+    const walletApiKey = input.walletApiKey ?? this.credentials.appWalletKey;
+    if (!walletApiKey) {
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message:
+          "The app OutLayer wallet is not configured (OUTLAYER_APP_WALLET_KEY) — keyless connect is unavailable",
+      });
+    }
+    const callerProfile = input.walletApiKey
+      ? ":owner:"
+      : profileForUser(input.nearAccountId ?? input.userId);
+    const policyJson = JSON.stringify({
+      max_per_day: this.credentials.maxPerDay ?? DEFAULT_X_DAILY_POST_CAP,
+    });
+
     try {
       const stored = await storeOutlayerSecretRows({
-        walletApiKey: input.walletApiKey,
+        walletApiKey,
         project: this.project,
         rows: [
           { profile: "author", secrets: { X_CLIENT_ID: clientId, X_CLIENT_SECRET: clientSecret } },
           {
-            profile: ":owner:",
+            profile: callerProfile,
             secrets: {
               X_REFRESH_TOKEN: token.refreshToken,
-              X_POLICY: DEFAULT_X_POLICY_JSON,
+              X_POLICY: policyJson,
             },
           },
         ],

@@ -77,7 +77,13 @@ export const SocialConnectCallbackInputSchema = z.object({
   platform: PlatformSchema,
   code: z.string().min(1),
   state: z.string().min(1),
-  walletApiKey: z.string().min(1),
+  walletApiKey: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "BYO path only — the user's own OutLayer wallet key (advanced). Absent: the app-managed wallet pays and the credential row lives on the app wallet.",
+    ),
 });
 
 export const SocialConnectCallbackResponseSchema = z.object({

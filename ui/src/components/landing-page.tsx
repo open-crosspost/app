@@ -1,5 +1,5 @@
 import { Calendar, Shield, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 function MarqueeXIcon() {
   return (
@@ -60,7 +60,7 @@ function MarqueeSegment({ ariaHidden }: { ariaHidden?: boolean }) {
   );
 }
 
-export function LandingPage() {
+export function LandingPage({ cta }: { cta?: ReactNode }) {
   const [phase, setPhase] = useState<HeroPhase>("pitch");
   const [glitching, setGlitching] = useState(false);
   const [glitchLine, setGlitchLine] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export function LandingPage() {
   );
 
   return (
-    <div className="min-h-[80vh] -mx-2 -mt-2 sm:-mx-4 sm:-mt-4 md:-mx-8 md:-mt-8">
+    <div className="flex min-h-0 flex-1 flex-col justify-center">
       <div className="flex flex-col items-center justify-center px-4 py-10 sm:py-16 md:py-20">
         <div className="mx-auto w-full max-w-4xl text-center">
           <div className="@container flex h-72 w-full flex-col items-center justify-center gap-6 sm:h-80">
@@ -156,6 +156,7 @@ export function LandingPage() {
                 Share everywhere, from one place.
               </p>
             ) : null}
+            {cta ? <div className="flex justify-center">{cta}</div> : null}
           </div>
         </div>
       </div>
