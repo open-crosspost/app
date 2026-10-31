@@ -1,8 +1,8 @@
-import type { PlatformName } from "@crosspost/plugin/types";
+import { useQueryClient } from "@tanstack/react-query";
 import { Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAuthClient } from "@/app";
+import { useApiClient, useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,14 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { jobRunsQueryKey, jobSpecsQueryKey, jobTargetsFromAccounts } from "@/lib/social";
 import type { EditorContent } from "@/store/drafts-store";
-import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
+
+interface ScheduleTargetAccount {
+  platform: string;
+  userId: string;
+  username?: string;
+}
 
 interface SchedulePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   posts: EditorContent[];
-  selectedPlatforms: PlatformName[];
+  selectedAccounts: ScheduleTargetAccount[];
   onScheduled: () => void;
 }
 
@@ -28,16 +34,18 @@ export function SchedulePostModal({
   isOpen,
   onClose,
   posts,
-  selectedPlatforms,
+  selectedAccounts,
   onScheduled,
 }: SchedulePostModalProps) {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const { saveScheduledPost } = useScheduledPostsStore();
+  const [isScheduling, setIsScheduling] = useState(false);
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
   const { data: session } = useAuthClient().useSession();
   const isSignedIn = !!session?.user;
 
-  const handleSchedule = () => {
+  const handleSchedule = async () => {
     if (!selectedDate || !selectedTime) {
       toast.error("Missing Information", {
         description: "Please select both date and time for scheduling.",
@@ -45,9 +53,9 @@ export function SchedulePostModal({
       return;
     }
 
-    if (selectedPlatforms.length === 0) {
-      toast.error("No Platforms Selected", {
-        description: "Please select at least one platform to post to.",
+    if (selectedAccounts.length === 0) {
+      toast.error("No Profiles Selected", {
+        description: "Please select at least one profile to post to.",
       });
       return;
     }
@@ -65,14 +73,38 @@ export function SchedulePostModal({
       return;
     }
 
-    saveScheduledPost(posts, selectedPlatforms, scheduledDateTime);
+    setIsScheduling(true);
+    try {
+      await apiClient.social.jobs.specs.create({
+        kind: "scheduled",
+        posts: posts.map((post) => ({
+          text: post.text ?? "",
+          media: (post.media ?? []).map((item) => ({
+            data: typeof item.data === "string" ? item.data : "",
+            mimeType: item.mimeType,
+            altText: item.altText,
+          })),
+        })),
+        targets: jobTargetsFromAccounts(selectedAccounts),
+        schedule: { mode: "once", at: scheduledDateTime.toISOString() },
+      });
 
-    toast.success("Post Scheduled", {
-      description: `Scheduled for ${scheduledDateTime.toLocaleString()} (${userTimeZone}). It fires while the app is open.`,
-    });
+      toast.success("Post Scheduled", {
+        description: `Scheduled for ${scheduledDateTime.toLocaleString()} (${userTimeZone}). It fires while the app is open; server execution is coming next.`,
+      });
 
-    onScheduled();
-    onClose();
+      await queryClient.invalidateQueries({ queryKey: jobSpecsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: jobRunsQueryKey() });
+
+      onScheduled();
+      onClose();
+    } catch (error) {
+      toast.error("Scheduling Failed", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
   const now = new Date();
@@ -88,7 +120,8 @@ export function SchedulePostModal({
             Schedule Post
           </DialogTitle>
           <DialogDescription>
-            Times are local ({userTimeZone}). Posts fire while the app is open.
+            Times are local ({userTimeZone}). Publishing happens on {selectedAccounts.length}{" "}
+            selected profile{selectedAccounts.length === 1 ? "" : "s"}.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,11 +167,13 @@ export function SchedulePostModal({
             Cancel
           </Button>
           <Button
-            onClick={handleSchedule}
+            onClick={() => void handleSchedule()}
             className="flex-1"
-            disabled={!selectedDate || !selectedTime || selectedPlatforms.length === 0}
+            disabled={
+              !selectedDate || !selectedTime || selectedAccounts.length === 0 || isScheduling
+            }
           >
-            Schedule Post
+            {isScheduling ? "Scheduling…" : "Schedule Post"}
           </Button>
         </div>
       </DialogContent>

@@ -156,11 +156,130 @@ export const UpdateCampaignSchema = z
     { message: "Update must change name, description, actions, or status" },
   );
 
+export const JobTargetSchema = z.object({
+  platform: z.enum(["twitter", "near-social", "farcaster"]),
+  accountUserId: z.string().min(1).max(100),
+});
+
+export const JobSpecScheduleSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("once"),
+    at: z.iso.datetime(),
+  }),
+  z.object({
+    mode: z.literal("daily"),
+    at: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
+    tz: z.string().max(64).optional(),
+  }),
+]);
+
+export const JobSpecPostContentSchema = z.object({
+  text: z.string().max(10_000).optional(),
+  media: z
+    .array(
+      z.object({
+        data: z.string().max(5_000_000),
+        mimeType: z.string().optional(),
+        altText: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+export const JobSpecCreateSchema = z
+  .object({
+    kind: z.enum(["scheduled", "campaign"]),
+    campaignId: CampaignIdSchema.optional(),
+    posts: z.array(JobSpecPostContentSchema).min(1).optional(),
+    targets: z.array(JobTargetSchema).min(1),
+    schedule: JobSpecScheduleSchema,
+  })
+  .refine(
+    (input) => (input.kind === "scheduled" ? Boolean(input.posts) : Boolean(input.campaignId)),
+    {
+      message: "kind 'scheduled' requires posts; kind 'campaign' requires campaignId",
+    },
+  );
+
+export const JobSpecOutputSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  kind: z.enum(["scheduled", "campaign"]),
+  campaignId: z.string().nullable(),
+  actionId: z.string().nullable(),
+  posts: z.array(JobSpecPostContentSchema).nullable(),
+  targets: z.array(JobTargetSchema),
+  schedule: JobSpecScheduleSchema,
+  status: z.enum(["active", "paused", "cancelled"]),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const JobSpecStatusUpdateSchema = z.object({
+  id: z.string(),
+  status: z.enum(["active", "paused", "cancelled"]),
+});
+
+export const JobRunStatusSchema = z.enum([
+  "pending",
+  "executing",
+  "completed",
+  "failed",
+  "needs_signature",
+  "cancelled",
+]);
+
+export const JobRunOutputSchema = z.object({
+  id: z.string(),
+  specId: z.string(),
+  kind: z.enum(["scheduled", "campaign"]),
+  campaignId: z.string().nullable(),
+  posts: z.array(JobSpecPostContentSchema).nullable(),
+  targets: z.array(JobTargetSchema),
+  scheduledFor: z.iso.datetime(),
+  status: JobRunStatusSchema,
+  result: z.record(z.string(), z.unknown()).nullable(),
+  error: z.string().nullable(),
+  executedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+});
+
+export const JobRunListQuerySchema = z.object({
+  specId: z.string().optional(),
+  status: JobRunStatusSchema.optional(),
+  due: z.coerce.boolean().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export const JobRunClaimSchema = z.object({
+  runId: z.string(),
+  expectedStatus: z.enum(["pending", "needs_signature"]).default("pending"),
+});
+
+export const JobRunReportSchema = z.object({
+  runId: z.string(),
+  status: z.enum(["completed", "failed", "needs_signature"]),
+  result: z.record(z.string(), z.unknown()).optional(),
+  error: z.string().max(1000).optional(),
+});
+
 export type SocialConnectAccountInput = z.infer<typeof SocialConnectAccountInputSchema>;
 export type SocialConnectAccountResponse = z.infer<typeof SocialConnectAccountResponseSchema>;
 export type Campaign = z.infer<typeof CampaignSchema>;
 export type CreateCampaign = z.infer<typeof CreateCampaignSchema>;
 export type UpdateCampaign = z.infer<typeof UpdateCampaignSchema>;
+export type JobTarget = z.infer<typeof JobTargetSchema>;
+export type JobSpecSchedule = z.infer<typeof JobSpecScheduleSchema>;
+export type JobSpecCreate = z.infer<typeof JobSpecCreateSchema>;
+export type JobSpec = z.infer<typeof JobSpecOutputSchema>;
+export type JobRun = z.infer<typeof JobRunOutputSchema>;
+export type JobRunListQuery = z.infer<typeof JobRunListQuerySchema>;
+export type JobRunClaim = z.infer<typeof JobRunClaimSchema>;
+export type JobRunReport = z.infer<typeof JobRunReportSchema>;
 export type SocialConnectCallbackInput = z.infer<typeof SocialConnectCallbackInputSchema>;
 export type SocialConnectCallbackResponse = z.infer<typeof SocialConnectCallbackResponseSchema>;
 export type SocialAccountMutation = z.infer<typeof SocialAccountMutationSchema>;

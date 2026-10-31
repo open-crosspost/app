@@ -116,6 +116,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
       yield* Effect.promise(() => social.ensureSchema());
       yield* Effect.promise(() => social.ensureCampaignSchema());
+      yield* Effect.promise(() => social.ensureJobSchema());
 
       socialService = social;
 
@@ -279,6 +280,56 @@ export default createPlugin.withPlugins<PluginsClient>()({
             const social = yield* SocialServiceTag;
             return yield* Effect.promise(() => social.removeCampaign(auth.userId, input.id));
           }),
+        },
+        jobs: {
+          specs: {
+            create: builder.social.jobs.specs.create.effect(function* ({ context, input }) {
+              const auth = requireAuthContext(context);
+              const social = yield* SocialServiceTag;
+              return yield* Effect.promise(() =>
+                social.createJobSpec(
+                  auth.userId,
+                  input,
+                  context.near?.primaryAccountId,
+                  context.near?.linkedAccounts,
+                ),
+              );
+            }),
+
+            list: builder.social.jobs.specs.list.effect(function* ({ context }) {
+              const auth = requireAuthContext(context);
+              const social = yield* SocialServiceTag;
+              const specs = yield* Effect.promise(() => social.listJobSpecs(auth.userId));
+              return { specs };
+            }),
+
+            update: builder.social.jobs.specs.update.effect(function* ({ context, input }) {
+              const auth = requireAuthContext(context);
+              const social = yield* SocialServiceTag;
+              return yield* Effect.promise(() => social.updateJobSpec(auth.userId, input));
+            }),
+          },
+
+          runs: {
+            list: builder.social.jobs.runs.list.effect(function* ({ context, input }) {
+              const auth = requireAuthContext(context);
+              const social = yield* SocialServiceTag;
+              const runs = yield* Effect.promise(() => social.listJobRuns(auth.userId, input));
+              return { runs };
+            }),
+
+            claim: builder.social.jobs.runs.claim.effect(function* ({ context, input }) {
+              const auth = requireAuthContext(context);
+              const social = yield* SocialServiceTag;
+              return yield* Effect.promise(() => social.claimJobRun(auth.userId, input));
+            }),
+
+            report: builder.social.jobs.runs.report.effect(function* ({ context, input }) {
+              const auth = requireAuthContext(context);
+              const social = yield* SocialServiceTag;
+              return yield* Effect.promise(() => social.reportJobRun(auth.userId, input));
+            }),
+          },
         },
       },
 

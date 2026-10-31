@@ -36,6 +36,51 @@ export const campaignParticipants = pgTable(
   }),
 );
 
+export const jobSpecs = pgTable(
+  "job_specs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    kind: text("kind").notNull(),
+    campaignId: text("campaign_id"),
+    actionId: text("action_id"),
+    postsJson: text("posts_json"),
+    targetsJson: text("targets_json").notNull(),
+    scheduleJson: text("schedule_json").notNull(),
+    status: text("status").notNull().default("active"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => ({
+    userIdx: index("job_specs_user_idx").on(table.userId),
+    kindIdx: index("job_specs_kind_idx").on(table.kind),
+  }),
+);
+
+export const jobRuns = pgTable(
+  "job_runs",
+  {
+    id: text("id").primaryKey(),
+    specId: text("spec_id").notNull(),
+    userId: text("user_id").notNull(),
+    kind: text("kind").notNull(),
+    campaignId: text("campaign_id"),
+    postsJson: text("posts_json"),
+    targetsJson: text("targets_json").notNull(),
+    scheduledFor: text("scheduled_for").notNull(),
+    status: text("status").notNull().default("pending"),
+    resultJson: text("result_json"),
+    error: text("error"),
+    executedAt: text("executed_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => ({
+    dueIdx: index("job_runs_scheduled_status_idx").on(table.scheduledFor, table.status),
+    specIdx: index("job_runs_spec_idx").on(table.specId),
+    userIdx: index("job_runs_user_idx").on(table.userId),
+  }),
+);
+
 export const socialConnectedAccounts = pgTable(
   "social_connected_accounts",
   {

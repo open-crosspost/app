@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { CampaignRepository } from "./campaign-repository";
+import { JobRepository } from "./job-repository";
 import type { SocialRepository } from "./repository";
 import type {
   AccountPostsQuery,
@@ -8,6 +9,12 @@ import type {
   CreateCampaign,
   CreatePostRequest,
   DeletePostRequest,
+  JobRun,
+  JobRunClaim,
+  JobRunListQuery,
+  JobRunReport,
+  JobSpec,
+  JobSpecCreate,
   Platform,
   QuotePostRequest,
   ReplyToPostRequest,
@@ -37,6 +44,7 @@ export class SocialService {
   private connectorsFactory?: (userId: string) => unknown;
   private readonly xCredentials: XClientCredentials;
   private readonly campaignRepository: CampaignRepository;
+  private readonly jobRepository: JobRepository;
 
   constructor(
     private readonly repository: SocialRepository,
@@ -45,6 +53,11 @@ export class SocialService {
   ) {
     this.xCredentials = xCredentials;
     this.campaignRepository = campaignRepository ?? new CampaignRepository(repository.database);
+    this.jobRepository = new JobRepository(repository.database);
+  }
+
+  ensureJobSchema(): Promise<void> {
+    return this.jobRepository.ensureSchema();
   }
 
   async listActiveCampaigns(): Promise<Campaign[]> {
@@ -107,6 +120,114 @@ export class SocialService {
       throw new ORPCError("NOT_FOUND", { message: `Campaign ${id} not found` });
     }
     return removed;
+  }
+
+  async createJobSpec(
+    userId: string,
+    input: JobSpecCreate,
+    nearAccountId?: string | null,
+    linkedNearAccounts?: Array<{ accountId: string }> | null,
+  ): Promise<JobSpec> {
+    if (input.schedule.mode === "once" && Date.parse(input.schedule.at) <= Date.now()) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Scheduled time must be in the future",
+      });
+    }
+    if (input.kind === "campaign") {
+      const campaign = await this.campaignRepository.get(input.campaignId!);
+      if (!campaign || campaign.status !== "active") {
+        throw new ORPCError("NOT_FOUND", {
+          message: `Campaign ${input.campaignId} not found`,
+        });
+      }
+    }
+
+    await this.assertTargetsBelongToCaller(
+      userId,
+      input.targets,
+      nearAccountId,
+      linkedNearAccounts,
+    );
+
+    return this.jobRepository.createSpec(userId, input);
+  }
+
+  async listJobSpecs(userId: string): Promise<JobSpec[]> {
+    return this.jobRepository.listSpecs(userId);
+  }
+
+  async updateJobSpec(
+    userId: string,
+    input: { id: string; status: "active" | "paused" | "cancelled" },
+  ): Promise<JobSpec> {
+    const spec = await this.jobRepository.updateSpecStatus(userId, input.id, input.status);
+    if (!spec) {
+      throw new ORPCError("NOT_FOUND", { message: `Job spec ${input.id} not found` });
+    }
+    return spec;
+  }
+
+  async listJobRuns(userId: string, query?: JobRunListQuery): Promise<JobRun[]> {
+    return this.jobRepository.listRuns(userId, query);
+  }
+
+  async claimJobRun(userId: string, input: JobRunClaim): Promise<JobRun> {
+    const run = await this.jobRepository.claimRun(userId, input.runId, input.expectedStatus);
+    if (!run) {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Run ${input.runId} is not claimable in status ${input.expectedStatus}`,
+      });
+    }
+    return run;
+  }
+
+  async reportJobRun(userId: string, input: JobRunReport): Promise<JobRun> {
+    const run = await this.jobRepository.reportRun(userId, input.runId, input);
+    if (!run) {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Run ${input.runId} is not executing (nothing was reported)`,
+      });
+    }
+    return run;
+  }
+
+  private async assertTargetsBelongToCaller(
+    userId: string,
+    targets: Array<{ platform: string; accountUserId: string }>,
+    nearAccountId?: string | null,
+    linkedNearAccounts?: Array<{ accountId: string }> | null,
+  ) {
+    const targetPlatforms = new Set(targets.map((target) => target.platform));
+    const platformUserIds = new Map<string, Set<string>>();
+    for (const account of await this.repository.listAccounts(userId)) {
+      if (!targetPlatforms.has(account.platform)) continue;
+      const userIds = platformUserIds.get(account.platform) ?? new Set<string>();
+      userIds.add(account.userId);
+      platformUserIds.set(account.platform, userIds);
+    }
+
+    const nearIds = new Set<string>();
+    if (nearAccountId) nearIds.add(nearAccountId);
+    for (const linked of linkedNearAccounts ?? []) {
+      nearIds.add(linked.accountId);
+    }
+
+    for (const target of targets) {
+      if (target.platform === "near-social") {
+        if (!nearIds.has(target.accountUserId)) {
+          throw new ORPCError("FORBIDDEN", {
+            message: `${target.accountUserId} is not a NEAR account linked to this session`,
+          });
+        }
+        continue;
+      }
+      const userIds = platformUserIds.get(target.platform);
+      if (!userIds?.has(target.accountUserId)) {
+        throw new ORPCError("FORBIDDEN", {
+          message: `${target.accountUserId} is not connected for ${target.platform}`,
+        });
+      }
+    }
   }
 
   /**

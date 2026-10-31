@@ -464,7 +464,7 @@ function EditorPage() {
         isOpen={state.isScheduleModalOpen}
         onClose={() => dispatch({ type: "schedule_modal_closed" })}
         posts={posts}
-        selectedPlatforms={selectedAccounts.map((account) => account.platform)}
+        selectedAccounts={selectedAccounts}
         onScheduled={handleScheduled}
       />
       <PreviewModal

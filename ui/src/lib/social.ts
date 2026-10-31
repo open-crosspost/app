@@ -126,6 +126,50 @@ export async function fetchServerCampaigns(apiClient: ApiClient): Promise<Server
   return response.campaigns;
 }
 
+export const jobSpecsQueryKey = ["social", "jobs", "specs"] as const;
+export const jobRunsBaseQueryKey = ["social", "jobs", "runs"] as const;
+export function jobRunsQueryKey(query?: {
+  specId?: string;
+  status?: "pending" | "completed" | "failed";
+  due?: boolean;
+}) {
+  return [...jobRunsBaseQueryKey, query ?? {}] as const;
+}
+
+export type JobTargetPlatform = "twitter" | "near-social" | "farcaster";
+
+const JOB_TARGET_PLATFORM_BY_ACCOUNT: Record<string, JobTargetPlatform> = {
+  Twitter: "twitter",
+  twitter: "twitter",
+  "Near Social": "near-social",
+  Farcaster: "farcaster",
+  farcaster: "farcaster",
+};
+
+export function jobTargetPlatform(accountPlatform: string): JobTargetPlatform | null {
+  return JOB_TARGET_PLATFORM_BY_ACCOUNT[accountPlatform] ?? null;
+}
+
+export function jobTargetsFromAccounts(
+  accounts: Array<{ platform: string; userId: string }>,
+): Array<{ platform: JobTargetPlatform; accountUserId: string }> {
+  const targets: Array<{ platform: JobTargetPlatform; accountUserId: string }> = [];
+  for (const account of accounts) {
+    const target = jobTargetPlatform(account.platform);
+    if (target) {
+      targets.push({ platform: target, accountUserId: account.userId });
+    }
+  }
+  return targets;
+}
+
+export function accountMatchesJobTarget(
+  account: { platform: string; userId: string },
+  target: { platform: string; accountUserId: string },
+): boolean {
+  return account.userId === target.accountUserId && account.platform === target.platform;
+}
+
 export async function getTwitterConnectedAccount(
   apiClient: ApiClient,
 ): Promise<ConnectedAccount | null> {

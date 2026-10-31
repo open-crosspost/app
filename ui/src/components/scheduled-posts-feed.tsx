@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
@@ -12,6 +13,7 @@ import {
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,10 +21,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ScheduledPost } from "@/store/scheduled-posts-store";
-import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
+import { jobRunsQueryKey, jobSpecsQueryKey } from "@/lib/social";
 
-const StatusIcon: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) => {
+type RunStatus = "pending" | "executing" | "completed" | "failed" | "needs_signature" | "cancelled";
+type RunsFilter = Parameters<typeof jobRunsQueryKey>[0];
+type SpecStatus = "active" | "paused" | "cancelled";
+
+type JobSpecDto = {
+  id: string;
+  kind: "scheduled" | "campaign";
+  campaignId: string | null;
+  posts: Array<{ text?: string; media?: unknown[] }> | null;
+  targets: Array<{ platform: string; accountUserId: string }>;
+  schedule: { mode: "once"; at: string } | { mode: "daily"; at?: string; tz?: string };
+  status: SpecStatus;
+};
+
+type JobRunDto = {
+  id: string;
+  specId: string;
+  kind: "scheduled" | "campaign";
+  campaignId: string | null;
+  scheduledFor: string;
+  status: RunStatus;
+  error: string | null;
+  executedAt: string | null;
+};
+
+const StatusIcon: React.FC<{ status: RunStatus }> = ({ status }) => {
   switch (status) {
     case "pending":
       return <Clock size={16} className="text-primary" />;
@@ -37,7 +63,7 @@ const StatusIcon: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) =
   }
 };
 
-const StatusBadge: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: RunStatus }> = ({ status }) => {
   const getStatusColor = () => {
     switch (status) {
       case "pending":
@@ -60,62 +86,56 @@ const StatusBadge: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) 
   );
 };
 
-interface ScheduledPostItemProps {
-  post: ScheduledPost;
-  onDelete: (id: string) => void;
-  onEdit?: (post: ScheduledPost) => void;
-}
+type FeedItem = {
+  run: JobRunDto;
+  spec: JobSpecDto | undefined;
+};
 
-const ScheduledPostItem: React.FC<ScheduledPostItemProps> = ({ post, onDelete }) => {
-  const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this scheduled post?")) {
-      onDelete(post.id);
-    }
-  };
+function FeedListItem({ item, onDelete }: { item: FeedItem; onDelete: (specId: string) => void }) {
+  const { run, spec } = item;
+  const preview =
+    spec?.posts?.[0]?.text?.trim() || (run.campaignId ? `gm (${run.campaignId})` : "No content");
 
   return (
     <div className="p-4 base-component rounded-md hover:bg-muted/50 transition-colors">
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
-          <StatusIcon status={post.status} />
-          <StatusBadge status={post.status} />
+          <StatusIcon status={run.status} />
+          <StatusBadge status={run.status} />
         </div>
-        <Button
-          size="sm"
-          onClick={handleDelete}
-          className="p-0 w-9 h-9 text-destructive hover:text-destructive/80 base-component flex items-center justify-center min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px]"
-          title="Delete scheduled post"
-        >
-          <Trash2 size={16} />
-        </Button>
+        {spec && spec.status !== "cancelled" && spec.kind === "scheduled" ? (
+          <Button
+            size="sm"
+            onClick={() => onDelete(spec.id)}
+            className="p-0 w-9 h-9 text-destructive hover:text-destructive/80 base-component flex items-center justify-center min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px]"
+            title="Delete scheduled post"
+          >
+            <Trash2 size={16} />
+          </Button>
+        ) : null}
       </div>
 
       <div className="space-y-2">
-        {post.posts && post.posts.length > 0 && (
-          <div className="p-3 bg-muted rounded">
-            <div className="text-foreground line-clamp-2">
-              {post.posts[0]?.text?.trim() || "No text content"}
-            </div>
-            {post.posts[0]?.media && post.posts[0].media.length > 0 && (
-              <div className="text-muted-foreground text-xs mt-1">
-                + {post.posts[0].media.length} media file
-                {post.posts[0].media.length !== 1 ? "s" : ""}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="p-3 bg-muted rounded">
+          <div className="text-foreground line-clamp-2">{preview}</div>
+        </div>
 
-        {post.status === "failed" && post.error && (
+        <div className="text-xs text-muted-foreground">
+          <Clock size={12} className="mr-1 inline" />
+          Fires: {new Date(run.scheduledFor).toLocaleString()}
+        </div>
+
+        {run.status === "failed" && run.error && (
           <div className="mt-2 rounded border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">
-            <strong>Error:</strong> {post.error}
+            <strong>Error:</strong> {run.error}
           </div>
         )}
 
-        {post.executedAt && (
+        {run.executedAt && (
           <div className="text-xs text-muted-foreground mt-3">
-            {post.status === "completed" ? "Completed" : "Failed"} at:{" "}
-            {new Date(post.executedAt).toLocaleDateString()} •{" "}
-            {new Date(post.executedAt).toLocaleTimeString([], {
+            {run.status === "completed" ? "Completed" : "Failed"} at:{" "}
+            {new Date(run.executedAt).toLocaleDateString()} •{" "}
+            {new Date(run.executedAt).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             })}
@@ -124,34 +144,62 @@ const ScheduledPostItem: React.FC<ScheduledPostItemProps> = ({ post, onDelete })
       </div>
     </div>
   );
-};
+}
 
 export const ScheduledPostsFeed: React.FC = () => {
-  const { scheduledPosts, deleteScheduledPost } = useScheduledPostsStore();
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "pending" | "completed" | "failed">("all");
 
-  const filteredPosts = scheduledPosts.filter((post) => {
-    if (filter === "all") return true;
-    return post.status === filter;
+  const { data: specs = [], isLoading: isLoadingSpecs } = useQuery({
+    queryKey: jobSpecsQueryKey,
+    queryFn: () => apiClient.social.jobs.specs.list(),
+    select: (response) => response.specs,
   });
 
-  const sortedPosts = filteredPosts.sort((a, b) => {
-    // Sort by scheduled time, with pending posts first
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (b.status === "pending" && a.status !== "pending") return 1;
-    return new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime();
+  const runsFilter: RunsFilter | undefined = filter === "all" ? undefined : { status: filter };
+  const { data: runs = [], isLoading: isLoadingRuns } = useQuery({
+    queryKey: jobRunsQueryKey(runsFilter),
+    queryFn: () => apiClient.social.jobs.runs.list(runsFilter ?? undefined),
+    select: (response) => response.runs,
+    refetchInterval: 30_000,
   });
 
-  const handleDelete = (id: string) => {
-    deleteScheduledPost(id);
-    toast.success("Scheduled Post Deleted", {
-      description: "The scheduled post has been removed.",
-    });
-  };
+  const cancelSpec = useMutation({
+    mutationFn: (specId: string) =>
+      apiClient.social.jobs.specs.update({ id: specId, status: "cancelled" }),
+    onSuccess: () => {
+      toast.success("Scheduled Post Deleted", {
+        description: "The scheduled post has been removed.",
+      });
+      void queryClient.invalidateQueries({ queryKey: jobSpecsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: jobRunsQueryKey() });
+    },
+  });
 
-  const pendingCount = scheduledPosts.filter((p) => p.status === "pending").length;
-  const completedCount = scheduledPosts.filter((p) => p.status === "completed").length;
-  const failedCount = scheduledPosts.filter((p) => p.status === "failed").length;
+  const specById = new Map(specs.map((spec) => [spec.id, spec]));
+  const items: FeedItem[] = runs
+    .map((run) => ({ run, spec: specById.get(run.specId) }))
+    .filter((item) => item.spec?.status !== "cancelled" || item.run.status !== "pending");
+
+  const sortedItems = items.sort((a, b) => {
+    if (a.run.status === "pending" && b.run.status !== "pending") return -1;
+    if (b.run.status === "pending" && a.run.status !== "pending") return 1;
+    return new Date(a.run.scheduledFor).getTime() - new Date(b.run.scheduledFor).getTime();
+  });
+
+  const pendingCount = runs.filter((run) => run.status === "pending").length;
+  const completedCount = runs.filter((run) => run.status === "completed").length;
+  const failedCount = runs.filter((run) => run.status === "failed").length;
+
+  if (isLoadingSpecs || isLoadingRuns) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">Scheduled Posts</h2>
+        <p className="text-sm text-muted-foreground">Loading scheduled posts…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -167,7 +215,7 @@ export const ScheduledPostsFeed: React.FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="flex items-center gap-2 max-w-32">
-                {filter === "all" && `All (${scheduledPosts.length})`}
+                {filter === "all" && `All (${runs.length})`}
                 {filter === "pending" && `Pending (${pendingCount})`}
                 {filter === "completed" && `Completed (${completedCount})`}
                 {filter === "failed" && `Failed (${failedCount})`}
@@ -179,7 +227,7 @@ export const ScheduledPostsFeed: React.FC = () => {
                 onClick={() => setFilter("all")}
                 className={filter === "all" ? "bg-accent" : ""}
               >
-                All ({scheduledPosts.length})
+                All ({runs.length})
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setFilter("pending")}
@@ -204,7 +252,7 @@ export const ScheduledPostsFeed: React.FC = () => {
         </div>
       </div>
 
-      {sortedPosts.length === 0 ? (
+      {sortedItems.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <Calendar size={48} className="mx-auto mb-4 text-muted-foreground/50" />
           <p className="text-lg font-medium mb-2">No scheduled posts</p>
@@ -216,8 +264,12 @@ export const ScheduledPostsFeed: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedPosts.map((post) => (
-            <ScheduledPostItem key={post.id} post={post} onDelete={handleDelete} />
+          {sortedItems.map((item) => (
+            <FeedListItem
+              key={item.run.id}
+              item={item}
+              onDelete={(specId) => cancelSpec.mutate(specId)}
+            />
           ))}
         </div>
       )}

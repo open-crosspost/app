@@ -13,6 +13,13 @@ import {
   CreateCampaignSchema,
   CreatePostRequestSchema,
   DeletePostRequestSchema,
+  JobRunClaimSchema,
+  JobRunListQuerySchema,
+  JobRunOutputSchema,
+  JobRunReportSchema,
+  JobSpecCreateSchema,
+  JobSpecOutputSchema,
+  JobSpecStatusUpdateSchema,
   MultiStatusDataSchema,
   QuotePostRequestSchema,
   ReplyToPostRequestSchema,
@@ -138,11 +145,53 @@ const campaignsContract = oc.router({
     .errors(PluginErrors),
 });
 
+const jobsContract = oc.router({
+  specs: {
+    create: oc
+      .route({ method: "POST", path: "/social/jobs/specs" })
+      .input(JobSpecCreateSchema)
+      .output(JobSpecOutputSchema)
+      .errors(PluginErrors),
+
+    list: oc
+      .route({ method: "GET", path: "/social/jobs/specs" })
+      .output(z.object({ specs: z.array(JobSpecOutputSchema) }))
+      .errors(PluginErrors),
+
+    update: oc
+      .route({ method: "PATCH", path: "/social/jobs/specs" })
+      .input(JobSpecStatusUpdateSchema)
+      .output(JobSpecOutputSchema)
+      .errors(PluginErrors),
+  },
+
+  runs: {
+    list: oc
+      .route({ method: "GET", path: "/social/jobs/runs" })
+      .input(JobRunListQuerySchema.optional())
+      .output(z.object({ runs: z.array(JobRunOutputSchema) }))
+      .errors(PluginErrors),
+
+    claim: oc
+      .route({ method: "POST", path: "/social/jobs/runs/claim" })
+      .input(JobRunClaimSchema)
+      .output(JobRunOutputSchema)
+      .errors(PluginErrors),
+
+    report: oc
+      .route({ method: "POST", path: "/social/jobs/runs/report" })
+      .input(JobRunReportSchema)
+      .output(JobRunOutputSchema)
+      .errors(PluginErrors),
+  },
+});
+
 export const socialContract = oc.router({
   accounts: accountsContract,
   posts: postsContract,
   activity: activityContract,
   campaigns: campaignsContract,
+  jobs: jobsContract,
 });
 
 export type SocialContract = typeof socialContract;
