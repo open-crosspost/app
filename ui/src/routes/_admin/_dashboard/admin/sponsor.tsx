@@ -21,7 +21,7 @@ type Health = "ok" | "warn" | "empty";
 
 const HEALTH_STYLE: Record<Health, string> = {
   ok: "border-border",
-  warn: "border-amber-500/60 bg-amber-500/5",
+  warn: "border-warning/60 bg-warning/5",
   empty: "border-destructive/60 bg-destructive/5",
 };
 
