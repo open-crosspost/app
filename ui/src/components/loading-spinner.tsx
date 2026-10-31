@@ -17,9 +17,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ message }) => {
           duration: 1,
         }}
       >
-        <PenSquare size={48} className="text-gray-500" />
+        <PenSquare size={48} className="text-muted-foreground" />
       </motion.div>
-      {message && <p className="mt-4 text-lg text-gray-600">{message}</p>}
+      {message && <p className="mt-4 text-lg text-muted-foreground">{message}</p>}
     </div>
   );
 };

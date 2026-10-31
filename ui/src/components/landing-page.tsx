@@ -9,7 +9,7 @@ function MarqueeXIcon() {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="shrink-0 text-blue-600 dark:text-blue-400"
+      className="shrink-0 text-foreground"
       aria-hidden="true"
     >
       <path
@@ -21,7 +21,7 @@ function MarqueeXIcon() {
 }
 
 const marqueeChip =
-  "mx-5 inline-flex items-center gap-1.5 text-sm font-bold text-neutral-950 sm:mx-8 sm:gap-2 sm:text-lg dark:text-white";
+  "mx-5 inline-flex items-center gap-1.5 text-sm font-bold text-foreground sm:mx-8 sm:gap-2 sm:text-lg";
 
 const PITCH_MS = 2000;
 const SOON_MS = 5000;
@@ -45,15 +45,15 @@ function MarqueeSegment({ ariaHidden }: { ariaHidden?: boolean }) {
         MULTI-PLATFORM POSTING
       </span>
       <span className={marqueeChip}>
-        <Calendar size={20} className="shrink-0 text-purple-600 dark:text-purple-400" aria-hidden />
+        <Calendar size={20} className="shrink-0 text-primary" aria-hidden />
         SCHEDULE POSTS
       </span>
       <span className={marqueeChip}>
-        <Zap size={20} className="shrink-0 text-yellow-600 dark:text-yellow-400" aria-hidden />
+        <Zap size={20} className="shrink-0 text-warning" aria-hidden />
         LIGHTNING FAST
       </span>
       <span className={marqueeChip}>
-        <Shield size={20} className="shrink-0 text-green-600 dark:text-green-400" aria-hidden />
+        <Shield size={20} className="shrink-0 text-success" aria-hidden />
         SECURE & PRIVATE
       </span>
     </div>
@@ -146,13 +146,13 @@ export function LandingPage({ cta }: { cta?: ReactNode }) {
             </h1>
 
             {phase === "pitch" && !glitching ? (
-              <div className="mx-auto max-w-2xl px-2 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
+              <div className="mx-auto max-w-2xl px-2 text-sm text-muted-foreground sm:px-0 sm:text-lg">
                 <p>Post to all your social platforms simultaneously.</p>
                 <p>Save time, reach more people, and manage everything from one place.</p>
               </div>
             ) : null}
             {phase === "soon" && !glitching ? (
-              <p className="mx-auto max-w-2xl px-2 text-base text-gray-600 sm:px-0 sm:text-xl dark:text-gray-400">
+              <p className="mx-auto max-w-2xl px-2 text-base text-muted-foreground sm:px-0 sm:text-xl">
                 Share everywhere, from one place.
               </p>
             ) : null}
@@ -162,7 +162,7 @@ export function LandingPage({ cta }: { cta?: ReactNode }) {
       </div>
 
       <div className="px-4 sm:px-6 md:px-10">
-        <div className="border-y-2 border-primary bg-white py-4 overflow-hidden dark:bg-black">
+        <div className="border-y-2 border-primary bg-background py-4 overflow-hidden">
           <div className="flex w-max items-center animate-marquee whitespace-nowrap">
             <MarqueeSegment />
             <MarqueeSegment ariaHidden />

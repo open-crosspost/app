@@ -4,11 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Link as LinkIcon, Trash2, X } from "lucide-react";
 import type React from "react";
+import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { InlineBadges } from "@/components/badges/inline-badges";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
 import { fetchSocialAccountPosts, socialAccountPostsQueryKey } from "@/lib/social";
 import { getProfile } from "@/lib/utils/near-social-node";
 
@@ -66,7 +66,11 @@ const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({
       return <X className={className} />;
     case Platform.FARCASTER:
       return (
-        <img src={farcasterSvg} alt="Farcaster Logo" className={`text-gray-400 ${className}`} />
+        <img
+          src={farcasterSvg}
+          alt="Farcaster Logo"
+          className={`text-muted-foreground ${className}`}
+        />
       );
     default:
       return <LinkIcon className={className} />; // Default icon
@@ -124,16 +128,10 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
 
     try {
       await deletePostMutation.mutateAsync({ postId, platform, platformUserId });
-      toast({
-        title: "Post Deleted",
-        description: "The post has been successfully deleted.",
-        variant: "success",
-      });
+      toast.success("Post Deleted", { description: "The post has been successfully deleted." });
     } catch (err) {
-      toast({
-        title: "Error Deleting Post",
+      toast.error("Error Deleting Post", {
         description: err instanceof Error ? err.message : "An unexpected error occurred.",
-        variant: "destructive",
       });
     }
   };
@@ -143,7 +141,7 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
       <div className="p-4">
         <h2 className="text-xl font-semibold mb-4">Posts for {accountId}</h2>
         <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
         </div>
       </div>
     );
@@ -153,7 +151,7 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
     return (
       <div className="p-4">
         <h2 className="text-xl font-semibold mb-4">Posts for {accountId}</h2>
-        <div className="p-4 text-center text-red-600 dark:text-red-400">
+        <div className="p-4 text-center text-destructive">
           <p>{error?.message || "An unknown error occurred."}</p>
           <Button onClick={() => refetch()} className="mt-2">
             Retry
@@ -167,9 +165,7 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
     return (
       <div className="p-4">
         <h2 className="text-xl font-semibold mb-4">Posts for {accountId}</h2>
-        <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-          No posts found for this account.
-        </p>
+        <p className="text-center text-muted-foreground py-8">No posts found for this account.</p>
       </div>
     );
   }
@@ -181,23 +177,16 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
         {posts.map((post) => (
           <div
             key={post.id}
-            className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors base-component rounded-md"
+            className="p-3 hover:bg-muted transition-colors base-component rounded-md"
           >
             <div className="flex justify-between items-center mb-2 text-sm">
               <div className="flex items-center space-x-1.5">
-                <PlatformIcon
-                  platform={post.platform}
-                  className="w-4 h-4 text-gray-600 dark:text-gray-400"
-                />
-                <span className="font-medium capitalize text-gray-700 dark:text-gray-300">
-                  {post.platform}
-                </span>
-                <span className="text-gray-400 dark:text-gray-500">•</span>
-                <span className="text-gray-500 dark:text-gray-400 capitalize">
-                  {post.type ?? "post"}
-                </span>
+                <PlatformIcon platform={post.platform} className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium capitalize text-foreground">{post.platform}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground capitalize">{post.type ?? "post"}</span>
               </div>
-              <span className="text-gray-500 dark:text-gray-400 text-xs">
+              <span className="text-muted-foreground text-xs">
                 {new Date(post.createdAt).toLocaleDateString()} •{" "}
                 {new Date(post.createdAt).toLocaleTimeString([], {
                   hour: "2-digit",
@@ -210,7 +199,7 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
                   onClick={() => handleDeletePost(post.id, post.platform, post.userId)}
                   disabled={deletePostMutation.isPending}
                   title="Delete post"
-                  className="text-red-500 hover:text-red-700"
+                  className="text-destructive hover:text-destructive/80"
                 >
                   <Trash2 size={16} />
                 </Button>
@@ -222,7 +211,7 @@ const AccountPostsList: React.FC<{ accountId: string }> = ({ accountId }) => {
                 href={post.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                className="text-primary hover:text-primary/80 transition-colors"
                 title={`View on ${post.platform}`}
               >
                 view post

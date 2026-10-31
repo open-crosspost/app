@@ -106,7 +106,7 @@ function ResultsPage() {
         </div>
         <h1 className="text-2xl font-bold">Submission Results</h1>
         {summary && (
-          <p className="text-gray-500">
+          <p className="text-muted-foreground">
             {`Attempted: ${summary.total} | Succeeded: ${summary.succeeded} | Failed: ${summary.failed}`}
           </p>
         )}
@@ -116,7 +116,7 @@ function ResultsPage() {
       {results.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-3 flex items-center">
-            <CheckCircle2 className="mr-2 text-green-500" />
+            <CheckCircle2 className="mr-2 text-success" />
             Successful Posts ({results.length})
           </h2>
           <div className="space-y-3">
@@ -125,25 +125,23 @@ function ResultsPage() {
               return (
                 <div
                   key={index}
-                  className="p-4 border-2 rounded-md bg-green-50 dark:bg-green-900 border-black dark:border-white"
+                  className="p-4 border-2 rounded-md bg-success/10 border-success/40"
                 >
                   {account ? (
                     <ProfileCard account={account} size="md" />
                   ) : (
-                    <p className="font-medium text-green-700 dark:text-white">
+                    <p className="font-medium text-success">
                       Successfully posted to {success.platform} (User ID: {success.userId})
                     </p>
                   )}
                   {success.details && typeof success.details === "string" && (
-                    <p className="text-sm text-green-600 dark:text-white mt-1">{success.details}</p>
+                    <p className="text-sm text-success/90 mt-1">{success.details}</p>
                   )}
                   {success.details &&
                     typeof success.details === "object" &&
                     "message" in success.details &&
                     typeof success.details.message === "string" && (
-                      <p className="text-sm text-green-600 dark:text-white mt-1">
-                        {success.details.message}
-                      </p>
+                      <p className="text-sm text-success/90 mt-1">{success.details.message}</p>
                     )}
                 </div>
               );
@@ -156,7 +154,7 @@ function ResultsPage() {
       {errors.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-3 flex items-center">
-            <AlertCircle className="mr-2 text-red-500" />
+            <AlertCircle className="mr-2 text-destructive" />
             Failed Posts ({errors.length})
           </h2>
           <div className="space-y-3">
@@ -165,21 +163,21 @@ function ResultsPage() {
               return (
                 <div
                   key={index}
-                  className="p-4 border-2 rounded-md bg-red-50 dark:bg-red-900 border-black dark:border-white"
+                  className="p-4 border-2 rounded-md bg-destructive/10 border-destructive/40"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-grow mr-4">
                       {account ? (
                         <ProfileCard account={account} size="md" />
                       ) : (
-                        <p className="font-medium text-red-700">
+                        <p className="font-medium text-destructive">
                           Failed to post to{" "}
                           {(error.details?.platform as string) || "Unknown Platform"} (User ID:{" "}
                           {(error.details?.userId as string) || "Unknown User"})
                         </p>
                       )}
-                      <div className="mt-2 text-red-700">
-                        <p className="text-sm text-red-500 mt-1">{`${error.code}: `}</p>
+                      <div className="mt-2 text-destructive">
+                        <p className="text-sm text-destructive/80 mt-1">{`${error.code}: `}</p>
                         <p className="text-base font-semibold">{error.message}</p>
                       </div>
                     </div>

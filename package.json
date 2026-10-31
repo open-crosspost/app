@@ -12,6 +12,7 @@
     "types:gen": "bos types gen",
     "typecheck": "pnpm run types:gen && if [ -d ui ]; then pnpm --dir ui run typecheck; fi && if [ -d api ]; then pnpm --dir api run typecheck; fi && if [ -d plugins ]; then for dir in plugins/*; do if [ -f \"$dir/package.json\" ]; then pnpm --dir \"$dir\" --if-present run typecheck && pnpm --dir \"$dir\" --if-present run typecheck:ui; fi; done; fi",
     "lint": "biome check .",
+    "lint:colors": "node scripts/lint-colors.mjs",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "format:check": "biome format .",

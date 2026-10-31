@@ -49,7 +49,7 @@ function SortablePostComponent({
           <div
             {...attributes}
             {...listeners}
-            className="flex w-6 cursor-grab touch-none items-center justify-center self-stretch rounded-sm border-2 border-primary bg-white shadow-[2px_2px_0_rgba(0,0,0,1)] active:cursor-grabbing dark:bg-black dark:shadow-[2px_2px_0_rgba(255,255,255,0.3)] sm:w-8"
+            className="flex w-6 cursor-grab touch-none items-center justify-center self-stretch rounded-sm border-2 border-primary bg-card base-component active:cursor-grabbing sm:w-8"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

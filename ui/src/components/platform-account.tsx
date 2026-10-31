@@ -2,10 +2,10 @@ import type { ConnectedAccount, PlatformName } from "@crosspost/plugin/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCopy, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useApiClient } from "@/app";
 import { AccountItem } from "@/components/account-item";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
 import {
   disconnectSocialAccount,
   refreshSocialAccount,
@@ -57,13 +57,11 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
     try {
       await refreshAccount.mutateAsync();
     } catch (error) {
-      toast({
-        title: "Refresh Error",
+      toast.error("Refresh Error", {
         description:
           error instanceof Error
             ? error.message
             : `Failed to refresh ${capitalize(account.platform)} account`,
-        variant: "destructive",
       });
     } finally {
       setIsRefreshing(false);
@@ -76,10 +74,8 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
     setIsDisconnecting(true);
     try {
       await disconnectAccount.mutateAsync();
-      toast({
-        title: "Account Disconnected",
+      toast("Account Disconnected", {
         description: `Successfully disconnected ${capitalize(account.platform)} account`,
-        variant: "default",
       });
     } catch (error) {
       const errorMessage =
@@ -87,11 +83,7 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
           ? error.message
           : `Failed to disconnect ${capitalize(account.platform)} account`;
 
-      toast({
-        title: "Disconnection Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error("Disconnection Error", { description: errorMessage });
     } finally {
       setIsDisconnecting(false);
     }
@@ -101,16 +93,9 @@ export function PlatformAccountItem({ account, showActions = true }: PlatformAcc
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(account.userId);
-      toast({
-        title: "Copied to Clipboard",
-        description: `User ID copied to clipboard`,
-      });
+      toast("Copied to Clipboard", { description: `User ID copied to clipboard` });
     } catch (_error) {
-      toast({
-        title: "Copy Error",
-        description: "Failed to copy user ID to clipboard",
-        variant: "destructive",
-      });
+      toast.error("Copy Error", { description: "Failed to copy user ID to clipboard" });
     } finally {
       setIsCopying(false);
     }

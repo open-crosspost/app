@@ -38,12 +38,12 @@ export function AccountItem({
         type="button"
         className={`flex items-center p-3 rounded-md transition-colors w-full text-left ${
           hasError
-            ? "border-2 border-red-500 bg-red-50 dark:bg-red-900 opacity-80 cursor-not-allowed"
+            ? "border-2 border-destructive/60 bg-destructive/10 opacity-80 cursor-not-allowed"
             : disabled
-              ? "border-2 border-gray-200 bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed"
+              ? "border-2 border-border bg-muted opacity-60 cursor-not-allowed"
               : isSelected
-                ? "border-2 border-green-500 bg-green-50 dark:bg-black cursor-pointer"
-                : "border-2 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-800 cursor-pointer"
+                ? "border-2 border-success bg-success/10 cursor-pointer"
+                : "border-2 border-border hover:bg-muted cursor-pointer"
         }`}
         onClick={handleClick}
         title={title}
@@ -52,10 +52,10 @@ export function AccountItem({
         <div className="flex-grow overflow-hidden">
           {hasError ? (
             <div>
-              <p className="font-medium text-sm text-red-700 truncate">{account.platform}</p>
-              <p className="text-xs text-red-600 truncate">ID: {account.userId}</p>
+              <p className="font-medium text-sm text-destructive truncate">{account.platform}</p>
+              <p className="text-xs text-destructive/80 truncate">ID: {account.userId}</p>
               {account.error && (
-                <p className="text-xs text-red-500 truncate" title={account.error}>
+                <p className="text-xs text-destructive truncate" title={account.error}>
                   {account.error}
                 </p>
               )}
@@ -63,10 +63,10 @@ export function AccountItem({
           ) : !account.profile ? (
             <div className="flex items-center gap-2">
               <div className="flex-grow min-w-0">
-                <p className="font-medium text-sm text-gray-700 dark:text-gray-300 truncate">
+                <p className="font-medium text-sm text-foreground truncate">
                   @{account.userId || "Unknown"}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{account.platform}</p>
+                <p className="text-xs text-muted-foreground">{account.platform}</p>
               </div>
             </div>
           ) : (
@@ -78,10 +78,10 @@ export function AccountItem({
           <div
             className={`w-6 h-6 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center ${
               hasError || disabled
-                ? "border-gray-300 bg-gray-200"
+                ? "border-border bg-muted"
                 : isSelected
-                  ? "border-green-500 bg-green-500"
-                  : "border-gray-300"
+                  ? "border-success bg-success"
+                  : "border-border"
             }`}
           >
             {isSelected && !hasError && !disabled && (
@@ -109,32 +109,30 @@ export function AccountItem({
     <div
       className={`flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border-2 p-3 sm:p-4 gap-3 ${
         hasError
-          ? "border-red-500 bg-red-50 dark:bg-red-900 opacity-80"
+          ? "border-destructive/60 bg-destructive/10 opacity-80"
           : disabled
-            ? "border-gray-200 bg-gray-100 dark:bg-gray-800 opacity-60"
+            ? "border-border bg-muted opacity-60"
             : isSelected
-              ? "border-green-500 bg-green-50 dark:bg-black"
-              : "border-gray-200 dark:border-gray-800"
+              ? "border-success bg-success/10"
+              : "border-border"
       }`}
       title={title}
     >
       <div className="flex items-center space-x-4 overflow-hidden">
         {hasError ? (
           <div>
-            <p className="font-medium text-red-700 truncate">{account.platform}</p>
-            <p className="text-sm text-red-600 truncate">ID: {account.userId}</p>
+            <p className="font-medium text-destructive truncate">{account.platform}</p>
+            <p className="text-sm text-destructive/80 truncate">ID: {account.userId}</p>
             {account.error && (
-              <p className="text-xs text-red-500 truncate" title={account.error}>
+              <p className="text-xs text-destructive truncate" title={account.error}>
                 {account.error}
               </p>
             )}
           </div>
         ) : !account.profile ? (
           <div>
-            <p className="font-medium text-gray-700 dark:text-gray-300 truncate">
-              @{account.userId || "Unknown"}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{account.platform}</p>
+            <p className="font-medium text-foreground truncate">@{account.userId || "Unknown"}</p>
+            <p className="text-sm text-muted-foreground">{account.platform}</p>
           </div>
         ) : (
           <ProfileCard account={account} size="md" />
@@ -148,9 +146,7 @@ export function AccountItem({
           onClick={handleClick}
           disabled={disabled || hasError}
           className={
-            isSelected && !hasError
-              ? "bg-green-200 dark:bg-black text-black dark:text-white hover:bg-green-300 dark:hover:bg-gray-800"
-              : ""
+            isSelected && !hasError ? "bg-success text-primary-foreground hover:bg-success/90" : ""
           }
         >
           {isSelected && !hasError ? "Selected" : "Select"}

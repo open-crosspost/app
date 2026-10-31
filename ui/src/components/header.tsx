@@ -17,7 +17,7 @@ export const Header: React.FC = () => {
   const toggleDarkMode = () => setTheme(isDarkMode ? "light" : "dark");
 
   return (
-    <div className="sticky top-0 z-20 shrink-0 border-b-2 border-primary bg-white p-3 dark:bg-black sm:p-6">
+    <div className="sticky top-0 z-20 shrink-0 border-b-2 border-primary bg-background p-3 sm:p-6">
       <div className="flex min-w-0 flex-row items-center justify-between gap-2 sm:gap-3">
         <Link to={isSignedIn ? "/editor" : "/"} className="min-w-0 shrink">
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">

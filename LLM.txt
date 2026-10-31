@@ -234,16 +234,6 @@ border-input       // Input border color
 ring-ring          // Focus ring color
 ```
 
-**Custom Brand Colors:**
-```css
-/* Available as CSS variables */
---near-green: #00ec97;
---near-green-hover: #00d66f;
---near-green-light: #d4fced;
---near-blue: #3d7fff;
---near-purple: #635bff;
-```
-
 **Example Usage:**
 ```tsx
 // ✅ Good: Semantic classes

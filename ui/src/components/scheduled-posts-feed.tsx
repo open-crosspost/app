@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,20 +19,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "@/hooks/use-toast";
 import type { ScheduledPost } from "@/store/scheduled-posts-store";
 import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
 
 const StatusIcon: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) => {
   switch (status) {
     case "pending":
-      return <Clock size={16} className="text-blue-500" />;
+      return <Clock size={16} className="text-primary" />;
     case "executing":
-      return <Play size={16} className="text-yellow-500" />;
+      return <Play size={16} className="text-warning" />;
     case "completed":
-      return <CheckCircle2 size={16} className="text-green-500" />;
+      return <CheckCircle2 size={16} className="text-success" />;
     case "failed":
-      return <XCircle size={16} className="text-red-500" />;
+      return <XCircle size={16} className="text-destructive" />;
     default:
       return <AlertCircle size={16} className="text-muted-foreground" />;
   }
@@ -41,13 +41,13 @@ const StatusBadge: React.FC<{ status: ScheduledPost["status"] }> = ({ status }) 
   const getStatusColor = () => {
     switch (status) {
       case "pending":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+        return "bg-primary/10 text-primary";
       case "executing":
-        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
+        return "bg-warning/15 text-warning";
       case "completed":
-        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
+        return "bg-success/10 text-success";
       case "failed":
-        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
+        return "bg-destructive/10 text-destructive";
       default:
         return "bg-muted text-foreground";
     }
@@ -83,7 +83,7 @@ const ScheduledPostItem: React.FC<ScheduledPostItemProps> = ({ post, onDelete })
         <Button
           size="sm"
           onClick={handleDelete}
-          className="p-0 w-9 h-9 text-red-500 hover:text-red-700 base-component flex items-center justify-center min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px]"
+          className="p-0 w-9 h-9 text-destructive hover:text-destructive/80 base-component flex items-center justify-center min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px]"
           title="Delete scheduled post"
         >
           <Trash2 size={16} />
@@ -144,10 +144,8 @@ export const ScheduledPostsFeed: React.FC = () => {
 
   const handleDelete = (id: string) => {
     deleteScheduledPost(id);
-    toast({
-      title: "Scheduled Post Deleted",
+    toast.success("Scheduled Post Deleted", {
       description: "The scheduled post has been removed.",
-      variant: "success",
     });
   };
 

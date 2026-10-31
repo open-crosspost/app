@@ -115,17 +115,17 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
     return {
       ping: builder.ping.effect(function* () {
-        return {
+        return yield* Effect.succeed({
           status: "ok",
           timestamp: new Date().toISOString(),
-        };
+        });
       }),
 
       reloadConfig: builder.reloadConfig.effect(function* () {
-        return {
+        return yield* Effect.succeed({
           status: "pending" as const,
           note: "restart host to pick up new config",
-        };
+        });
       }),
 
       social: {

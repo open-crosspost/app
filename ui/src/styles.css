@@ -21,6 +21,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.627 0.194 149.214);
+  --warning: oklch(0.769 0.188 70.08);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -45,6 +46,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.723 0.219 149.579);
+  --warning: oklch(0.795 0.184 86.047);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -68,6 +70,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -80,6 +83,10 @@
   box-shadow: 2px 2px 0 0 rgb(0 0 0);
 }
 
+@utility shadow-custom-lg {
+  box-shadow: 4px 4px 0 0 rgb(0 0 0);
+}
+
 @utility base-component {
   border-radius: 0.125rem;
   box-shadow: 2px 2px 0 0 rgb(0 0 0);
@@ -87,6 +94,14 @@
 
 @layer utilities {
   .dark .base-component {
+    box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .dark .shadow-custom {
+    box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .dark .shadow-custom-lg {
     box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.3);
   }
 }

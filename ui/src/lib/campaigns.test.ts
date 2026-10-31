@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type Campaign, getCampaign, listCampaigns } from "./campaigns";
+import {
+  type Campaign,
+  campaignDestinations,
+  campaignPrefillPosts,
+  getCampaign,
+  listCampaigns,
+} from "./campaigns";
 
 describe("campaigns", () => {
   it("registers the GM campaign with Near Social and X enabled", () => {
@@ -46,5 +52,52 @@ describe("campaigns", () => {
     expect(getCampaign("gm")).toBe(gm);
     expect(getCampaign("gm")?.actions[0]?.text).toBe("GM");
     expect(extended[1]?.actions[0]?.text).toBe("GN");
+  });
+});
+
+describe("campaignPrefillPosts", () => {
+  it("prefills editor content with the action text and no media", () => {
+    const gm = getCampaign("gm");
+    expect(gm).toBeDefined();
+    expect(campaignPrefillPosts(gm as Campaign)).toEqual([{ text: "GM", media: [] }]);
+  });
+
+  it("returns an empty prefill for a campaign with no actions", () => {
+    const empty: Campaign = {
+      id: "empty",
+      name: "Empty",
+      description: "Nothing to post.",
+      actions: [],
+    };
+    expect(campaignPrefillPosts(empty)).toEqual([]);
+  });
+});
+
+describe("campaignDestinations", () => {
+  it("lists only enabled destinations", () => {
+    const gm = getCampaign("gm");
+    expect(gm).toBeDefined();
+    expect(campaignDestinations(gm as Campaign)).toEqual(["near-social", "twitter"]);
+  });
+
+  it("skips disabled destinations", () => {
+    const campaign: Campaign = {
+      id: "partial",
+      name: "Partial",
+      description: "One destination.",
+      actions: [
+        {
+          id: "p",
+          label: "P",
+          kind: "post",
+          text: "P",
+          destinations: [
+            { id: "near-social", label: "Near Social", enabled: false },
+            { id: "twitter", label: "X", enabled: true },
+          ],
+        },
+      ],
+    };
+    expect(campaignDestinations(campaign)).toEqual(["twitter"]);
   });
 });

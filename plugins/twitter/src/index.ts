@@ -28,7 +28,7 @@ export default createPlugin({
         config.secrets.X_CLIENT_ID,
         config.secrets.X_CLIENT_SECRET,
       );
-      return Layer.succeed(TwitterServiceTag, service);
+      return yield* Effect.succeed(Layer.succeed(TwitterServiceTag, service));
     }),
 
   createRouter: (builder) => ({

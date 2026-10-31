@@ -43,9 +43,12 @@ export function ProfileCard({ account, className = "", size = "md" }: ProfileCar
         {profileImageUrl ? (
           <AvatarImage src={profileImageUrl} alt={username} />
         ) : (
-          <AvatarFallback className="bg-gray-200">
+          <AvatarFallback className="bg-muted">
             {platform === Platform.TWITTER && (
-              <X size={size === "sm" ? 14 : size === "md" ? 18 : 22} className="text-gray-400" />
+              <X
+                size={size === "sm" ? 14 : size === "md" ? 18 : 22}
+                className="text-muted-foreground"
+              />
             )}
             {platform === Platform.FARCASTER && (
               <img
@@ -62,7 +65,7 @@ export function ProfileCard({ account, className = "", size = "md" }: ProfileCar
 
       <div className="flex flex-col">
         <span className={`font-medium ${sizeClasses[size].username}`}>@{username}</span>
-        <span className={`text-gray-500 ${sizeClasses[size].platform}`}>
+        <span className={`text-muted-foreground ${sizeClasses[size].platform}`}>
           {capitalize(platform)}
         </span>
       </div>

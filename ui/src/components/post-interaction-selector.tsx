@@ -34,8 +34,7 @@ export function PostInteractionSelector({
             onClick={() => onPostTypeChange(type)}
             className={cn(
               "capitalize px-2.5 sm:px-3",
-              postType === type &&
-                "bg-green-100 dark:bg-black text-black dark:text-white hover:bg-green-200 dark:hover:bg-gray-800",
+              postType === type && "bg-success/10 text-foreground hover:bg-success/20",
             )}
           >
             {type}
@@ -51,8 +50,8 @@ export function PostInteractionSelector({
             placeholder={`Enter URL to ${postType} (e.g., https://x.com/user/status/123)`}
             className={cn(
               "w-full border-2",
-              !detectedPlatform && targetUrl && "border-red-500",
-              detectedPlatform && "border-green-500",
+              !detectedPlatform && targetUrl && "border-destructive",
+              detectedPlatform && "border-success",
             )}
           />
         </div>

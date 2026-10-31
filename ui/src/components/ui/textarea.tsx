@@ -82,10 +82,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       <textarea
         className={cn(
           "flex min-h-[60px] w-full rounded-md px-4 py-4 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm base-component",
-          isDragOver &&
-            acceptImages &&
-            onImageUpload &&
-            "ring-2 ring-blue-500 ring-opacity-50 bg-blue-50",
+          isDragOver && acceptImages && onImageUpload && "ring-2 ring-primary bg-primary/5",
           className,
         )}
         ref={ref}

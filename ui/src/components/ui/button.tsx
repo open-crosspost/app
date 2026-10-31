@@ -5,20 +5,19 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 hover:shadow-[2px_2px_0_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0_rgba(255,255,255,0.3)] hover:translate-y-0.5 active:translate-y-1 active:shadow-none min-h-[36px] touch-manipulation rounded-sm",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 hover:shadow-custom hover:translate-y-0.5 active:translate-y-1 active:shadow-none min-h-[36px] touch-manipulation rounded-sm base-component-hover",
   {
     variants: {
       variant: {
         default:
-          "bg-white dark:bg-black text-primary dark:text-white border-2 border-primary hover:bg-gray-50 dark:hover:bg-gray-900 base-component",
+          "border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 shadow-custom",
         destructive:
-          "border-2 border-primary bg-destructive text-destructive-foreground hover:bg-destructive/90 base-component",
+          "border-2 border-primary bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-custom",
         outline:
-          "border-2 border-primary bg-white dark:bg-black text-primary dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 base-component",
+          "border-2 border-primary bg-background text-foreground hover:bg-muted shadow-custom",
         secondary:
-          "bg-white dark:bg-black text-primary dark:text-white border-2 border-primary hover:bg-gray-50 dark:hover:bg-gray-900 base-component",
-        ghost:
-          "bg-white dark:bg-black text-primary dark:text-white border-2 border-primary hover:bg-gray-50 dark:hover:bg-gray-900 base-component",
+          "border-2 border-primary bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-custom",
+        ghost: "text-foreground hover:bg-muted",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

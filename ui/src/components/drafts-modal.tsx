@@ -28,31 +28,29 @@ export function DraftsModal({ onSelect }: DraftsModalProps): React.ReactElement 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
-          className="relative w-[calc(100%-0.5rem)] sm:w-full max-w-2xl mx-auto border-2 border-primary  bg-white dark:bg-black shadow-[2px_2px_0_rgba(0,0,0,1)] dark:shadow-[2px_2px_0_rgba(255,255,255,0.3)] sm:shadow-[4px_4px_0_rgba(0,0,0,1)] dark:sm:shadow-[4px_4px_0_rgba(255,255,255,0.3)]"
+          className="relative w-[calc(100%-0.5rem)] sm:w-full max-w-2xl mx-auto border-2 border-primary bg-background shadow-custom sm:shadow-custom-lg"
         >
           <ModalWindowControls onClose={() => setModalOpen(false)} />
           <div className="p-3 sm:p-6">
             <DialogHeader>
               <VisuallyHidden.Root>
                 <DialogTitle className="font-mono text-2xl font-bold">Drafts</DialogTitle>
-                <DialogDescription className="text-gray-600">
+                <DialogDescription className="text-muted-foreground">
                   View and manage your saved draft posts
                 </DialogDescription>
               </VisuallyHidden.Root>
             </DialogHeader>
 
             {drafts.length === 0 ? (
-              <p className="text-gray-600 text-center py-8">No drafts saved yet</p>
+              <p className="text-muted-foreground text-center py-8">No drafts saved yet</p>
             ) : (
               <>
-                <p className="text-gray-600 dark:text-white mb-2">
-                  View and manage your saved draft posts
-                </p>
+                <p className="text-muted-foreground mb-2">View and manage your saved draft posts</p>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                   {drafts.map((draft) => (
                     <div
                       key={draft.id}
-                      className="border-2 border-primary bg-white p-3 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:bg-gray-50 dark:bg-black dark:shadow-[2px_2px_0_rgba(255,255,255,0.3)] dark:hover:bg-gray-900 sm:p-4"
+                      className="border-2 border-primary bg-card p-3 shadow-custom hover:bg-muted sm:p-4"
                     >
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
                         <span className="text-sm text-muted-foreground">
@@ -79,7 +77,7 @@ export function DraftsModal({ onSelect }: DraftsModalProps): React.ReactElement 
                           </Button>
                         </div>
                       </div>
-                      <div className="text-sm text-gray-800 dark:text-white">
+                      <div className="text-sm text-foreground">
                         {draft.posts.map((post, i) => (
                           <div key={i} className="mb-2">
                             {post.text?.substring(0, 100)}

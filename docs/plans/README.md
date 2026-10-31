@@ -10,14 +10,14 @@ Planned at commit `1bfc624`. Every plan carries a drift check against this SHA.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | Surface the invisible toasts (migrate to sonner) | P1 | S | — | TODO |
-| 002 | Quick kills: dead files, GM 404, callId label, stale docs | P2 | S | — | TODO |
-| 003 | Rewire the editor's X submit onto the connector bridge | P1 | M | — | TODO |
-| 004 | Campaign = prefilled editor | P1 | L | 003 | TODO |
-| 005 | Dark-mode repair: unpaired colors → semantic tokens | P1 | M | — | TODO |
-| 006 | Rebase shadcn primitives on tokens (keep the brutalist skin) | P2 | M | 001 | TODO |
-| 007 | Campaign browsing on the leaderboard pattern | P2 | M | 004 | TODO |
-| 008 | CI ratchet guard against hardcoded colors | P2 | S | — | TODO |
+| 001 | Surface the invisible toasts (migrate to sonner) | P1 | S | — | DONE |
+| 002 | Quick kills: dead files, GM 404, callId label, stale docs | P2 | S | — | DONE |
+| 003 | Rewire the editor's X submit onto the connector bridge | P1 | M | — | DONE |
+| 004 | Campaign = prefilled editor | P1 | L | 003 | DONE |
+| 005 | Dark-mode repair: unpaired colors → semantic tokens | P1 | M | — | DONE |
+| 006 | Rebase shadcn primitives on tokens (keep the brutalist skin) | P2 | M | 001 | DONE |
+| 007 | Campaign browsing on the leaderboard pattern | P2 | M | 004 | DONE |
+| 008 | CI ratchet guard against hardcoded colors | P2 | S | — | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 

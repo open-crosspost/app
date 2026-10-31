@@ -36,21 +36,21 @@ export function PlatformAccountList({
           <RefreshCw size={16} className={"animate-spin"} />
         </div>
       ) : filteredAccounts.length === 0 ? (
-        <div className="rounded-md border-2 border-dashed border-gray-200 p-4 sm:p-8 text-center">
-          {platform === Platform.TWITTER && <X className="mx-auto h-12 w-12 text-gray-400" />}
+        <div className="rounded-md border-2 border-dashed border-border p-4 sm:p-8 text-center">
+          {platform === Platform.TWITTER && (
+            <X className="mx-auto h-12 w-12 text-muted-foreground" />
+          )}
           {platform === Platform.FARCASTER && (
             <img
               src={farcasterSvg}
               alt="Farcaster Logo"
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-muted-foreground"
             />
           )}
-          <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-300">
+          <h3 className="mt-2 text-lg font-medium text-foreground">
             No {platform} accounts connected
           </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {platformConnectMessage(platform)}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{platformConnectMessage(platform)}</p>
           <div className="mt-6">
             <ConnectPlatform
               platform={platform}

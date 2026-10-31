@@ -4,19 +4,18 @@ import {
   type CreatePostRequest,
   type ErrorDetail,
   type MultiStatusData,
+  Platform,
   type PlatformName,
-  type QuotePostRequest,
-  type ReplyToPostRequest,
   type SuccessDetail,
 } from "@crosspost/plugin/types";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
 import type { PostType } from "@/components/post-interaction-selector";
-import { ToastAction } from "@/components/ui/toast";
-import { toast } from "@/hooks/use-toast";
+import { connectorErrorDetail, connectorSuccessDetail, postToX } from "@/lib/connector-post";
 import { postToNearSocial } from "@/lib/near-social-post";
-import { detectPlatformFromUrl, extractPostIdFromUrl } from "@/lib/utils/url-utils";
+import { detectPlatformFromUrl } from "@/lib/utils/url-utils";
 import type { EditorContent } from "@/store/drafts-store";
 import { useSubmissionResultsStore } from "@/store/submission-results-store";
 
@@ -56,11 +55,7 @@ export function useSubmitPost() {
     let processingAccounts = [...selectedAccounts];
 
     if (!isSignedIn) {
-      toast({
-        title: "Error",
-        description: "Wallet not connected.",
-        variant: "destructive",
-      });
+      toast.error("Error", { description: "Wallet not connected." });
       setStatus("failure");
       setResult({ status: "failure" });
       return "failure";
@@ -68,21 +63,13 @@ export function useSubmitPost() {
 
     const nonEmptyPosts = posts.filter((p) => (p.text || "").trim());
     if (nonEmptyPosts.length === 0) {
-      toast({
-        title: "Empty Post",
-        description: "Please enter your post text",
-        variant: "destructive",
-      });
+      toast.error("Empty Post", { description: "Please enter your post text" });
       setStatus("idle");
       return "idle";
     }
 
     if (processingAccounts.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one account to post to",
-        variant: "destructive",
-      });
+      toast.error("Error", { description: "Please select at least one account to post to" });
       setStatus("idle");
       return "idle";
     }
@@ -95,10 +82,8 @@ export function useSubmitPost() {
       const detectedPlatform = detectPlatformFromUrl(targetUrl);
 
       if (!detectedPlatform) {
-        toast({
-          title: "Invalid URL",
+        toast.error("Invalid URL", {
           description: "Could not detect platform from the provided URL",
-          variant: "destructive",
         });
         setStatus("failure");
         setResult({ status: "failure" });
@@ -111,10 +96,8 @@ export function useSubmitPost() {
       );
 
       if (processingAccounts.length === 0) {
-        toast({
-          title: "No Compatible Accounts",
+        toast.error("No Compatible Accounts", {
           description: `Please select at least one ${detectedPlatform} account to ${postType}`,
-          variant: "destructive",
         });
         setStatus("failure");
         setResult({ status: "failure" });
@@ -144,10 +127,8 @@ export function useSubmitPost() {
     ]);
     // totalAccounts for the toast should reflect the number of accounts being processed in *this* attempt
     const totalAccountsForThisAttempt = processingAccounts.length;
-    toast({
-      title: "Crossposting...",
+    toast("Crossposting...", {
       description: `Publishing to ${uniquePlatforms.size} platform${uniquePlatforms.size > 1 ? "s" : ""} and ${totalAccountsForThisAttempt} account${totalAccountsForThisAttempt > 1 ? "s" : ""}`,
-      variant: "default",
     });
 
     // Results tracking
@@ -155,6 +136,8 @@ export function useSubmitPost() {
     let nearSocialError: any = null;
     let apiResponse: MultiStatusData | null = null;
     let apiError: any = null;
+    const connectorResults: SuccessDetail[] = [];
+    const connectorErrors: ErrorDetail[] = [];
 
     // --- Post to NEAR Social (only for regular posts) ---
     if (nearSocialAccounts.length > 0 && postType === "post") {
@@ -167,49 +150,75 @@ export function useSubmitPost() {
       }
     }
 
-    // --- Post to Other Platforms ---
-    if (otherAccounts.length > 0) {
+    // --- Post to X via the connectors bridge (regular posts only) ---
+    const twitterAccounts =
+      postType === "post"
+        ? otherAccounts.filter((account) => account.platform === Platform.TWITTER)
+        : [];
+    const legacyAccounts =
+      postType === "post"
+        ? otherAccounts.filter((account) => account.platform !== Platform.TWITTER)
+        : [];
+
+    if (twitterAccounts.length > 0) {
+      const agentId = session?.user?.id;
+      const joinedText = nonEmptyPosts.map((post) => post.text).join("\n\n");
+      const hasMedia = nonEmptyPosts.some((post) => (post.media?.length ?? 0) > 0);
+
+      for (const account of twitterAccounts) {
+        if (!agentId) {
+          connectorErrors.push({
+            message: "Sign in with your NEAR wallet, then connect your X account.",
+            code: ApiErrorCode.UNAUTHORIZED,
+            recoverable: false,
+            details: { platform: account.platform, userId: account.userId },
+          });
+          continue;
+        }
+        if (hasMedia) {
+          connectorErrors.push({
+            message: "Media is not yet supported for X posts",
+            code: ApiErrorCode.PLATFORM_ERROR,
+            recoverable: false,
+            details: { platform: account.platform, userId: account.userId },
+          });
+          continue;
+        }
+        try {
+          const result = await postToX(apiClient, agentId, joinedText);
+          connectorResults.push(connectorSuccessDetail(result, account.userId));
+        } catch (error) {
+          console.error("X connector post error:", error);
+          connectorErrors.push(connectorErrorDetail(error, account.userId));
+        }
+      }
+    }
+
+    // --- Replies/quotes have no working backend for non-NEAR platforms yet ---
+    if (postType !== "post") {
+      for (const account of otherAccounts) {
+        connectorErrors.push({
+          message:
+            "Replies and quotes are not yet supported for this platform — regular posts only",
+          code: ApiErrorCode.PLATFORM_ERROR,
+          recoverable: false,
+          details: { platform: account.platform, userId: account.userId },
+        });
+      }
+    }
+
+    // --- Post to remaining platforms via the legacy API (no live connector path yet) ---
+    if (legacyAccounts.length > 0) {
       try {
         const postRequest = {
-          targets: otherAccounts.map((account) => ({
+          targets: legacyAccounts.map((account) => ({
             platform: account.platform,
             userId: account.userId,
           })),
           content: nonEmptyPosts,
         } satisfies CreatePostRequest;
 
-        if (postType === "reply" && targetUrl) {
-          // Extract platform and postId from URL using utility functions
-          const platform = detectPlatformFromUrl(targetUrl);
-          const postId = extractPostIdFromUrl(targetUrl, platform);
-
-          if (!platform || !postId) {
-            throw new Error("Invalid URL format or unsupported platform");
-          }
-
-          apiResponse = await apiClient.social.posts.reply({
-            ...postRequest,
-            platform,
-            postId,
-          } satisfies ReplyToPostRequest);
-        } else if (postType === "quote" && targetUrl) {
-          // For quote posts, use the dedicated quote mutation
-          const platform = detectPlatformFromUrl(targetUrl);
-          const postId = extractPostIdFromUrl(targetUrl, platform);
-
-          if (!platform || !postId) {
-            throw new Error("Invalid URL format or unsupported platform");
-          }
-
-          apiResponse = await apiClient.social.posts.quote({
-            ...postRequest,
-            platform,
-            postId,
-          } satisfies QuotePostRequest);
-        } else {
-          // Regular post
-          apiResponse = await apiClient.social.posts.create(postRequest);
-        }
+        apiResponse = await apiClient.social.posts.create(postRequest);
       } catch (error) {
         apiError = error;
         console.error("API post error:", error);
@@ -227,7 +236,7 @@ export function useSubmitPost() {
     let finalErrors: ErrorDetail[] = [];
 
     const nearSocialResultCount = nearSocialAccounts.length;
-    const apiResultCount = otherAccounts.length;
+    const apiResultCount = legacyAccounts.length;
 
     // Process API results
     if (apiResponse) {
@@ -241,8 +250,8 @@ export function useSubmitPost() {
         failed: apiResultCount,
       };
 
-      if (otherAccounts.length > 0) {
-        finalErrors = otherAccounts.map((acc) => ({
+      if (legacyAccounts.length > 0) {
+        finalErrors = legacyAccounts.map((acc) => ({
           message:
             apiError instanceof Error ? apiError.message : "Posting failed for this account.",
           code: ApiErrorCode.PLATFORM_ERROR,
@@ -262,9 +271,19 @@ export function useSubmitPost() {
       }
     }
 
+    // Fold in connector-bridge results
+    finalResults = [...finalResults, ...connectorResults];
+    finalErrors = [...finalErrors, ...connectorErrors];
+
     // Combine NEAR Social results
-    const totalSucceeded = finalSummary.succeeded + (nearSocialSuccess ? nearSocialResultCount : 0);
-    const totalFailed = finalSummary.failed + (!nearSocialSuccess ? nearSocialResultCount : 0);
+    const totalSucceeded =
+      finalSummary.succeeded +
+      (nearSocialSuccess ? nearSocialResultCount : 0) +
+      connectorResults.length;
+    const totalFailed =
+      finalSummary.failed +
+      (!nearSocialSuccess ? nearSocialResultCount : 0) +
+      connectorErrors.length;
     const totalAttempted = totalSucceeded + totalFailed;
 
     const combinedSummary = {
@@ -335,32 +354,18 @@ export function useSubmitPost() {
     });
 
     if (finalStatus === "success") {
-      toast({
-        title: "Success!",
+      toast.success("Success!", {
         description: `Your post has been published successfully to all ${combinedSummary.total} account${combinedSummary.total > 1 ? "s" : ""}.`,
-        variant: "success",
       });
     } else if (finalStatus === "partial-success") {
-      toast({
-        title: "Partial Success",
+      toast("Partial Success", {
         description: `Posted to ${combinedSummary.succeeded} of ${combinedSummary.total} accounts.`,
-        variant: "default",
-        action: (
-          <ToastAction altText="See Results" onClick={() => navigate({ to: "/results" })}>
-            See Results
-          </ToastAction>
-        ),
+        action: { label: "See Results", onClick: () => navigate({ to: "/results" }) },
       });
     } else if (finalStatus === "failure") {
-      toast({
-        title: "Post Failed",
+      toast.error("Post Failed", {
         description: `Failed to publish post to any of the ${combinedSummary.total} selected account${combinedSummary.total > 1 ? "s" : ""}.`,
-        variant: "destructive",
-        action: (
-          <ToastAction altText="See Details" onClick={() => navigate({ to: "/results" })}>
-            See Details
-          </ToastAction>
-        ),
+        action: { label: "See Details", onClick: () => navigate({ to: "/results" }) },
       });
     } else if (
       finalStatus === "idle" &&
@@ -370,10 +375,8 @@ export function useSubmitPost() {
       selectedAccounts.length > 0
     ) {
       // This case means all initially selected accounts were filtered out (e.g. for quote/reply)
-      toast({
-        title: "No Compatible Accounts",
+      toast("No Compatible Accounts", {
         description: "None of your selected accounts are compatible with this action.",
-        variant: "default",
       });
     }
 

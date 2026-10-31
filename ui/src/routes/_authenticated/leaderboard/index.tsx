@@ -245,7 +245,7 @@ function LeaderboardPage() {
             <Link
               to={`/profile/$accountId`}
               params={{ accountId }}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors block truncate"
+              className="text-primary hover:text-primary/80 hover:underline transition-colors block truncate"
             >
               {accountId}
             </Link>
@@ -436,7 +436,7 @@ function LeaderboardPage() {
 
       {/* Error message */}
       {error && (
-        <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
+        <div className="bg-destructive/10 border border-destructive/40 text-destructive px-4 py-3 rounded mb-4">
           {getErrorMessage(error, "Failed to fetch leaderboard data")}
         </div>
       )}
@@ -445,21 +445,21 @@ function LeaderboardPage() {
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 dark:border-blue-400 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading leaderboard data...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading leaderboard data...</p>
           </div>
         </div>
       ) : (
         <>
           {/* Table */}
-          <div className="overflow-x-auto base-component relative rounded-lg border-2 border-primary bg-white dark:bg-black">
+          <div className="overflow-x-auto base-component relative rounded-lg border-2 border-primary bg-background">
             {isFetching && !isLoading && (
               <div className="absolute top-2 right-2 z-10">
                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
               </div>
             )}
             <Table className="min-w-full">
-              <TableHeader className="bg-white dark:bg-black [&_tr]:border-b-2 [&_tr]:border-primary [&_tr]:hover:bg-transparent">
+              <TableHeader className="bg-background [&_tr]:border-b-2 [&_tr]:border-primary [&_tr]:hover:bg-transparent">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -481,10 +481,10 @@ function LeaderboardPage() {
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-700">
+              <TableBody className="bg-background divide-y divide-border">
                 {table.getRowModel()?.rows?.length > 0 ? (
                   table.getRowModel()?.rows?.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableRow key={row.id} className="hover:bg-muted">
                       {row.getVisibleCells()?.map((cell) => (
                         <TableCell key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm ">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -496,7 +496,7 @@ function LeaderboardPage() {
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                      className="px-6 py-4 text-center text-sm text-muted-foreground"
                     >
                       No data available
                     </TableCell>

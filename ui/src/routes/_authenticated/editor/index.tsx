@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Eye, FileText, MoreHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Eye, FileText, MoreHorizontal, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
 import { DraftsModal } from "@/components/drafts-modal";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
@@ -19,7 +20,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSubmitPost } from "@/hooks/use-submit-post";
-import { toast } from "@/hooks/use-toast";
+import {
+  CAMPAIGN_DESTINATION_PLATFORM,
+  campaignDestinations,
+  campaignPrefillPosts,
+  getCampaign,
+} from "@/lib/campaigns";
 import {
   connectedAccountsQueryOptions,
   mergeConnectedAccounts,
@@ -39,6 +45,9 @@ import {
 } from "./-editor-state";
 
 export const Route = createFileRoute("/_authenticated/editor/")({
+  validateSearch: (search: Record<string, unknown>): { campaign?: string } => ({
+    campaign: typeof search.campaign === "string" ? search.campaign : undefined,
+  }),
   loader: async ({ context }) => {
     const { queryClient, authClient, apiClient } = context;
     await queryClient.ensureQueryData(nearAccountIdQueryOptions(authClient));
@@ -61,10 +70,14 @@ export const Route = createFileRoute("/_authenticated/editor/")({
 function EditorPage() {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { campaign: campaignId } = Route.useSearch();
+  const campaign = campaignId ? getCampaign(campaignId) : undefined;
   const { data: session } = authClient.useSession();
   const isEnabled = !!session?.user;
   const { data: nearAccountId } = useQuery(nearAccountIdQueryOptions(authClient, isEnabled));
   const selectedAccountIds = usePlatformAccountsStore((state) => state.selectedAccountIds);
+  const selectAccount = usePlatformAccountsStore((state) => state.selectAccount);
   const { data: connectedAccounts = [] } = useQuery(
     connectedAccountsQueryOptions(apiClient, isEnabled),
   );
@@ -94,6 +107,26 @@ function EditorPage() {
   }, [posts, queueAutoSave]);
   useEffect(() => cancelAutoSave, [cancelAutoSave]);
 
+  const prefillAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!campaign || prefillAppliedRef.current) return;
+    prefillAppliedRef.current = true;
+    clearAutoSave();
+    dispatch({ type: "posts_replaced", posts: campaignPrefillPosts(campaign) });
+  }, [campaign, clearAutoSave]);
+
+  useEffect(() => {
+    if (!campaign || selectedAccountIds.length > 0 || allAccounts.length === 0) return;
+    const destinationPlatforms = campaignDestinations(campaign).map(
+      (destination) => CAMPAIGN_DESTINATION_PLATFORM[destination],
+    );
+    for (const account of allAccounts) {
+      if (destinationPlatforms.includes(account.platform)) {
+        selectAccount(account.userId);
+      }
+    }
+  }, [campaign, allAccounts, selectedAccountIds, selectAccount]);
+
   const disabledPlatforms = useMemo(
     () => disabledPlatformsFor(postType, targetUrl),
     [postType, targetUrl],
@@ -104,20 +137,12 @@ function EditorPage() {
       if (!file) return;
 
       if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File Too Large",
-          description: "Media files must be under 10MB",
-          variant: "destructive",
-        });
+        toast.error("File Too Large", { description: "Media files must be under 10MB" });
         return;
       }
 
       if (!file.type.match(/^(image|video)\//)) {
-        toast({
-          title: "Invalid File Type",
-          description: "Only images and videos are supported",
-          variant: "destructive",
-        });
+        toast.error("Invalid File Type", { description: "Only images and videos are supported" });
         return;
       }
 
@@ -127,18 +152,14 @@ function EditorPage() {
       const hasVideo = existingMedia.some((item) => item.mimeType?.startsWith("video/"));
 
       if (file.type.startsWith("video/") && hasImage) {
-        toast({
-          title: "Cannot Add Video",
+        toast.error("Cannot Add Video", {
           description: "Videos cannot be added when multiple images are attached",
-          variant: "destructive",
         });
         return;
       }
       if (file.type.startsWith("image/") && hasVideo) {
-        toast({
-          title: "Cannot Add Image",
+        toast.error("Cannot Add Image", {
           description: "Multiple images cannot be added when a video is attached",
-          variant: "destructive",
         });
         return;
       }
@@ -189,10 +210,7 @@ function EditorPage() {
 
   const handleSaveDraft = useCallback(() => {
     saveDraft(posts);
-    toast({
-      title: "Draft Saved",
-      description: "Your draft has been saved successfully.",
-    });
+    toast("Draft Saved", { description: "Your draft has been saved successfully." });
     clearAutoSave();
     dispatch({ type: "editor_reset" });
   }, [saveDraft, posts, clearAutoSave]);
@@ -281,6 +299,23 @@ function EditorPage() {
           className={`min-w-0 flex-1 lg:w-1/2 ${activeTab === "editor" ? "block" : "hidden lg:block"}`}
         >
           <div className="flex h-full min-w-0 flex-col">
+            {campaign ? (
+              <div className="mb-4 flex items-start justify-between gap-2 rounded-md border-2 border-primary bg-muted/40 p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{campaign.name}</p>
+                  <p className="text-sm text-muted-foreground">{campaign.description}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  aria-label="Exit campaign"
+                  onClick={() => navigate({ to: "/editor" })}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : null}
             <div className="mb-4 space-y-4">
               <PlatformAccountsSelector disabledPlatforms={disabledPlatforms} />
               <div className="mb-2 flex min-w-0 items-start gap-2">

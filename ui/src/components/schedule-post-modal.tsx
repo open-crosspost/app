@@ -1,6 +1,7 @@
 import type { PlatformName } from "@crosspost/plugin/types";
 import { Calendar, Clock } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuthClient } from "@/app";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "@/hooks/use-toast";
 import type { EditorContent } from "@/store/drafts-store";
 import { useScheduledPostsStore } from "@/store/scheduled-posts-store";
 
@@ -39,48 +39,36 @@ export function SchedulePostModal({
 
   const handleSchedule = () => {
     if (!selectedDate || !selectedTime) {
-      toast({
-        title: "Missing Information",
+      toast.error("Missing Information", {
         description: "Please select both date and time for scheduling.",
-        variant: "destructive",
       });
       return;
     }
 
     if (selectedPlatforms.length === 0) {
-      toast({
-        title: "No Platforms Selected",
+      toast.error("No Platforms Selected", {
         description: "Please select at least one platform to post to.",
-        variant: "destructive",
       });
       return;
     }
 
     if (!isSignedIn) {
-      toast({
-        title: "Authentication Required",
+      toast.error("Authentication Required", {
         description: "Please sign in before scheduling posts.",
-        variant: "destructive",
       });
       return;
     }
 
     const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
     if (scheduledDateTime <= new Date()) {
-      toast({
-        title: "Invalid Date",
-        description: "Please select a future date and time.",
-        variant: "destructive",
-      });
+      toast.error("Invalid Date", { description: "Please select a future date and time." });
       return;
     }
 
     saveScheduledPost(posts, selectedPlatforms, scheduledDateTime);
 
-    toast({
-      title: "Post Scheduled",
+    toast.success("Post Scheduled", {
       description: `Scheduled for ${scheduledDateTime.toLocaleString()} (${userTimeZone}). It fires while the app is open.`,
-      variant: "success",
     });
 
     onScheduled();
@@ -93,7 +81,7 @@ export function SchedulePostModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="border-2 border-primary bg-white shadow-custom dark:bg-black sm:max-w-md">
+      <DialogContent className="border-2 border-primary bg-popover shadow-custom sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar size={20} />

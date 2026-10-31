@@ -56,7 +56,7 @@ export interface AgentGrantRow {
   createdAt: Date;
 }
 
-const storeError = (message: string, cause: unknown): StoreError =>
+const storeError = (message: string, _cause: unknown): StoreError =>
   new ORPCError("INTERNAL_SERVER_ERROR", { message, data: { message } });
 
 export class AgentStore extends Context.Service<AgentStore, AgentStoreShape>()(
