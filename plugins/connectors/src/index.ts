@@ -307,7 +307,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
                 );
               }
             });
-            yield* Effect.repeat(loop, Schedule.spaced("24 hours"));
+            Effect.runFork(Effect.repeat(loop, Schedule.spaced("24 hours")));
           }),
         ).pipe(Layer.provide(gateStoreLayer));
         return Layer.mergeAll(
