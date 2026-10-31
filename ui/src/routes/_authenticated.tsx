@@ -1,5 +1,7 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute, Outlet } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
+import { Footer } from "@/components/footer";
+import { Buddy } from "@/components/pet/buddy";
 import { useScheduledPostsExecutor } from "@/hooks/use-scheduled-posts-executor";
 import { requireSession } from "@/lib/auth";
 
@@ -12,8 +14,11 @@ function AuthenticatedLayout() {
   useScheduledPostsExecutor();
 
   return (
-    <AppShell>
+    <AppShell footer={<Footer />}>
       <Outlet />
+      <ClientOnly>
+        <Buddy />
+      </ClientOnly>
     </AppShell>
   );
 }

@@ -1,7 +1,8 @@
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { sessionQueryOptions } from "@/app";
 import { AppShell } from "@/components/app-shell";
 import { Footer } from "@/components/footer";
+import { Buddy } from "@/components/pet/buddy";
 
 export const Route = createFileRoute("/_public")({
   beforeLoad: async ({ context }) => {
@@ -27,6 +28,9 @@ function LayoutComponent() {
   return (
     <AppShell focused={focused} footer={focused ? undefined : <Footer />}>
       <Outlet />
+      <ClientOnly>
+        <Buddy />
+      </ClientOnly>
     </AppShell>
   );
 }
