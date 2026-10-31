@@ -5,7 +5,7 @@ import { App } from "everything-dev/descriptor";
 export default App({
   "name": "opencrosspost.com",
   "extends": "bos://dev.everything.near/everything.dev",
-  platform: "2.0.0-rc.24",
+  platform: "2.0.0-rc.27",
   "account": "work.efiz.near",
   "domain": "opencrosspost.com",
   "title": "Open Crosspost",
@@ -23,34 +23,34 @@ export default App({
     ]
   },
   "plugins": {
-    "crosspost": {
-      "path": "plugins/crosspost",
-      "variables": {
-        "baseUrl": "https://social.invalid",
-        "timeout": 10000
-      },
-      "secrets": [
-        "nearAuthData"
-      ]
-    },
-    "twitter": {
-      "path": "plugins/twitter",
-      "secrets": [
-        "X_CLIENT_ID",
-        "X_CLIENT_SECRET"
-      ]
-    },
-    "farcaster": {
-      "path": "plugins/farcaster",
-      "variables": {
-        "ipfsGatewayUrl": "https://gateway.pinata.cloud/ipfs",
-        "timeout": 10000
-      },
-      "secrets": [
-        "farcasterDeveloperMnemonic",
-        "neynarApiKey",
-        "pinataJwt"
-      ]
-    }
+    // "crosspost": {
+    //   "path": "plugins/crosspost",
+    //   "variables": {
+    //     "baseUrl": "https://social.invalid",
+    //     "timeout": 10000
+    //   },
+    //   "secrets": [
+    //     "nearAuthData"
+    //   ]
+    // },
+    // "twitter": {
+    //   "path": "plugins/twitter",
+    //   "secrets": [
+    //     "X_CLIENT_ID",
+    //     "X_CLIENT_SECRET"
+    //   ]
+    // },
+    // "farcaster": {
+    //   "path": "plugins/farcaster",
+    //   "variables": {
+    //     "ipfsGatewayUrl": "https://gateway.pinata.cloud/ipfs",
+    //     "timeout": 10000
+    //   },
+    //   "secrets": [
+    //     "farcasterDeveloperMnemonic",
+    //     "neynarApiKey",
+    //     "pinataJwt"
+    //   ]
+    // }
   }
 });

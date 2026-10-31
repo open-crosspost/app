@@ -146,10 +146,10 @@ export function LandingPage() {
             </h1>
 
             {phase === "pitch" && !glitching ? (
-              <p className="mx-auto max-w-2xl px-2 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
-                Post to Twitter, Farcaster, and more social platforms simultaneously. Save time,
-                reach more people, and manage everything from one place.
-              </p>
+              <div className="mx-auto max-w-2xl px-2 text-sm text-gray-600 sm:px-0 sm:text-lg dark:text-gray-400">
+                <p>Post to all your social platforms simultaneously.</p>
+                <p>Save time, reach more people, and manage everything from one place.</p>
+              </div>
             ) : null}
             {phase === "soon" && !glitching ? (
               <p className="mx-auto max-w-2xl px-2 text-base text-gray-600 sm:px-0 sm:text-xl dark:text-gray-400">

@@ -1,0 +1,1 @@
+ALTER TABLE "bridge_wallets" ADD COLUMN "payment_key_source" text;

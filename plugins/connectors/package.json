@@ -1,0 +1,54 @@
+{
+  "name": "@outlayer-connectors/connectors-plugin",
+  "version": "0.1.0",
+  "description": "Metered-connectors bridge — Agent Connect budget as the allowance, OutLayer as the per-call meter",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./contract": {
+      "types": "./src/contract.ts",
+      "default": "./src/contract.ts"
+    }
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "drizzle-orm": "catalog:",
+    "effect": "catalog:",
+    "pg": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@module-federation/node": "catalog:",
+    "@module-federation/runtime-tools": "catalog:",
+    "@rspack/cli": "catalog:",
+    "@rspack/core": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.4",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "catalog:",
+    "everything-dev": "catalog:",
+    "every-plugin": "catalog:",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "catalog:"
+  },
+  "scripts": {
+    "build": "every-plugin build",
+    "dev": "every-plugin dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  }
+}
