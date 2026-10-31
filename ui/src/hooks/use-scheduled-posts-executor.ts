@@ -84,7 +84,11 @@ export function useScheduledPostsExecutor() {
   }, [apiClient, queryClient]);
 
   const executeDueRuns = useCallback(async () => {
-    const { runs } = await apiClient.social.jobs.runs.list({ due: true, status: "pending" });
+    const [{ runs: pendingRuns }, { runs: signatureRuns }] = await Promise.all([
+      apiClient.social.jobs.runs.list({ due: true, status: "pending" }),
+      apiClient.social.jobs.runs.list({ due: true, status: "needs_signature" }),
+    ]);
+    const runs = [...pendingRuns, ...signatureRuns];
     if (runs.length === 0) {
       return;
     }
@@ -99,11 +103,12 @@ export function useScheduledPostsExecutor() {
     const allAccounts = mergeConnectedAccounts(connectedAccounts, nearSocialAccount);
 
     for (const run of runs) {
+      const expectedStatus = run.status === "needs_signature" ? "needs_signature" : "pending";
       let claimed: Awaited<ReturnType<typeof apiClient.social.jobs.runs.claim>> | undefined;
       try {
         claimed = await apiClient.social.jobs.runs.claim({
           runId: run.id,
-          expectedStatus: "pending",
+          expectedStatus,
         });
       } catch {
         continue;

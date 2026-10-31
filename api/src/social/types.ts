@@ -196,6 +196,25 @@ export const CampaignParticipateSchema = z.object({
 export type CampaignParticipationMode = z.infer<typeof CampaignParticipationModeSchema>;
 export type CampaignParticipate = z.infer<typeof CampaignParticipateSchema>;
 
+export const AutomationKeyStatusSchema = z.object({
+  nearAccountId: z.string().nullable(),
+  publicKey: z.string().nullable(),
+  status: z.enum(["pending_grant", "active", "revoked"]).nullable(),
+});
+
+export const AutomationKeyPreparedSchema = z.object({
+  nearAccountId: z.string(),
+  publicKey: z.string(),
+  status: z.enum(["pending_grant", "active"]),
+});
+
+export type AutomationKeyStatus = z.infer<typeof AutomationKeyStatusSchema>;
+export type AutomationKeyPrepared = z.infer<typeof AutomationKeyPreparedSchema>;
+
+export const AutomationKeyGrantSchema = z.object({
+  txHash: z.string().max(200).optional(),
+});
+
 export const JobTargetSchema = z.object({
   platform: z.enum(["twitter", "near-social", "farcaster"]),
   accountUserId: z.string().min(1).max(100),

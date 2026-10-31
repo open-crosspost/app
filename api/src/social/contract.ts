@@ -7,6 +7,9 @@ import {
   ActivityLeaderboardQuerySchema,
   AuthRevokeResponseSchema,
   AuthStatusResponseSchema,
+  AutomationKeyGrantSchema,
+  AutomationKeyPreparedSchema,
+  AutomationKeyStatusSchema,
   CampaignParticipateSchema,
   CampaignParticipationModeSchema,
   CampaignSchema,
@@ -222,12 +225,36 @@ const jobsContract = oc.router({
   },
 });
 
+const automationContract = oc.router({
+  keyPrepare: oc
+    .route({ method: "POST", path: "/social/automation/key/prepare" })
+    .output(AutomationKeyPreparedSchema)
+    .errors(PluginErrors),
+
+  keyGrant: oc
+    .route({ method: "POST", path: "/social/automation/key/grant" })
+    .input(AutomationKeyGrantSchema)
+    .output(AutomationKeyStatusSchema)
+    .errors(PluginErrors),
+
+  keyStatus: oc
+    .route({ method: "GET", path: "/social/automation/key" })
+    .output(AutomationKeyStatusSchema)
+    .errors(PluginErrors),
+
+  keyRevoke: oc
+    .route({ method: "POST", path: "/social/automation/key/revoke" })
+    .output(AutomationKeyStatusSchema)
+    .errors(PluginErrors),
+});
+
 export const socialContract = oc.router({
   accounts: accountsContract,
   posts: postsContract,
   activity: activityContract,
   campaigns: campaignsContract,
   jobs: jobsContract,
+  automation: automationContract,
 });
 
 export type SocialContract = typeof socialContract;

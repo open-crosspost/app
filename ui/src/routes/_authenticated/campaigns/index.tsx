@@ -15,6 +15,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
+import { AutomateDialog } from "@/components/campaigns/automate-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,9 +40,12 @@ import {
   postsMatchingCampaign,
 } from "@/lib/campaigns";
 import {
+  connectedAccountsQueryOptions,
   fetchSocialAccountPosts,
   fetchSocialLeaderboard,
+  mergeConnectedAccounts,
   nearAccountIdQueryOptions,
+  nearSocialAccountQueryOptions,
 } from "@/lib/social";
 import { capitalize } from "@/lib/utils/string";
 
@@ -123,6 +127,19 @@ function CampaignsPage() {
     staleTime: 30000,
   });
 
+  const { data: connectedAccounts = [] } = useQuery(
+    connectedAccountsQueryOptions(apiClient, !!session?.user),
+  );
+  const { data: nearSocialAccount } = useQuery(
+    nearSocialAccountQueryOptions(authClient, nearAccountId),
+  );
+  const allAccounts = useMemo(
+    () => mergeConnectedAccounts(connectedAccounts, nearSocialAccount ?? null),
+    [connectedAccounts, nearSocialAccount],
+  );
+  const [automatingCampaignId, setAutomatingCampaignId] = useState<string | null>(null);
+  const automatingCampaign = campaigns.find((campaign) => campaign.id === automatingCampaignId);
+
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <div className="mb-6 border-b pb-4">
@@ -152,6 +169,16 @@ function CampaignsPage() {
                     {participationByCampaign.get(campaign.id) === "auto" ? "Automated" : "Joined"}
                   </Badge>
                 ) : null}
+                {participationByCampaign.get(campaign.id) === "auto" ? null : (
+                  <Button
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => setAutomatingCampaignId(campaign.id)}
+                    disabled={!session?.user}
+                  >
+                    Automate
+                  </Button>
+                )}
                 {participationByCampaign.get(campaign.id) ? (
                   <Button asChild variant="outline" className="shrink-0">
                     <Link to="/campaigns/$campaignId" params={{ campaignId: campaign.id }}>
@@ -203,6 +230,15 @@ function CampaignsPage() {
             </p>
           )}
         </div>
+      ) : null}
+
+      {automatingCampaign ? (
+        <AutomateDialog
+          campaignId={automatingCampaign.id}
+          campaignName={automatingCampaign.name}
+          accounts={allAccounts}
+          onClose={() => setAutomatingCampaignId(null)}
+        />
       ) : null}
 
       <div className="mt-10">

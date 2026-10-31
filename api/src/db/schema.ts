@@ -100,6 +100,28 @@ export const campaignDailySeeds = pgTable(
   }),
 );
 
+export const automationKeys = pgTable(
+  "automation_keys",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    nearAccountId: text("near_account_id").notNull(),
+    publicKey: text("public_key").notNull(),
+    sealedCiphertext: text("sealed_ciphertext").notNull(),
+    sealedIv: text("sealed_iv").notNull(),
+    sealedTag: text("sealed_tag").notNull(),
+    status: text("status").notNull().default("pending_grant"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => ({
+    accountUnique: uniqueIndex("automation_keys_user_account_idx").on(
+      table.userId,
+      table.nearAccountId,
+    ),
+  }),
+);
+
 export const socialConnectedAccounts = pgTable(
   "social_connected_accounts",
   {

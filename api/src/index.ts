@@ -61,6 +61,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
     X_POLICY_MAX_PER_DAY: z.string().optional(),
     OUTLAYER_APP_WALLET_KEY: z.string().optional(),
     SCHEDULER_ENABLED: z.string().optional(),
+    API_KEY_VAULT_SECRET: z.string().optional(),
     ACTIVITY_API_KEY: z.string().optional(),
     ACTIVITY_SOURCE_ID: z.string().optional(),
     ACTIVITY_API_BASE_URL: z.string().optional(),
@@ -112,17 +113,23 @@ export default createPlugin.withPlugins<PluginsClient>()({
       const socialRepository = new SocialRepository(driver.db);
       const maxPerDayRaw = config.secrets.X_POLICY_MAX_PER_DAY;
       const maxPerDay = maxPerDayRaw ? Number.parseInt(maxPerDayRaw, 10) : undefined;
-      const social = new SocialService(socialRepository, {
-        clientId: config.secrets.X_CLIENT_ID,
-        clientSecret: config.secrets.X_CLIENT_SECRET,
-        project: config.secrets.X_CONNECT_PROJECT,
-        appWalletKey: config.secrets.OUTLAYER_APP_WALLET_KEY,
-        maxPerDay: Number.isFinite(maxPerDay) ? maxPerDay : undefined,
-      });
+      const social = new SocialService(
+        socialRepository,
+        {
+          clientId: config.secrets.X_CLIENT_ID,
+          clientSecret: config.secrets.X_CLIENT_SECRET,
+          project: config.secrets.X_CONNECT_PROJECT,
+          appWalletKey: config.secrets.OUTLAYER_APP_WALLET_KEY,
+          maxPerDay: Number.isFinite(maxPerDay) ? maxPerDay : undefined,
+        },
+        undefined,
+        config.secrets.API_KEY_VAULT_SECRET ?? null,
+      );
 
       yield* Effect.promise(() => social.ensureSchema());
       yield* Effect.promise(() => social.ensureCampaignSchema());
       yield* Effect.promise(() => social.ensureJobSchema());
+      yield* Effect.promise(() => social.ensureAutomationSchema());
 
       socialService = social;
 
@@ -387,6 +394,40 @@ export default createPlugin.withPlugins<PluginsClient>()({
               return yield* Effect.promise(() => social.reportJobRun(auth.userId, input));
             }),
           },
+        },
+
+        automation: {
+          keyPrepare: builder.social.automation.keyPrepare.effect(function* ({ context }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() =>
+              social.automationKeyPrepare(auth.userId, context.near?.primaryAccountId),
+            );
+          }),
+
+          keyGrant: builder.social.automation.keyGrant.effect(function* ({ context, input }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() =>
+              social.automationKeyGrant(auth.userId, context.near?.primaryAccountId, input),
+            );
+          }),
+
+          keyStatus: builder.social.automation.keyStatus.effect(function* ({ context }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() =>
+              social.automationKeyStatus(auth.userId, context.near?.primaryAccountId),
+            );
+          }),
+
+          keyRevoke: builder.social.automation.keyRevoke.effect(function* ({ context }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() =>
+              social.automationKeyRevoke(auth.userId, context.near?.primaryAccountId),
+            );
+          }),
         },
       },
 

@@ -139,6 +139,7 @@ export function campaignSeedQueryOptions(apiClient: ApiClient, campaignId: strin
 }
 
 export const jobSpecsQueryKey = ["social", "jobs", "specs"] as const;
+export const automationKeyQueryKey = ["social", "automation-key"] as const;
 export const jobRunsBaseQueryKey = ["social", "jobs", "runs"] as const;
 export function jobRunsQueryKey(query?: {
   specId?: string;

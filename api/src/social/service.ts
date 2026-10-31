@@ -1,6 +1,8 @@
 import { ORPCError } from "@orpc/server";
+import { AutomationKeyRepository } from "./automation-repository";
 import { CampaignRepository } from "./campaign-repository";
 import { JobRepository } from "./job-repository";
+import { generateNearAutomationKey } from "./key-vault";
 import type { SocialRepository } from "./repository";
 import type {
   AccountPostsQuery,
@@ -56,19 +58,28 @@ export class SocialService {
   private readonly xCredentials: XClientCredentials;
   private readonly campaignRepository: CampaignRepository;
   private readonly jobRepository: JobRepository;
+  private readonly automationKeyRepository: AutomationKeyRepository;
+  private readonly vaultSecret: string | null;
 
   constructor(
     private readonly repository: SocialRepository,
     xCredentials: XClientCredentials = {},
     campaignRepository?: CampaignRepository,
+    vaultSecret?: string | null,
   ) {
     this.xCredentials = xCredentials;
     this.campaignRepository = campaignRepository ?? new CampaignRepository(repository.database);
     this.jobRepository = new JobRepository(repository.database);
+    this.automationKeyRepository = new AutomationKeyRepository(repository.database);
+    this.vaultSecret = vaultSecret ?? null;
   }
 
   ensureJobSchema(): Promise<void> {
     return this.jobRepository.ensureSchema();
+  }
+
+  ensureAutomationSchema(): Promise<void> {
+    return this.automationKeyRepository.ensureSchema();
   }
 
   async listActiveCampaigns(): Promise<Campaign[]> {
@@ -182,6 +193,90 @@ export class SocialService {
     userId: string,
   ): Promise<Array<{ campaignId: string; mode: "manual" | "auto" }>> {
     return this.campaignRepository.listParticipantsForUser(userId);
+  }
+
+  async automationKeyPrepare(
+    userId: string,
+    nearAccountId: string | null | undefined,
+  ): Promise<{ nearAccountId: string; publicKey: string; status: "pending_grant" | "active" }> {
+    if (!nearAccountId) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Link a NEAR account to your session before granting an automation key.",
+      });
+    }
+    if (!this.vaultSecret) {
+      throw new ORPCError("NOT_IMPLEMENTED", {
+        message: "Automation keys are not configured on this host (API_KEY_VAULT_SECRET missing).",
+      });
+    }
+
+    const existing = await this.automationKeyRepository.getActiveOrPending(userId, nearAccountId);
+    if (existing && existing.status !== "revoked") {
+      return { nearAccountId, publicKey: existing.publicKey, status: existing.status };
+    }
+
+    const generated = generateNearAutomationKey(this.vaultSecret);
+    const upserted = await this.automationKeyRepository.upsert(userId, nearAccountId, {
+      publicKey: generated.publicKey,
+      sealed: generated.sealedPrivateKey,
+    });
+    return {
+      nearAccountId,
+      publicKey: upserted.publicKey,
+      status: upserted.status === "active" ? "active" : "pending_grant",
+    };
+  }
+
+  async automationKeyGrant(
+    userId: string,
+    nearAccountId: string | null | undefined,
+    _input: { txHash?: string },
+  ): Promise<{
+    nearAccountId: string | null;
+    publicKey: string | null;
+    status: "pending_grant" | "active" | "revoked" | null;
+  }> {
+    if (!nearAccountId) {
+      throw new ORPCError("BAD_REQUEST", { message: "No NEAR account linked to the session." });
+    }
+    const activated = await this.automationKeyRepository.markActive(userId, nearAccountId);
+    if (!activated) {
+      throw new ORPCError("NOT_FOUND", { message: "No key awaiting grant for this account." });
+    }
+    return { nearAccountId, publicKey: activated.publicKey, status: "active" };
+  }
+
+  async automationKeyStatus(
+    userId: string,
+    nearAccountId: string | null | undefined,
+  ): Promise<{
+    nearAccountId: string | null;
+    publicKey: string | null;
+    status: "pending_grant" | "active" | "revoked" | null;
+  }> {
+    if (!nearAccountId) {
+      return { nearAccountId: null, publicKey: null, status: null };
+    }
+    const record = await this.automationKeyRepository.getActiveOrPending(userId, nearAccountId);
+    if (!record) {
+      return { nearAccountId, publicKey: null, status: null };
+    }
+    return { nearAccountId, publicKey: record.publicKey, status: record.status };
+  }
+
+  async automationKeyRevoke(
+    userId: string,
+    nearAccountId: string | null | undefined,
+  ): Promise<{
+    nearAccountId: string | null;
+    publicKey: string | null;
+    status: "pending_grant" | "active" | "revoked" | null;
+  }> {
+    if (!nearAccountId) {
+      throw new ORPCError("BAD_REQUEST", { message: "No NEAR account linked to the session." });
+    }
+    await this.automationKeyRepository.revoke(userId, nearAccountId);
+    return { nearAccountId, publicKey: null, status: "revoked" };
   }
 
   async createJobSpec(
