@@ -10,6 +10,7 @@ const OUTLAYER_X_DEFAULT_PROJECT = "connectors.outlayer.near/x";
 declare global {
   interface ImportMetaEnv {
     X_CONNECTOR_PROJECT?: string;
+    ACTIVITY_API_BASE_URL?: string;
   }
 }
 
@@ -20,6 +21,9 @@ declare global {
  */
 export const X_CONNECTOR_PROJECT =
   import.meta.env.X_CONNECTOR_PROJECT ?? OUTLAYER_X_DEFAULT_PROJECT;
+
+export const ACTIVITY_API_BASE_URL =
+  import.meta.env.ACTIVITY_API_BASE_URL ?? "https://activity.nearbuilders.org/api";
 
 interface EVMWalletChains {
   [key: string]: EVMChain;

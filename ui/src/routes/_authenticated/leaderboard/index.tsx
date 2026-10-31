@@ -1,590 +1,295 @@
-import { ActivityLeaderboardQuerySchema, type Platform, TimePeriod } from "@crosspost/plugin/types";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import {
-  columnVisibilityFeature,
-  createColumnHelper,
-  createPaginatedRowModel,
-  createSortedRowModel,
-  flexRender,
-  type PaginationState,
-  rowPaginationFeature,
-  rowSortingFeature,
-  type SortingState,
-  tableFeatures,
-  useTable,
-} from "@tanstack/react-table";
-import { useMemo, useState } from "react";
-import { useApiClient } from "@/app";
+import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { Fragment, useState } from "react";
 import { BackButton } from "@/components/back-button";
 import { InlineBadges } from "@/components/badges/inline-badges";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { fetchLeaderboard } from "@/lib/api/leaderboard";
-import { getErrorMessage } from "@/lib/error-utils";
-import { type ExportField, type ExportFormat, exportData } from "@/lib/utils/export-utils";
+  ACTIVITY_PERIODS,
+  type ActivityBreakdown,
+  type ActivityPeriod,
+  type ActivityServiceError,
+  fetchActivityHealth,
+  fetchActivityLeaderboard,
+} from "@/lib/api/activity-leaderboard";
 
-type LeaderboardEntry = {
-  rank?: number;
-  signerId: string;
-  totalScore?: number;
-  totalPosts?: number;
-  totalReplies?: number;
-  totalQuotes?: number;
-  firstPostTimestamp?: string | number;
-  lastActive?: string | number;
-  postCount?: number;
-  lastPostTimestamp?: string | number;
+type SourceFilter = "opencrosspost" | "ecosystem";
+
+const SOURCE_IDS: Record<SourceFilter, string | undefined> = {
+  opencrosspost: "opencrosspost.com",
+  ecosystem: undefined,
+};
+
+const PERIOD_LABELS: Record<ActivityPeriod, string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  "all-time": "All Time",
 };
 
 export const Route = createFileRoute("/_authenticated/leaderboard/")({
   component: LeaderboardPage,
-  validateSearch: (search) => ActivityLeaderboardQuerySchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...((ACTIVITY_PERIODS as readonly string[]).includes(String(search.period))
+      ? { period: search.period as ActivityPeriod }
+      : {}),
+    ...(search.source === "ecosystem" ? { source: "ecosystem" as const } : {}),
+  }),
 });
 
-const fetchAllLeaderboardData = async ({
-  apiClient,
-  timeframe,
-  platform,
-  startDate,
-  endDate,
-}: {
-  apiClient: ReturnType<typeof useApiClient>;
-  timeframe: TimePeriod;
-  platform?: string;
-  startDate?: string;
-  endDate?: string;
-}) => {
-  const allEntries: LeaderboardEntry[] = [];
-  let offset = 0;
-  const limit = 100;
-  let hasMore = true;
-
-  while (hasMore) {
-    const normalized = await fetchLeaderboard(apiClient, {
-      limit,
-      offset,
-      timeframe,
-      startDate,
-      endDate,
-      platforms: platform ? [platform as Platform] : undefined,
-    });
-    const entries = normalized.entries as unknown as LeaderboardEntry[];
-    allEntries.push(...entries);
-
-    hasMore = entries.length === limit;
-    offset += limit;
-  }
-
-  return allEntries;
-};
-
 function LeaderboardPage() {
-  const apiClient = useApiClient();
   const search = useSearch({ from: Route.id });
-  const { timeframe, platforms, startDate, endDate } = search;
   const navigate = useNavigate({ from: Route.fullPath });
+  const [expandedActor, setExpandedActor] = useState<string | null>(null);
 
-  const parsedStartDate = startDate ? new Date(startDate) : undefined;
-  const parsedEndDate = endDate ? new Date(endDate) : undefined;
+  const period = search.period ?? "weekly";
+  const source: SourceFilter = search.source ?? "opencrosspost";
+  const sourceId = SOURCE_IDS[source];
 
-  // Validate custom date range
-  const isValidDateRange =
-    timeframe !== TimePeriod.CUSTOM ||
-    (parsedStartDate && parsedEndDate && parsedStartDate <= parsedEndDate);
-
-  const [sorting, setSorting] = useState<SortingState>([{ id: "rank", desc: false }]);
-
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
+  const query = useQuery({
+    queryKey: ["activity-leaderboard", period, source],
+    queryFn: () => fetchActivityLeaderboard({ period, sourceId }),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
-  const features = useMemo(
-    () =>
-      tableFeatures({
-        columnVisibilityFeature,
-        rowSortingFeature,
-        rowPaginationFeature,
-        sortedRowModel: createSortedRowModel(),
-        paginatedRowModel: createPaginatedRowModel(),
-      }),
-    [],
-  );
-
-  const {
-    data: queryResult,
-    isLoading,
-    error,
-    isFetching,
-  } = useQuery({
-    queryKey: [
-      "leaderboard",
-      pagination.pageIndex,
-      pagination.pageSize,
-      timeframe,
-      startDate,
-      endDate,
-      platforms,
-    ],
-    queryFn: async () => {
-      const result = await fetchLeaderboard(apiClient, {
-        limit: pagination.pageSize,
-        offset: pagination.pageIndex * pagination.pageSize,
-        timeframe: timeframe ?? TimePeriod.ALL,
-        startDate,
-        endDate,
-        platforms,
-      });
-      return result;
-    },
-    enabled: isValidDateRange, // Only run query if date range is valid
-    staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+  const healthQuery = useQuery({
+    queryKey: ["activity-health"],
+    queryFn: fetchActivityHealth,
+    enabled: query.isError,
+    staleTime: 15_000,
+    retry: false,
   });
 
-  // Extract data and metadata from query result
-  const data = Array.isArray(queryResult?.entries) ? queryResult.entries : [];
-  const totalEntries = queryResult?.meta?.pagination?.total || 0;
+  const setPeriod = (next: ActivityPeriod) => navigate({ search: { ...search, period: next } });
+  const setSource = (next: SourceFilter) =>
+    navigate({ search: { ...search, source: next === "ecosystem" ? "ecosystem" : undefined } });
 
-  // Export fields configuration
-  const exportFields: ExportField<LeaderboardEntry>[] = [
-    { key: "rank", header: "Rank" },
-    { key: "signerId", header: "NEAR Account" },
-    { key: "totalScore", header: "Score" },
-    { key: "totalPosts", header: "Posts" },
-    { key: "totalReplies", header: "Replies" },
-    { key: "totalQuotes", header: "Quotes" },
-    {
-      key: "firstPostTimestamp",
-      header: "First Post",
-      formatter: (value) => {
-        if (!value) return "N/A";
-        try {
-          const date = new Date(value);
-          return Number.isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
-        } catch {
-          return "Invalid Date";
-        }
-      },
-    },
-    {
-      key: "lastActive",
-      header: "Last Active",
-      formatter: (value) => {
-        if (!value) return "N/A";
-        try {
-          const date = new Date(value);
-          return Number.isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
-        } catch {
-          return "Invalid Date";
-        }
-      },
-    },
-  ];
-
-  const handleExport = async (format: ExportFormat) => {
-    try {
-      const allData = await fetchAllLeaderboardData({
-        apiClient,
-        timeframe: timeframe ?? TimePeriod.ALL,
-        platform: platforms?.[0], // Pass the first platform if available
-        startDate,
-        endDate,
-      });
-
-      if (!Array.isArray(allData) || allData.length === 0) {
-        alert("No data to export");
-        return;
-      }
-
-      const timeframeName = timeframe ? timeframe.toLowerCase().replace("_", "-") : "all-time";
-      const filename = `leaderboard-${timeframeName}`;
-
-      exportData(allData, exportFields, filename, format);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
-    }
-  };
-
-  const columnHelper = createColumnHelper<typeof features, LeaderboardEntry>();
-  const columns = columnHelper.columns([
-    columnHelper.accessor("rank", {
-      header: "Rank",
-      cell: (info) => <div className="w-[20px]">{info.getValue()}</div>,
-    }),
-    columnHelper.accessor("signerId", {
-      header: "NEAR Account",
-      cell: (info) => {
-        const accountId = info.getValue();
-        return (
-          <div className="flex items-center gap-2 w-[180px]">
-            <Link
-              to={`/profile/$accountId`}
-              params={{ accountId }}
-              className="text-primary hover:text-primary/80 hover:underline transition-colors block truncate"
-            >
-              {accountId}
-            </Link>
-            <InlineBadges accountId={accountId} />
-          </div>
-        );
-      },
-    }),
-    columnHelper.accessor("totalScore", {
-      header: "Score",
-      cell: (info) => <div className="font-semibold">{info.getValue()}</div>,
-    }),
-    columnHelper.accessor("totalPosts", {
-      header: "Posts",
-      cell: (info) => info.getValue(),
-    }),
-    columnHelper.accessor("totalReplies", {
-      header: "Replies",
-      cell: (info) => info.getValue(),
-    }),
-    columnHelper.accessor("totalQuotes", {
-      header: "Quotes",
-      cell: (info) => info.getValue(),
-    }),
-    columnHelper.accessor((row) => (row as any).firstPostTimestamp, {
-      id: "firstPostTimestamp",
-      header: "First Post",
-      cell: (info) => {
-        const timestamp = info.getValue();
-        if (!timestamp) return "N/A";
-        try {
-          const date = new Date(timestamp);
-          if (Number.isNaN(date.getTime())) return "Invalid Date";
-          return date.toLocaleString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        } catch (e) {
-          console.error("Error parsing first post date:", timestamp, e);
-          return "Invalid Date";
-        }
-      },
-    }),
-    columnHelper.accessor("lastActive", {
-      header: "Last Active",
-      cell: (info) => {
-        const dateTimeString = info.getValue();
-        if (!dateTimeString) return "N/A";
-        try {
-          const date = new Date(dateTimeString);
-          if (Number.isNaN(date.getTime())) return "Invalid Date";
-          return date.toLocaleString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        } catch (e) {
-          console.error("Error parsing last active date:", dateTimeString, e);
-          return "Invalid Date";
-        }
-      },
-    }),
-  ]);
-
-  // Initialize TanStack Table
-  const table = useTable({
-    features,
-    data,
-    columns,
-    state: {
-      sorting,
-      pagination,
-    },
-    onSortingChange: setSorting,
-    onPaginationChange: setPagination,
-    manualPagination: true, // Keep manual pagination
-    // pageCount is derived from totalEntries fetched from API
-    pageCount: totalEntries > 0 ? Math.ceil(totalEntries / pagination.pageSize) : -1, // Use -1 or 0 if total unknown initially
-    // Alternatively, if totalEntries is 0 initially: pageCount: Math.max(1, Math.ceil(totalEntries / pagination.pageSize))
-  });
+  const leaderboard = query.data;
+  const entries = leaderboard?.data ?? [];
+  const projection = leaderboard?.projection;
+  const projectionDegraded = !!projection && projection.state !== "ready";
+  const serviceError = query.error as ActivityServiceError | null;
+  const underReview = source === "opencrosspost" && entries.length === 0 && !query.isError;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <BackButton />
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          {/* Custom Date Range Pickers */}
-          {timeframe === TimePeriod.CUSTOM && (
-            <>
-              <div>
-                <Label className="block text-sm font-medium mb-1">Start Date</Label>
-                <DatePicker
-                  date={parsedStartDate}
-                  onDateChange={(date) => {
-                    const dateString = date ? date.toISOString() : undefined;
-                    navigate({
-                      search: (prev: any) => ({
-                        ...prev,
-                        startDate: dateString,
-                      }),
-                      replace: true,
-                    });
-                  }}
-                  placeholder="Select start date and time"
-                />
-              </div>
-              <div>
-                <Label className="block text-sm font-medium mb-1">End Date</Label>
-                <DatePicker
-                  date={parsedEndDate}
-                  onDateChange={(date) => {
-                    const dateString = date ? date.toISOString() : undefined;
-                    navigate({
-                      search: (prev: any) => ({
-                        ...prev,
-                        endDate: dateString,
-                      }),
-                      replace: true,
-                    });
-                  }}
-                  placeholder="Select end date and time"
-                  disabled={!parsedStartDate}
-                />
-              </div>
-            </>
-          )}
-          <div>
-            <Label className="block text-sm font-medium mb-1">Time Period</Label>
-            <Select
-              value={timeframe ?? TimePeriod.ALL}
-              onValueChange={(v) => {
-                const newSearch: any = {
-                  ...search,
-                  timeframe: (v as TimePeriod) || undefined,
-                };
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => query.refetch()}
+          disabled={query.isFetching}
+        >
+          <RefreshCw className={`size-4 ${query.isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </div>
 
-                // Clear custom date range when switching away from custom
-                if (v !== TimePeriod.CUSTOM) {
-                  delete newSearch.startDate;
-                  delete newSearch.endDate;
-                }
+      <h1 className="text-xl font-bold sm:text-2xl">Leaderboard</h1>
 
-                navigate({
-                  search: newSearch,
-                  replace: true,
-                });
-              }}
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Time period">
+          {ACTIVITY_PERIODS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              role="tab"
+              aria-selected={period === p}
+              onClick={() => setPeriod(p)}
+              className={`border-2 border-primary px-3 py-1.5 text-sm font-medium transition-colors ${
+                period === p
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-foreground hover:bg-muted"
+              }`}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select timeframe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TimePeriod.DAY}>Last 24 Hours</SelectItem>
-                <SelectItem value={TimePeriod.WEEK}>Last Week</SelectItem>
-                <SelectItem value={TimePeriod.MONTH}>Last Month</SelectItem>
-                <SelectItem value={TimePeriod.YEAR}>Last Year</SelectItem>
-                <SelectItem value={TimePeriod.ALL}>All Time</SelectItem>
-                <SelectItem value={TimePeriod.CUSTOM}>Custom Range</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* <div>
-          <label className="block text-sm font-medium mb-1">Platform</label>
-          <select
-            value={platforms}
-            // Update platform state correctly using Platform enum values
-            onChange={(e) => setPlatform(e.target.value || undefined)} // Keep as string for value, handle conversion in fetch
-            className="border rounded px-3 py-2 w-full"
+              {PERIOD_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Source">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={source === "opencrosspost"}
+            onClick={() => setSource("opencrosspost")}
+            className={`border-2 border-primary px-3 py-1.5 text-sm font-medium transition-colors ${
+              source === "opencrosspost"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-foreground hover:bg-muted"
+            }`}
           >
-            <option value="">All Platforms</option>
-            {Object.entries(Platform).map(([key, value]) => (
-              <option key={key} value={value}>
-                {" "}
-                {key}
-              </option>
-            ))}
-          </select>
-        </div> */}
+            Open Crosspost
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={source === "ecosystem"}
+            onClick={() => setSource("ecosystem")}
+            className={`border-2 border-primary px-3 py-1.5 text-sm font-medium transition-colors ${
+              source === "ecosystem"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-foreground hover:bg-muted"
+            }`}
+          >
+            Whole Ecosystem
+          </button>
         </div>
       </div>
 
-      {/* Error message */}
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/40 text-destructive px-4 py-3 rounded mb-4">
-          {getErrorMessage(error, "Failed to fetch leaderboard data")}
+      {leaderboard?.startsAt && leaderboard?.endsAt && (
+        <p className="mt-3 text-sm text-muted-foreground">
+          {formatDate(leaderboard.startsAt)} – {formatDate(leaderboard.endsAt)} · updated{" "}
+          {formatDate(leaderboard.generatedAt)}
+        </p>
+      )}
+
+      {projectionDegraded && (
+        <div className="mt-4 border-2 border-dashed border-primary/60 bg-muted px-4 py-3 text-sm">
+          Leaderboard projection is <strong>{projection?.state}</strong> — scores may be incomplete
+          or stale. No need to retry; this page picks up fresh data automatically.
         </div>
       )}
 
-      {/* Loading state */}
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading leaderboard data...</p>
-          </div>
+      {query.isError && (
+        <div className="mt-4 border-2 border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p>
+            Failed to load the leaderboard
+            {serviceError?.status ? ` (HTTP ${serviceError.status})` : ""}.
+          </p>
+          <p className="mt-1 text-destructive/80">
+            {healthQuery.isPending
+              ? "Checking the Activity service status…"
+              : healthQuery.data === false
+                ? "The Activity service is degraded — this is on their side, not yours. Retry in a bit."
+                : "The Activity service looks healthy — try again."}
+          </p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={() => query.refetch()}>
+            Retry
+          </Button>
         </div>
-      ) : (
-        <>
-          {/* Table */}
-          <div className="overflow-x-auto base-component relative rounded-lg border-2 border-primary bg-background">
-            {isFetching && !isLoading && (
-              <div className="absolute top-2 right-2 z-10">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
-              </div>
-            )}
-            <Table className="min-w-full">
-              <TableHeader className="bg-background [&_tr]:border-b-2 [&_tr]:border-primary [&_tr]:hover:bg-transparent">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <div className="flex items-center gap-1">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getIsSorted() === "asc" ? (
-                            <span>▲</span>
-                          ) : header.column.getIsSorted() === "desc" ? (
-                            <span>▼</span>
-                          ) : null}
-                        </div>
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="bg-background divide-y divide-border">
-                {table.getRowModel()?.rows?.length > 0 ? (
-                  table.getRowModel()?.rows?.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-muted">
-                      {row.getVisibleCells()?.map((cell) => (
-                        <TableCell key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm ">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="px-6 py-4 text-center text-sm text-muted-foreground"
+      )}
+
+      {!query.isError && !query.isLoading && entries.length === 0 && !underReview && (
+        <div className="mt-6 rounded-lg border-2 border-primary bg-background px-6 py-10 text-center">
+          <p className="text-muted-foreground">No scored activity for this period yet.</p>
+        </div>
+      )}
+
+      {underReview && (
+        <div className="mt-6 rounded-lg border-2 border-primary bg-background px-6 py-10 text-center">
+          <p className="font-medium">No Open Crosspost events scored yet.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Events from newly registered sources count on the leaderboard once the source is
+            approved — everything posted before then is scored retroactively.
+          </p>
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <div className="relative mt-4 max-h-[70vh] overflow-y-auto rounded-lg border-2 border-primary bg-background">
+          <table className="min-w-full">
+            <thead className="sticky top-0 z-10 bg-background [&_tr]:border-b-2 [&_tr]:border-primary [&_tr]:hover:bg-transparent">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Rank
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  NEAR Account
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Score
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Events
+                </th>
+                <th className="w-8 px-2 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-background">
+              {entries.map((entry) => {
+                const expanded = expandedActor === entry.actor;
+                return (
+                  <Fragment key={entry.actor}>
+                    <tr
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => setExpandedActor(expanded ? null : entry.actor)}
                     >
-                      No data available
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-                className="px-3 py-1 disabled:opacity-50"
-              >
-                {"<<"}
-              </Button>
-              <Button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="px-3 py-1 disabled:opacity-50"
-              >
-                {"<"}
-              </Button>
-              <Button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="px-3 py-1 disabled:opacity-50"
-              >
-                {">"}
-              </Button>
-              <Button
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-                className="px-3 py-1 disabled:opacity-50"
-              >
-                {">>"}
-              </Button>
-              {/* Export Button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button>Export Data</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleExport("csv")}>
-                    Export as CSV
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("json")}>
-                    Export as JSON
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div>
-                <Label className="text-sm font-medium mb-1 block">
-                  Page{" "}
-                  <strong>
-                    {table.state.pagination.pageIndex + 1} of{" "}
-                    {/* Use table.getPageCount() which relies on totalEntries */}
-                    {table.getPageCount() > 0 ? table.getPageCount() : 1}
-                  </strong>
-                </Label>
-                <Select
-                  value={table.state.pagination.pageSize.toString()}
-                  onValueChange={(value) => {
-                    table.setPageSize(Number(value));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select page size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[10, 25, 50, 100].map((pageSize) => (
-                      <SelectItem key={pageSize} value={pageSize.toString()}>
-                        Show {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </>
+                      <td className="px-4 py-3 text-sm">#{entry.rank}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to="/profile/$accountId"
+                            params={{ accountId: entry.actor }}
+                            className="block truncate text-primary hover:text-primary/80 hover:underline"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {entry.actor}
+                          </Link>
+                          <InlineBadges accountId={entry.actor} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold">{entry.score}</td>
+                      <td className="px-4 py-3 text-sm">{entry.eventCount}</td>
+                      <td className="px-2 py-3 text-muted-foreground">
+                        {expanded ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronRight className="size-4" />
+                        )}
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr className="bg-muted/50">
+                        <td colSpan={5} className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            {entry.breakdown.map((item) => (
+                              <BreakdownBadge key={`${item.source}:${item.type}`} item={item} />
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
+}
+
+function BreakdownBadge({ item }: { item: ActivityBreakdown }) {
+  return (
+    <span className="border border-border bg-background px-2 py-1 text-xs text-foreground">
+      <span className="font-medium">{item.sourceDisplayName}</span>
+      <span className="text-muted-foreground"> · {item.type}</span>
+      <span className="text-muted-foreground">
+        {" "}
+        — {item.eventCount}× {item.pointValue}pt = {item.score}
+      </span>
+      {item.trustStatus !== "standard" && (
+        <span className="ml-1 font-medium">({item.trustStatus})</span>
+      )}
+    </span>
+  );
+}
+
+function formatDate(value: string): string {
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
+  }
 }
