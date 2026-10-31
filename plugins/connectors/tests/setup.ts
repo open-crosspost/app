@@ -42,7 +42,7 @@ const rpcFetch = globalThis.fetch.bind(globalThis);
 
 let server: ReturnType<typeof createServer> | null = null;
 let baseUrl = "";
-let pluginEffectContext: Context.Context<any> | null = null;
+let _pluginEffectContext: Context.Context<any> | null = null;
 
 export const outboundCalls: { url: string; init?: RequestInit }[] = [];
 
@@ -94,7 +94,7 @@ export async function getPluginClient(context?: { userId?: string; near?: unknow
     );
     const rpcHandler = new RPCHandler(router);
     const effectContext = initialized.effectContext;
-    pluginEffectContext = effectContext;
+    _pluginEffectContext = effectContext;
 
     const testPort = 3400 + Math.floor(Math.random() * 1000);
     baseUrl = `http://localhost:${testPort}`;

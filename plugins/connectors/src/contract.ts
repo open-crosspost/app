@@ -232,7 +232,9 @@ export const contract = oc.router({
         walletId: z
           .string()
           .optional()
-          .describe("OutLayer wallet id; defaults to the connected wallet"),
+          .describe(
+            "OutLayer wallet id from GET /wallet/v1/address — sent verbatim as X-Wallet-Id; omit unless the connector signs or moves funds",
+          ),
         paymentKey: z
           .string()
           .optional()
@@ -240,15 +242,22 @@ export const contract = oc.router({
             "OutLayer payment key; defaults to the connected wallet's key, created on demand",
           ),
         agentId: z.string().min(1).describe("Agent account id (for event attribution)"),
-        connector: z.string().min(1).describe("Connector id (e.g. gmail, github, mercury)"),
+        connector: z
+          .string()
+          .min(1)
+          .describe(
+            "Connector id (e.g. gmail, x) or a full project id (owner/name) — a bare id targets the connectors.outlayer.near namespace",
+          ),
         operation: z.string().min(1).describe("Connector operation (e.g. status, send_email)"),
         secretsRef: z
           .object({
-            accountId: z.string().describe("Owner NEAR account id"),
-            profile: z.string().describe("Connector profile id"),
+            accountId: z.string().describe("Owner NEAR account id the row is stored under"),
+            profile: z.string().describe("Connector profile id (the label chosen at store time)"),
           })
           .optional()
-          .describe("Owner's credential row for the connector"),
+          .describe(
+            "Owner's credential row for an ordinary (non-curated) project; on the curated namespace the wallet's own agent-secret row is read instead (X-Use-Owner-Secret)",
+          ),
         input: z.record(z.string(), z.unknown()).describe("Connector operation input"),
       }),
     )

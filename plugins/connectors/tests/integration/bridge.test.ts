@@ -73,7 +73,7 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
       seen.push({
         url,
         method: init?.method,
-        auth: (init?.headers as Record<string, string>)?.["Authorization"],
+        auth: (init?.headers as Record<string, string>)?.Authorization,
       });
       if (url.includes("/register")) {
         return Response.json({
@@ -120,7 +120,7 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
   it("connect stores the wallet and re-reads an already-claimed trial", async () => {
     const restore = mockUpstream((url, init) => {
       if (url.includes("/wallet/v1/address")) {
-        expect((init?.headers as Record<string, string>)["Authorization"]).toBe("Bearer wk_test");
+        expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer wk_test");
         return ADDRESS_OK();
       }
       if (url.includes("/trial-key")) {
@@ -153,7 +153,7 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
   });
 
   it("connect survives a closed trial window and the call path creates a funded key", async () => {
-    const restore = mockUpstream((url) => {
+    const restore = mockUpstream((url, init) => {
       if (url.includes("/wallet/v1/address")) {
         return ADDRESS_OK();
       }
@@ -164,6 +164,7 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
         );
       }
       if (url.includes("/create-payment-key")) {
+        expect(JSON.parse(String(init?.body)).initial_deposit_usdc).toBe("0.25");
         return Response.json({ payment_key: "pk_funded", nonce: 1 });
       }
       if (url.includes("/call/")) {
@@ -203,7 +204,7 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
     }
   });
 
-  it("outlayerCall resolves the stored wallet id and payment key server-side", async () => {
+  it("outlayerCall resolves the stored payment key server-side and sends no X-Wallet-Id", async () => {
     const restore = mockUpstream((url, init) => {
       if (url.includes("/register")) {
         return Response.json({
@@ -216,8 +217,9 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
         return Response.json({ payment_key: "pk_resolved", nonce: 0 });
       }
       if (url.includes("/call/")) {
-        expect((init?.headers as Record<string, string>)["X-Payment-Key"]).toBe("pk_resolved");
-        expect((init?.headers as Record<string, string>)["X-Wallet-Id"]).toBe("wallet-resolved");
+        const headers = init?.headers as Record<string, string>;
+        expect(headers["X-Payment-Key"]).toBe("pk_resolved");
+        expect(headers["X-Wallet-Id"]).toBeUndefined();
         expect(JSON.parse(String(init?.body)).input.operation).toBe("status");
         return Response.json({
           call_id: "call_resolved",
@@ -322,5 +324,95 @@ describe("connectors bridge (fetch-mocked upstreams)", () => {
         input: {},
       }),
     ).rejects.toThrow(/No OutLayer wallet connected/);
+  });
+
+  it("a bare connector id on the curated namespace sends X-Use-Owner-Secret and no secrets_ref", async () => {
+    const restore = mockUpstream((url, init) => {
+      expect(url).toContain("outlayer.test/call/connectors.outlayer.near/x");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["X-Use-Owner-Secret"]).toBe("1");
+      expect(JSON.parse(String(init?.body)).secrets_ref).toBeUndefined();
+      return Response.json({ call_id: "call_curated", status: "completed" });
+    });
+    try {
+      const client = await getPluginClient({ userId: "user-1" });
+      const call = await client.outlayerCall({
+        walletId: "wallet-1",
+        paymentKey: "pk_key",
+        agentId: "agent-1",
+        connector: "x",
+        operation: "status",
+        input: {},
+      });
+      expect(call.callId).toBe("call_curated");
+    } finally {
+      restore();
+    }
+  });
+
+  it("a full project id reaches the ordinary project with the wallet's own row as secrets_ref", async () => {
+    const owner = "c".repeat(64);
+    const restore = mockUpstream((url, init) => {
+      if (url.includes("/register")) {
+        return Response.json({
+          api_key: "wk_fresh",
+          wallet_id: "wallet-preview",
+          near_account_id: owner,
+        });
+      }
+      if (url.includes("/trial-key")) {
+        return Response.json({ reason: "trial_window_closed", terminal: true }, { status: 403 });
+      }
+      if (url.includes("/create-payment-key")) {
+        return Response.json({ payment_key: "pk_preview", nonce: 1 });
+      }
+      expect(url).toContain(`outlayer.test/call/${owner}/x`);
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["X-Use-Owner-Secret"]).toBeUndefined();
+      expect(headers["X-Wallet-Id"]).toBeUndefined();
+      const body = JSON.parse(String(init?.body));
+      expect(body.secrets_ref).toEqual({ account_id: owner, profile: owner });
+      expect(headers["X-Payment-Key"]).toBe("pk_preview");
+      return Response.json({ call_id: "call_preview", status: "completed" });
+    });
+    try {
+      const client = await getPluginClient({ userId: "user-1" });
+      await client.outlayerWalletSetup({ agentId: "agent-preview" });
+      const call = await client.outlayerCall({
+        agentId: "agent-preview",
+        connector: `${owner}/x`,
+        operation: "status",
+        input: {},
+      });
+      expect(call.callId).toBe("call_preview");
+    } finally {
+      restore();
+    }
+  });
+
+  it("outlayerCall honors an explicit secrets_ref on an ordinary project", async () => {
+    const restore = mockUpstream((url, init) => {
+      expect(url).toContain("outlayer.test/call/work.efiz.near/x");
+      expect(JSON.parse(String(init?.body)).secrets_ref).toEqual({
+        account_id: "owner.near",
+        profile: "preview-label",
+      });
+      return Response.json({ call_id: "call_ref", status: "completed" });
+    });
+    try {
+      const client = await getPluginClient({ userId: "user-1" });
+      const call = await client.outlayerCall({
+        walletId: "wallet-1",
+        paymentKey: "pk_key",
+        agentId: "agent-1",
+        connector: "work.efiz.near/x",
+        operation: "status",
+        secretsRef: { accountId: "owner.near", profile: "preview-label" },
+        input: {},
+      });
+      expect(call.callId).toBe("call_ref");
+    } finally {
+      restore();
+    }
   });
 });

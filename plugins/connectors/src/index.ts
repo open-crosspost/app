@@ -6,7 +6,7 @@ import { contract } from "./contract";
 import { DatabaseLive } from "./db/layer";
 import { ContextSchema } from "./lib/context";
 import type { PluginsClient } from "./lib/plugins-client.gen";
-import { BridgeStore, type BridgeStoreShape, bridgeStoreLayer } from "./services/store";
+import { BridgeStore, bridgeStoreLayer } from "./services/store";
 
 /**
  * Metered-connectors bridge.
@@ -144,9 +144,12 @@ const claimTrialKey = (
     return { paymentKey: null, source: "none" };
   });
 
+const DEFAULT_KEY_DEPOSIT_USDC = "0.25";
+
 const createFundedKey = (
   outlayerApiUrl: string,
   walletApiKey: string,
+  initialDepositUsdc?: string,
 ): Effect.Effect<ClaimedKey, UpstreamError> =>
   Effect.gen(function* () {
     const result = (yield* fetchJson(`${outlayerApiUrl}/wallet/v1/create-payment-key`, {
@@ -155,12 +158,17 @@ const createFundedKey = (
         Authorization: `Bearer ${walletApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        initial_deposit_usdc: initialDepositUsdc ?? DEFAULT_KEY_DEPOSIT_USDC,
+      }),
     })) as { payment_key?: string; paymentKey?: string; nonce?: number };
     const paymentKey = result.payment_key ?? result.paymentKey ?? "";
     if (!paymentKey) {
       return yield* Effect.fail(
-        new ORPCError("BAD_REQUEST", { message: "OutLayer payment key creation returned no key" }),
+        new ORPCError("BAD_REQUEST", {
+          message:
+            "OutLayer payment key creation returned no key — if the error says the outcome is unknown, the key may still exist funded; check GET /public/payment-keys before retrying (a retry mints a NEW key)",
+        }),
       );
     }
     return { paymentKey, source: "funded" as const };
@@ -475,50 +483,83 @@ export default createPlugin.withPlugins<PluginsClient>()({
         const config = yield* ConnectorConfig;
         const store = yield* BridgeStore;
 
-        let walletId = input.walletId ?? null;
+        const walletId = input.walletId ?? null;
         let paymentKey = input.paymentKey ?? null;
         let keySource: string | null = paymentKey ? "explicit" : null;
 
-        if (!walletId || !paymentKey) {
-          const row = yield* store.getWallet(userId, input.agentId);
-          if (!row && (!walletId || !paymentKey)) {
+        const row = yield* store.getWallet(userId, input.agentId);
+        if (!row && !paymentKey) {
+          return yield* Effect.fail(
+            new ORPCError("BAD_REQUEST", {
+              message: "No OutLayer wallet connected — set up the wallet first",
+            }),
+          );
+        }
+        paymentKey = paymentKey ?? row?.paymentKey ?? null;
+        if (!paymentKey) {
+          if (!row) {
             return yield* Effect.fail(
               new ORPCError("BAD_REQUEST", {
                 message: "No OutLayer wallet connected — set up the wallet first",
               }),
             );
           }
-          walletId = walletId ?? row?.walletId ?? null;
-          paymentKey = paymentKey ?? row?.paymentKey ?? null;
-          if (!paymentKey) {
-            if (!row) {
-              return yield* Effect.fail(
-                new ORPCError("BAD_REQUEST", {
-                  message: "No OutLayer wallet connected — set up the wallet first",
-                }),
-              );
-            }
-            const created = yield* createFundedKey(config.outlayerApiUrl, row.walletApiKey);
-            yield* store.setPaymentKey(userId, input.agentId, created.paymentKey!, created.source);
-            paymentKey = created.paymentKey;
-            keySource = created.source;
-          } else {
-            keySource = keySource ?? row?.paymentKeySource ?? null;
+          const created = yield* createFundedKey(config.outlayerApiUrl, row.walletApiKey);
+          yield* store.setPaymentKey(userId, input.agentId, created.paymentKey!, created.source);
+          paymentKey = created.paymentKey;
+          keySource = created.source;
+        } else {
+          keySource = keySource ?? row?.paymentKeySource ?? null;
+        }
+
+        // The credential shape follows the project: the curated namespace
+        // reads the wallet's own agent-secret row (X-Use-Owner-Secret: 1, no
+        // secrets_ref); an ordinary project names the owner's row instead —
+        // account_id and profile are the wallet's own address unless the row
+        // is stored under another label.
+        const project = input.connector.includes("/")
+          ? input.connector
+          : `connectors.outlayer.near/${input.connector}`;
+        const curated = project.startsWith("connectors.outlayer.");
+
+        let secretsRef: { accountId: string; profile: string } | null;
+        if (curated) {
+          secretsRef = null;
+        } else if (input.secretsRef) {
+          secretsRef = input.secretsRef;
+        } else {
+          const owner = row?.nearAccountId ?? null;
+          if (!owner) {
+            return yield* Effect.fail(
+              new ORPCError("BAD_REQUEST", {
+                message:
+                  "No credential row reference — pass secretsRef (the account/profile the row is stored under)",
+              }),
+            );
           }
+          secretsRef = { accountId: owner, profile: owner };
         }
 
         const result = (yield* fetchJson(
-          `${config.outlayerApiUrl}/call/connectors.outlayer.near/${encodeURIComponent(input.connector)}`,
+          `${config.outlayerApiUrl}/call/${project.split("/").map(encodeURIComponent).join("/")}`,
           {
             method: "POST",
             headers: {
-              ...(paymentKey ? { "X-Payment-Key": paymentKey } : {}),
+              "X-Payment-Key": paymentKey ?? "",
               ...(walletId ? { "X-Wallet-Id": walletId } : {}),
+              ...(curated ? { "X-Use-Owner-Secret": "1" } : {}),
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
               input: { ...input.input, operation: input.operation },
-              ...(input.secretsRef ? { secrets_ref: input.secretsRef } : {}),
+              ...(curated || !secretsRef
+                ? {}
+                : {
+                    secrets_ref: {
+                      account_id: secretsRef.accountId,
+                      profile: secretsRef.profile,
+                    },
+                  }),
             }),
           },
         )) as {
