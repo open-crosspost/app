@@ -25,15 +25,15 @@ export function PostInteractionSelector({
   const detectedPlatform = targetUrl ? detectPlatformFromUrl(targetUrl) : null;
 
   return (
-    <div className="flex gap-2 items-center w-full">
-      <div className="flex items-center gap-1 flex-shrink-0">
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-1">
         {types.map((type) => (
           <Button
             key={type}
             size="sm"
             onClick={() => onPostTypeChange(type)}
             className={cn(
-              "capitalize",
+              "capitalize px-2.5 sm:px-3",
               postType === type &&
                 "bg-green-100 dark:bg-black text-black dark:text-white hover:bg-green-200 dark:hover:bg-gray-800",
             )}
