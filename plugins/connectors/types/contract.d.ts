@@ -571,6 +571,81 @@ export declare const contract: {
             }, z.core.$strip>;
         };
     }>;
+    sponsorStats: import("@orpc/contract").ProcedureContract<z.ZodOptional<z.ZodObject<{}, z.core.$strip>>, z.ZodObject<{
+        sponsoredPosts: z.ZodNumber;
+        sponsoredUsdMicros: z.ZodString;
+        lastSponsoredAt: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>, {
+        CONNECTION_ERROR: {
+            readonly status: 502;
+            readonly data: z.ZodObject<{
+                errorCode: z.ZodOptional<z.ZodString>;
+                host: z.ZodOptional<z.ZodString>;
+                port: z.ZodOptional<z.ZodNumber>;
+                suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+    }>;
+    appSponsorStatus: import("@orpc/contract").ProcedureContract<z.ZodOptional<z.ZodObject<{}, z.core.$strip>>, z.ZodObject<{
+        configured: z.ZodBoolean;
+        walletOwner: z.ZodNullable<z.ZodString>;
+        keyNonce: z.ZodNullable<z.ZodString>;
+        nearBalanceYocto: z.ZodNullable<z.ZodString>;
+        nearBalanceNear: z.ZodNullable<z.ZodString>;
+        outlayerKeyRemainingUsd: z.ZodNullable<z.ZodString>;
+        windows: z.ZodObject<{
+            day: z.ZodObject<{
+                posts: z.ZodNumber;
+                usdMicros: z.ZodString;
+            }, z.core.$strip>;
+            week: z.ZodObject<{
+                posts: z.ZodNumber;
+                usdMicros: z.ZodString;
+            }, z.core.$strip>;
+            month: z.ZodObject<{
+                posts: z.ZodNumber;
+                usdMicros: z.ZodString;
+            }, z.core.$strip>;
+        }, z.core.$strip>;
+        daily: z.ZodArray<z.ZodObject<{
+            date: z.ZodString;
+            posts: z.ZodNumber;
+            usdMicros: z.ZodString;
+        }, z.core.$strip>>;
+        thresholds: z.ZodObject<{
+            warnNear: z.ZodString;
+            warnUsd: z.ZodString;
+        }, z.core.$strip>;
+    }, z.core.$strip>, {
+        UNAUTHORIZED: {
+            readonly status: 401;
+            readonly data: z.ZodObject<{
+                apiKeyProvided: z.ZodBoolean;
+                provider: z.ZodOptional<z.ZodString>;
+                authType: z.ZodOptional<z.ZodEnum<{
+                    apiKey: "apiKey";
+                    oauth: "oauth";
+                    token: "token";
+                }>>;
+            }, z.core.$strip>;
+        };
+        FORBIDDEN: {
+            readonly status: 403;
+            readonly data: z.ZodObject<{
+                requiredPermissions: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                action: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+        CONNECTION_ERROR: {
+            readonly status: 502;
+            readonly data: z.ZodObject<{
+                errorCode: z.ZodOptional<z.ZodString>;
+                host: z.ZodOptional<z.ZodString>;
+                port: z.ZodOptional<z.ZodNumber>;
+                suggestion: z.ZodOptional<z.ZodString>;
+            }, z.core.$strip>;
+        };
+    }>;
     events: import("@orpc/contract").ProcedureContract<z.ZodObject<{
         agentId: z.ZodString;
         limit: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;

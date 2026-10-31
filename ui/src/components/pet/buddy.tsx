@@ -2,6 +2,7 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { DndContext, PointerSensor, useDraggable, useSensor } from "@dnd-kit/core";
 import { X } from "lucide-react";
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { useBuddyTipStore } from "@/store/buddy-tip-store";
 import { SpritePlayer } from "./sprite-player";
 
 const DISPLAY_SIZE = 96;
@@ -66,6 +67,26 @@ function useBuddyState() {
   return { position, updatePosition, hidden, setDismissed };
 }
 
+function BuddySpeechBubble({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div
+      className="absolute bottom-full left-0 mb-2 w-56 rounded-md border border-border bg-popover p-3 text-card-foreground shadow-sm"
+      data-testid="buddy-tip"
+    >
+      <button
+        type="button"
+        onClick={onDismiss}
+        onPointerDown={(event) => event.stopPropagation()}
+        aria-label="Dismiss tip"
+        className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      <p className="text-xs leading-snug">{message}</p>
+    </div>
+  );
+}
+
 function DraggableBuddy({
   position,
   flipped,
@@ -76,6 +97,8 @@ function DraggableBuddy({
   onDismiss: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: "buddy" });
+  const tip = useBuddyTipStore((state) => state.tip);
+  const dismissTip = useBuddyTipStore((state) => state.dismissTip);
 
   const style: CSSProperties = {
     position: "fixed",
@@ -87,6 +110,7 @@ function DraggableBuddy({
 
   return (
     <div style={style} className="group relative" data-testid="buddy">
+      {tip ? <BuddySpeechBubble message={tip.message} onDismiss={dismissTip} /> : null}
       <button
         type="button"
         ref={setNodeRef}

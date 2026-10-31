@@ -33,9 +33,9 @@ const campaigns: Campaign[] = [
     actions: [
       {
         id: "gm",
-        label: "GM",
+        label: "gm",
         kind: "post",
-        text: "GM",
+        text: "gm",
         destinations: [
           { id: "near-social", label: "Near Social", enabled: true },
           { id: "twitter", label: "X", enabled: true },

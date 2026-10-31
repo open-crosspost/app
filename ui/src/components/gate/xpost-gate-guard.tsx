@@ -1,13 +1,14 @@
-import { ShieldAlert } from "lucide-react";
+import { Info, ShieldAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { GuardExplanation } from "@/components/gate/guard-popover";
 import { Guarded } from "@/components/gate/guarded";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSponsorStats } from "@/hooks/use-sponsor";
 import { isGateBlocked, useXpostGate } from "@/hooks/use-xpost-gate";
 import { XPOST_BUY_URL, XPOST_GUARD_ANCHOR_ID } from "@/lib/gate";
 import { formatMicrosUsd } from "@/lib/sponsor";
 import { cn } from "@/lib/utils";
+import { SPONSORED_POSTING_TIP, useBuddyTipStore } from "@/store/buddy-tip-store";
 import { useGateStore } from "@/store/gate-store";
 
 type XpostGateGuardProps = {
@@ -30,6 +31,7 @@ export function XpostGateGuard({ redirectPath }: XpostGateGuardProps) {
     state.refusal?.anchorId === XPOST_GUARD_ANCHOR_ID ? state.highlightedAt : 0,
   );
   const clearRefusal = useGateStore((state) => state.clearRefusal);
+  const showBuddyTip = useBuddyTipStore((state) => state.showTip);
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +42,12 @@ export function XpostGateGuard({ redirectPath }: XpostGateGuardProps) {
     anchorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     setOpen(true);
   }, [highlightedAt]);
+
+  useEffect(() => {
+    if (sponsorStats && sponsorStats.sponsoredPosts > 0) {
+      showBuddyTip(SPONSORED_POSTING_TIP);
+    }
+  }, [sponsorStats, showBuddyTip]);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -80,18 +88,55 @@ export function XpostGateGuard({ redirectPath }: XpostGateGuardProps) {
                   aria-hidden
                 />
                 <div className="min-w-0 space-y-1">
-                  <p className="text-sm font-medium">Sponsored posting on the app's key</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your connected X accounts publish through the app's paid OutLayer key — no keys,
-                    no deposits, metered per post.
-                  </p>
-                  {sponsorStats && sponsorStats.sponsoredPosts > 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      So far the app has sponsored {sponsorStats.sponsoredPosts} post
-                      {sponsorStats.sponsoredPosts === 1 ? "" : "s"} for ≈
-                      {formatMicrosUsd(sponsorStats.sponsoredUsdMicros)} of compute.
-                    </p>
-                  ) : null}
+                  {blocked || refusal ? (
+                    <>
+                      <p className="text-sm font-medium">Sponsored posting on the app's key</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your connected X accounts publish through the app's paid OutLayer key — no
+                        keys, no deposits, metered per post.
+                      </p>
+                      {sponsorStats && sponsorStats.sponsoredPosts > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          So far the app has sponsored {sponsorStats.sponsoredPosts} post
+                          {sponsorStats.sponsoredPosts === 1 ? "" : "s"} for ≈
+                          {formatMicrosUsd(sponsorStats.sponsoredUsdMicros)} of compute.
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs text-muted-foreground">Sponsored posting</p>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="About sponsored posting and billing"
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            <Info className="h-3 w-3" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-80">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">
+                              Sponsored posting on the app's key
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Your connected X accounts publish through the app's paid OutLayer key
+                              — no keys, no deposits, metered per post.
+                            </p>
+                            {sponsorStats && sponsorStats.sponsoredPosts > 0 ? (
+                              <p className="text-xs text-muted-foreground">
+                                So far the app has sponsored {sponsorStats.sponsoredPosts} post
+                                {sponsorStats.sponsoredPosts === 1 ? "" : "s"} for ≈
+                                {formatMicrosUsd(sponsorStats.sponsoredUsdMicros)} of compute.
+                              </p>
+                            ) : null}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
               </div>
             </Guarded>

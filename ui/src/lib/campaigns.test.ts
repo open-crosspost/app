@@ -15,8 +15,8 @@ describe("campaigns", () => {
       actions: [
         {
           kind: "post",
-          text: "GM",
-          label: "GM",
+          text: "gm",
+          label: "gm",
           destinations: [
             { id: "near-social", label: "Near Social", enabled: true },
             { id: "twitter", label: "X", enabled: true },
@@ -50,7 +50,7 @@ describe("campaigns", () => {
 
     expect(extended.map((campaign) => campaign.id)).toEqual(["gm", "gn"]);
     expect(getCampaign("gm")).toBe(gm);
-    expect(getCampaign("gm")?.actions[0]?.text).toBe("GM");
+    expect(getCampaign("gm")?.actions[0]?.text).toBe("gm");
     expect(extended[1]?.actions[0]?.text).toBe("GN");
   });
 });
@@ -59,7 +59,7 @@ describe("campaignPrefillPosts", () => {
   it("prefills editor content with the action text and no media", () => {
     const gm = getCampaign("gm");
     expect(gm).toBeDefined();
-    expect(campaignPrefillPosts(gm as Campaign)).toEqual([{ text: "GM", media: [] }]);
+    expect(campaignPrefillPosts(gm as Campaign)).toEqual([{ text: "gm", media: [] }]);
   });
 
   it("returns an empty prefill for a campaign with no actions", () => {

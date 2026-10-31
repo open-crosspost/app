@@ -18,6 +18,8 @@ Planned at commit `1bfc624`. Every plan carries a drift check against this SHA.
 | 006 | Rebase shadcn primitives on tokens (keep the brutalist skin) | P2 | M | 001 | DONE |
 | 007 | Campaign browsing on the leaderboard pattern | P2 | M | 004 | DONE |
 | 008 | CI ratchet guard against hardcoded colors | P2 | S | — | DONE |
+| 009 | Server-side campaigns + agent-driven daily gm | P2 | L | 004 | TODO |
+| 010 | Server-side post scheduling (replace browser-only) | P2 | L | 009 (shared tick) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 
@@ -46,8 +48,9 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 - **Server-side campaigns/drafts/scheduling (audit finding DIRECTION-03)**: a product
   commitment, not a code fix. Campaigns, drafts, and scheduled posts all live in
   localStorage; scheduled posts only fire while the tab is open
-  (`ui/src/hooks/use-scheduled-posts-executor.ts:14-20`). Deferred as a maintainer
-  decision — see the audit notes; if pursued, it becomes a design/spike plan.
+  (`ui/src/hooks/use-scheduled-posts-executor.ts:14-20`). Was deferred as a maintainer
+  decision — now committed as design/spike plans: 009 (server-side campaigns +
+  agent-driven daily gm) and 010 (server-side scheduling, shared tick).
 - **Migrating off `next-themes` / restructuring the token layer**: not worth doing.
   `ui/src/styles.css` is a clean, current shadcn/Tailwind v4 setup (`:root` + `.dark` +
   `@theme inline` all consistent, lines 6-77). The debt is entirely in the consumption
