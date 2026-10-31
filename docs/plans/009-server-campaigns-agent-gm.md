@@ -193,17 +193,19 @@ untyped record passed verbatim (`plugins/connectors/src/index.ts:773`), the
 XPOST gate and sponsor ledger are operation-agnostic, and the payment-key
 resolution chain would flow a reply for free — only the connector's
 `Input` struct + `x_api::tweet` body lack the fields.
-
 **Upstream fix (for sponsored replies later):** in
 `../outlayer.opencrosspost.com`, add `reply_to` (or pass-through
 `in_reply_to_tweet_id`) to the `post` operation's `Input` and the
 `x_api::tweet` body, bump and redeploy the wasm, re-curate. Zero bridge
-changes needed. OAuth scopes currently requested already include
-`tweet.write` (`api/src/social/x-connect.ts:7-12`), so only the connector
-needs the change. **Adopted fallback for the foreseeable future: X gms post
-standalone (seed referenced by text); if BYO X credentials config ships, the
-unused `plugins/twitter/src/adapters/post.ts:106 reply()` adapter is
-ready-made for threading under X credentials the user owns.**
+changes needed. **Tracked upstream:
+https://github.com/open-crosspost/connectors/issues/1** — pass `reply_to`
+through `postToX` in this app once it ships. OAuth scopes currently
+requested already include `tweet.write` (`api/src/social/x-connect.ts:7-12`),
+so only the connector needs the change. **Adopted fallback for the
+foreseeable future: X gms post standalone (seed referenced by text); if BYO
+X credentials config ships, the unused
+`plugins/twitter/src/adapters/post.ts:106 reply()` adapter is ready-made for
+threading under X credentials the user owns.**
 
 **Spike S — sealed user function-call key.** ✅ **FEASIBLE, three
 independent precedents in-repo.** Recommended design:
