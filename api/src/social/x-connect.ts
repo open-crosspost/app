@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import type { PluginsClient } from "../lib/plugins-types.gen";
+import { storeOutlayerSecretRows } from "./outlayer-secret-store";
 import type { SocialConnectCallbackInput, SocialConnectCallbackResponse } from "./types";
 
 export const X_OAUTH_SCOPES: string[] = [
@@ -11,15 +12,17 @@ export const X_OAUTH_SCOPES: string[] = [
 ];
 
 const PENDING_CONNECT_TTL_MS = 10 * 60 * 1000;
-const OUTLAYER_AGENT_SECRET_URL = "https://api.outlayer.ai/wallet/v1/agent-secret";
-const OUTLAYER_X_PROJECT = "connectors.outlayer.near/x";
 const DEFAULT_X_DAILY_POST_CAP = 10;
 const DEFAULT_X_POLICY_JSON = JSON.stringify({ max_per_day: DEFAULT_X_DAILY_POST_CAP });
 
 export interface XClientCredentials {
   clientId?: string;
   clientSecret?: string;
+  /** The connector project the handoff stores the credential row for. */
+  project?: string;
 }
+
+export const DEFAULT_X_CONNECT_PROJECT = "connectors.outlayer.near/x";
 
 /** The twitter plugin's in-process client factory (v2 client-entry surface). */
 export type TwitterPluginClient = NonNullable<PluginsClient["twitter"]>["client"];
@@ -56,6 +59,10 @@ export class XConnectFlow {
     private readonly twitter: TwitterPluginClient,
     private readonly credentials: XClientCredentials,
   ) {}
+
+  get project(): string {
+    return this.credentials.project ?? DEFAULT_X_CONNECT_PROJECT;
+  }
 
   async start(input: XConnectStartInput): Promise<XConnectStartResult> {
     const state = randomUUID();
@@ -121,26 +128,29 @@ export class XConnectFlow {
       });
     }
 
-    const response = await fetch(OUTLAYER_AGENT_SECRET_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${input.walletApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        project: OUTLAYER_X_PROJECT,
-        secrets: {
-          X_REFRESH_TOKEN: token.refreshToken,
-          X_CLIENT_ID: clientId,
-          X_CLIENT_SECRET: clientSecret,
-          X_POLICY: DEFAULT_X_POLICY_JSON,
-        },
-      }),
-    });
-
-    if (!response.ok) {
+    try {
+      const stored = await storeOutlayerSecretRows({
+        walletApiKey: input.walletApiKey,
+        project: this.project,
+        rows: [
+          { profile: "author", secrets: { X_CLIENT_ID: clientId, X_CLIENT_SECRET: clientSecret } },
+          {
+            profile: ":owner:",
+            secrets: {
+              X_REFRESH_TOKEN: token.refreshToken,
+              X_POLICY: DEFAULT_X_POLICY_JSON,
+            },
+          },
+        ],
+      });
+      if (!stored) {
+        throw new Error("the row store answered nothing");
+      }
+    } catch (error) {
       throw new ORPCError("BAD_GATEWAY", {
-        message: `OutLayer did not store the X credential (HTTP ${response.status})`,
+        message: `OutLayer did not store the X credential: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       });
     }
 

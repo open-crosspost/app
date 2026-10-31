@@ -45,7 +45,9 @@ export class SocialService {
   }
 
   private get xConnect(): XConnectFlow | undefined {
-    return this.twitterFactory ? new XConnectFlow(this.twitterFactory, this.xCredentials) : undefined;
+    return this.twitterFactory
+      ? new XConnectFlow(this.twitterFactory, this.xCredentials)
+      : undefined;
   }
 
   async ensureSchema(): Promise<void> {

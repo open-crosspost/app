@@ -40,6 +40,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
     BETTER_AUTH_SECRET: z.string().optional(),
     X_CLIENT_ID: z.string().optional(),
     X_CLIENT_SECRET: z.string().optional(),
+    X_CONNECT_PROJECT: z.string().optional(),
   }),
 
   context: z.object({
@@ -86,6 +87,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
       const social = new SocialService(socialRepository, {
         clientId: config.secrets.X_CLIENT_ID,
         clientSecret: config.secrets.X_CLIENT_SECRET,
+        project: config.secrets.X_CONNECT_PROJECT,
       });
 
       yield* Effect.promise(() => social.ensureSchema());

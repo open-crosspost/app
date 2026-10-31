@@ -16,33 +16,36 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@electric-sql/pglite": "catalog:",
     "@libsql/client": "catalog:",
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "@orpc/contract": "catalog:",
+    "@orpc/experimental-publisher": "catalog:",
+    "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
+    "aws4fetch": "catalog:",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "every-plugin": "catalog:",
-    "zod": "catalog:",
-    "@orpc/experimental-publisher": "catalog:",
     "pg": "catalog:",
-    "@electric-sql/pglite": "catalog:",
-    "@orpc/openapi": "catalog:",
-    "aws4fetch": "catalog:"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "^0.85.1",
     "@module-federation/node": "catalog:",
+    "@module-federation/runtime-tools": "catalog:",
+    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.4",
     "@rspack/cli": "catalog:",
     "@rspack/core": "catalog:",
     "@types/node": "catalog:",
+    "@types/pg": "catalog:",
     "dotenv": "^17.2.3",
     "everything-dev": "catalog:",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "catalog:",
-    "@proj-airi/unplugin-drizzle-orm-migrations": "^0.1.4",
-    "@types/pg": "catalog:",
-    "@module-federation/runtime-tools": "catalog:"
+    "vitest": "catalog:"
   },
   "scripts": {
     "build": "every-plugin build",

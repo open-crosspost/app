@@ -99,7 +99,7 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
     { userId: string; user: RequestAuthUser },
     any,
     any,
-  any
+    any
   >;
   type OrgMiddleware = DecoratedMiddleware<
     AuthContext,
@@ -135,7 +135,7 @@ export function createAuthMiddleware<TOrgMetaSchema extends z.ZodType | undefine
     { apiKey: ApiKeyContext },
     any,
     any,
-  any
+    any
   >;
 
   const requireAuth = builder.middleware(

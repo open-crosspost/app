@@ -21,7 +21,8 @@ export default App({
       "API_DATABASE_AUTH_TOKEN",
       "BETTER_AUTH_SECRET",
       "X_CLIENT_ID",
-      "X_CLIENT_SECRET"
+      "X_CLIENT_SECRET",
+      "X_CONNECT_PROJECT"
     ]
   },
   "plugins": {

@@ -1,5 +1,5 @@
-import { PluginIdTag } from "every-plugin";
 import { Context, Effect, Layer } from "effect";
+import { PluginIdTag } from "every-plugin";
 import { getMigrationStorage, pluginMigrationSlug } from "everything-dev/db";
 import { createDatabaseDriver, type Database, DatabaseError } from "./index";
 import { detectDrift, loadMigrations, migrate } from "./migrate";
