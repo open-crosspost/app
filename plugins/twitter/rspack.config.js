@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const shouldDeploy = process.env.DEPLOY === "true";
-const bosConfigPath = path.resolve(__dirname, "../../bos.config.json");
+const _bosConfigPath = path.resolve(__dirname, "../../bos.config.json");
 
 const baseConfig = {
   externals: ["pg", "@electric-sql/pglite"],

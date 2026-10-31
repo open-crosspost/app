@@ -1,1 +1,0 @@
-# Farcaster Plugin

@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const TEST_CONFIG = {
   variables: pluginDevConfig.config.variables,
   secrets: {
-    API_DATABASE_URL: "file:./api-test.db",
+    API_DATABASE_URL: "pglite:.bos/api-test/:memory:",
     API_DATABASE_AUTH_TOKEN: undefined,
   },
 };
