@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
 import farcasterSvg from "@/assets/platforms/farcaster.svg";
 import { InlineBadges } from "@/components/badges/inline-badges";
+import { RoutePending } from "@/components/route-pending";
 import { Button } from "@/components/ui/button";
 import { fetchSocialAccountPosts, socialAccountPostsQueryKey } from "@/lib/social";
 import { getProfile } from "@/lib/utils/near-social-node";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/_authenticated/profile/$accountId")({
     }
   },
   component: ProfilePage,
+  pendingComponent: RoutePending,
+  pendingMs: 100,
 });
 
 export function ProfilePage() {

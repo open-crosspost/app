@@ -45,7 +45,7 @@ export function PlatformAccountsSelector({
   const navigate = useNavigate();
   const apiClient = useApiClient();
   const authClient = useAuthClient();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
   const { data: nearAccountId } = useQuery({
     queryKey: ["near", "accountId"] as const,
     queryFn: () => authClient.near.getAccountId(),
@@ -55,7 +55,7 @@ export function PlatformAccountsSelector({
   const { toggleAccountSelection, isAccountSelected } = usePlatformAccountsStore();
   const {
     data: connectedAccounts = [],
-    isLoading,
+    isLoading: isAccountsLoading,
     error: globalError,
     refetch,
     isFetching,
@@ -79,6 +79,9 @@ export function PlatformAccountsSelector({
     navigate({ href: pluginHref("/login", { redirect: "/editor" }) });
   };
 
+  // While the session is still resolving, dependent queries are disabled (and
+  // report isLoading: false) — treat pending-session as loading, not empty.
+  const isLoading = isSessionPending || isAccountsLoading;
   if (isLoading) {
     return (
       <div className="w-full rounded-md border-2 border-border p-3 sm:p-4">

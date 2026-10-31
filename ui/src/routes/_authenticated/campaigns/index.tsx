@@ -64,10 +64,12 @@ function CampaignsPage() {
   const authClient = useAuthClient();
   const navigate = useNavigate({ from: Route.fullPath });
   const { timeframe } = Route.useSearch();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
   const campaigns = listCampaigns();
 
-  const { data: nearAccountId } = useQuery(nearAccountIdQueryOptions(authClient, !!session?.user));
+  const { data: nearAccountId, isLoading: isLoadingNearAccountId } = useQuery(
+    nearAccountIdQueryOptions(authClient, !!session?.user),
+  );
   const { data: myPosts = [] } = useQuery({
     queryKey: ["social", "account-posts", nearAccountId],
     queryFn: () => fetchSocialAccountPosts(apiClient, nearAccountId as string),
@@ -128,7 +130,9 @@ function CampaignsPage() {
       {session?.user ? (
         <div className="mt-10">
           <h2 className="mb-3 text-lg font-semibold">Your recent campaign posts</h2>
-          {nearAccountId && myPosts.length > 0 ? (
+          {isSessionPending || isLoadingNearAccountId ? (
+            <p className="text-sm text-muted-foreground">Loading your posts…</p>
+          ) : nearAccountId && myPosts.length > 0 ? (
             <ul className="space-y-2">
               {campaigns.map((campaign) => {
                 const matches = postsMatchingCampaign(myPosts, campaign);

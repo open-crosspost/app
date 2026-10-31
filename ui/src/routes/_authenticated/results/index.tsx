@@ -7,6 +7,7 @@ import type {
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { BackButton } from "@/components/back-button";
+import { NearSocialFallbackDialog } from "@/components/near-social-fallback-dialog";
 import { ProfileCard } from "@/components/profile-card";
 import { Button } from "@/components/ui/button";
 import { useSubmitPost } from "@/hooks/use-submit-post";
@@ -20,7 +21,8 @@ function ResultsPage() {
   const navigate = useNavigate();
   const { summary, results, errors, request, clearSubmissionOutcome } = useSubmissionResultsStore();
 
-  const { submitPost, isPosting } = useSubmitPost();
+  const { submitPost, isPosting, nearSocialFallbackReason, resolveNearSocialFallback } =
+    useSubmitPost();
 
   const handleRetry = async (errorDetail: ErrorDetail) => {
     if (!request || !errorDetail.details?.platform || !errorDetail.details?.userId) {
@@ -210,6 +212,10 @@ function ResultsPage() {
           Done
         </Button>
       </div>
+      <NearSocialFallbackDialog
+        reason={nearSocialFallbackReason}
+        onChoice={resolveNearSocialFallback}
+      />
     </div>
   );
 }

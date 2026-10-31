@@ -223,3 +223,55 @@
     text-shadow: none;
   }
 }
+
+/*
+ * Brutalist toasts — match the button language: hard 2px border, offset
+ * shadow, square corners, and a per-type colored border highlight.
+ * Sonner's injected styles win the cascade, so these need !important.
+ */
+[data-sonner-toast] {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 2px 2px 0 0 rgb(0 0 0) !important;
+  background: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+}
+
+.dark [data-sonner-toast] {
+  box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  border-color: var(--success) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-color: var(--destructive) !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  border-color: var(--warning) !important;
+}
+
+[data-sonner-toast][data-type="loading"] {
+  border-color: var(--primary) !important;
+}
+
+/* Action buttons inside toasts — mini brutalist buttons */
+[data-sonner-toast] [data-button] {
+  border: 2px solid var(--primary) !important;
+  border-radius: 2px !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  font-weight: 500;
+  box-shadow: 2px 2px 0 0 rgb(0 0 0) !important;
+}
+
+.dark [data-sonner-toast] [data-button] {
+  box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-sonner-toast] [data-button]:active {
+  transform: translate(1px, 1px);
+  box-shadow: none !important;
+}
