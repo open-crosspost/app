@@ -6,7 +6,7 @@ export default App({
   name: "opencrosspost.com",
   extends: "bos://dev.everything.near/everything.dev",
   platform: "2.0.0-rc.27",
-  account: "work.efiz.near",
+  account: "crosspost.near",
   domain: "opencrosspost.com",
   title: "Open Crosspost",
   description:
