@@ -137,32 +137,119 @@ bridge without breaking per-agent attribution (README finding on
 Extend `CampaignPostAction` with `replyToSeed: boolean`. The editor's campaign
 prefill resolves today's seed (`social.campaigns.seedGet` returns the day's
 seed ids; falls back to standalone posting when none) and the submit path
-sends parent ids: NEAR Social leg per Spike A's index format; X leg per
-Spike B's reply input. `postsMatchingCampaign` is replaced by
+sends parent ids: NEAR Social leg per Spike A's confirmed reply format
+(`reply_to`/`root` + the `reply/...` backlink in the same action); X leg
+posts standalone per Spike B (no connector reply support). `postsMatchingCampaign` is replaced by
 participation/activity records once replies flow through the activity ledger.
 
-**Spike A — FastData KV reply format.** Determine the key/value structure a
-reply requires (the social DB reply/index convention — likely an extra
-`index/*` entry alongside `post/<key>`; verify against near.social's data
-model and what `__fastdata_kv` accepts). Deliverable: exact shape, plus
-whether relay sponsorship covers the extra entry. Findings appended here:
-(tbd).
+**Spike A — FastData KV reply format.** ✅ **RESOLVED (2026-10-31, no live
+probe needed).** The near.social data standard is **social-kv/1 on FastData KV**
+(https://near.social/standard.md) — written via `__fastdata_kv` on `social`
+(receiver account is `social` — see `near-social-post.ts:13`; `social.near`
+aliases the same account and appears in some docs), which is exactly our
+existing write path. Replies are first-class:
 
-**Spike B — OutLayer X reply operation.** Determine whether
-`X_CONNECTOR_PROJECT`'s bridge accepts reply input (`input: { text, replyTo }`
-or an `operation: "reply"`), via the bridge contract and OutLayer docs. If not
-supported, fallback: gm posts standalone on X (seed referenced by text) or
-X replies route through BYO X credentials via the unused twitter adapter.
-Findings appended here: (tbd).
+```json
+{
+  "post/1759140000500": {
+    "text": "Welcome!",
+    "reply_to": "alice.near/1759140000000",
+    "root": "alice.near/1759140000000"
+  },
+  "reply/alice.near/1759140000000/1759140000500": {}
+}
+```
 
-### 4. Automation (phase 5, gated by Spike S below)
+- `reply_to` = `"{parent_account}/{parent_post_id}"`; `root` = thread top
+  (the parent's `root`, or the parent itself when it is a top-level post).
+- The backlink key `reply/{parent_account}/{parent_post_id}/{post_id}` → `{}`
+  MUST be written in the **same action** as the reply post; delete = write
+  `null` to **both** keys.
+- Post ids are millisecond timestamps (`post/{Date.now()}`), matching our
+  existing `buildFastDataKvArgs`.
+- Thread reads: `GET api2.near.social/v1/posts/{account}/{post}` +
+  `/replies`; reply discovery also via KV prefix
+  `reply/{parent_account}/{parent_post_id}/` on
+  `POST kv.main.fastnear.com/v0/latest/social`.
+- Relay sponsorship: the standard's recommended allowance for a fn-call key
+  is ≈0.001 NEAR per ~1KB write; the app relayer already relays `social`
+  writes today, and the backlink key adds ~40 bytes — covered.
+- Phase 4 implementation notes: compute `root` from the seed (seed posts are
+  top-level ⇒ root = the seed itself); post-key uniqueness via `Date.now()` is
+  caller-side — automation spawn jitter makes collisions unlikely; keep
+  `postsMatchingCampaign` until replies flow through the activity ledger.
 
-- **Spike S** (moved here from 010): user-granted limited-access key for
-  `__fastdata_kv` on `social.near` — grant flow from the user's wallet,
-  storage sealed in the api DB using the agent-connect vault pattern
-  (HKDF + AES-256-GCM over a key derived from a new API secret,
-  `API_KEY_VAULT_SECRET`), app-side gas payment when signing. Findings
-  appended here.
+**Spike B — OutLayer X reply operation.** ❌ **NOT SUPPORTED** (definitive —
+the X connector's source and signed manifest). The X connector
+(`connectors.outlayer.near/x`) exposes `status, me, post, confirm, task_*` —
+no reply operation; `post` accepts only `{ text }`; unknown fields are
+silently dropped by serde and unknown operations are refused pre-run
+(cost-free). Evidence: sibling repo `../outlayer.opencrosspost.com`
+(`x/src/main.rs:31-60` — the operation catalog and `Input` struct;
+`x/src/x_api.rs:75-76` — `tweet()` posts `{ "text": text }` to `/2/tweets`
+without a reply member), plus the signed manifest in the deployed wasm.
+The bridge itself is **not** the blocker: `outlayerCall`'s input is an
+untyped record passed verbatim (`plugins/connectors/src/index.ts:773`), the
+XPOST gate and sponsor ledger are operation-agnostic, and the payment-key
+resolution chain would flow a reply for free — only the connector's
+`Input` struct + `x_api::tweet` body lack the fields.
+
+**Upstream fix (for sponsored replies later):** in
+`../outlayer.opencrosspost.com`, add `reply_to` (or pass-through
+`in_reply_to_tweet_id`) to the `post` operation's `Input` and the
+`x_api::tweet` body, bump and redeploy the wasm, re-curate. Zero bridge
+changes needed. OAuth scopes currently requested already include
+`tweet.write` (`api/src/social/x-connect.ts:7-12`), so only the connector
+needs the change. **Adopted fallback for the foreseeable future: X gms post
+standalone (seed referenced by text); if BYO X credentials config ships, the
+unused `plugins/twitter/src/adapters/post.ts:106 reply()` adapter is
+ready-made for threading under X credentials the user owns.**
+
+**Spike S — sealed user function-call key.** ✅ **FEASIBLE, three
+independent precedents in-repo.** Recommended design:
+
+1. **Grant (wallet-approved AddKey)**: server onboarding "automation key"
+   flow — user configures automation (+ has NEAR targets) ⇒ UI shows the
+   app-generated public key and the user approves a wallet
+   `signAndSendTransaction` with an `AddKey` action via the existing
+   NearConnector session (`ui/src/lib/near-social-post.ts:225` uses this
+   exact path; `@hot-labs/near-connect` `AddKeyAction` supports
+   `permission: { receiverId, allowance, methodNames }`).
+   Implementation shape: `{ type: "AddKey", params: { publicKey,
+   accessKey: { permission: { receiverId: "social", methodNames:
+   ["__fastdata_kv"], allowance: "250000000000000000000000000" }/*0.25N*/ } } }`.
+   (near-kit `TransactionBuilder.addKey(publicKey, { type: "functionCall",
+   receiverId, methodNames, allowance })` is the equivalent for the
+   `getNearClient()` path.)
+2. **Server-held private key, sealed**: generate an ed25519 keypair
+   server-side at grant time; seal the private portion with the
+   agent-connect vault pattern (HKDF-SHA256 + AES-256-GCM,
+   `plugins/agent-connect/src/services/vault.ts`) derived from a new api
+   secret `API_KEY_VAULT_SECRET`; store `{ accountId, publicKey,
+   sealedKey, createdAt }` in an `automation_keys` table. Better-near-auth's
+   own relayer-key storage (`dist/index.js:997-1017` — keypair encrypted
+   with `BETTER_AUTH_SECRET`, committed before the hosted send) is the
+   working precedent for lifecycle.
+3. **Execution**: the tick signs a `SignedDelegateAction` (senderId = user's
+   account) with the opened key and relays via the existing better-near-auth
+   relayer (`POST /api/auth/near/relay`, already relaying `social` writes
+   today — it verifies only `senderId` ownership, so fn-call-key-signed
+   delegates work unchanged) — OR self-relays gas with an app wallet key
+   (the `OUTLAYER_APP_WALLET_KEY` plumbing precedent) as fallback.
+   Implementation-time check: the relayer resolves the session's linked NEAR
+   account; cron-driven calls through an `x-api-key` session must satisfy
+   that lookup — verify in phase 5.
+4. **Scope**: receiver `social` (the account this repo already posts to),
+   methodNames `["__fastdata_kv"]` — this is literally the configuration
+   social-kv/1 recommends (§Recommended key). `__fastdata_fastfs` deliberately
+   excluded (we never write files). Allowance 0.25 NEAR ≈ 250k+ gms of
+   headroom, hard-capped, zero fund access.
+5. **Revoke**: UI button ⇒ wallet `DeleteKey` action (near-connect supports
+   it) + row deletion; upstream-expiry detection: signing failures with
+   `access key not found` ⇒ mark automation spec `paused` + tell the user.
+
+### 4. Automation (phase 5, gated by Spike S — ✅ feasible, above)
+
 - Enrollment per campaign: "Automate" opens the configure panel — 
   profile targets (subset of connected accounts), optional daily time
   override (client tz; default after-seed+jitter) — then, if targets include
@@ -200,27 +287,35 @@ prompt-driven campaign management, they register a key and talk to `/api/mcp`.
 ## Phases
 
 1. **Phase 1 — campaigns + participants schema, CRUD routes, UI list cutover.**
-2. **Phase 2 — Spikes A, B, S** (append findings; STOP for review).
-3. **Phase 3 — seed recording route + owner-instance contract** (seed exec
+   ✅ DONE (commit 327661a).
+2. **Phase 2 — Spikes A, B, S.** ✅ DONE (findings above, 2026-10-31).
+   A: confirmed first-class reply support in social-kv/1. B: confirmed NOT
+   supported upstream — X gms post standalone until the connector gains a
+   reply field. S: feasible with the AddKey-vault-relayer design above.
+3. **Phase 3 — seed recording route (`social.campaigns.seedRecord`,
+   `campaign_daily_seeds` table) + owner-instance contract** (seed exec
    script lives in the owner's instance; this app only ships the route).
-4. **Phase 4 — reply threading** in editor + submit paths.
+4. **Phase 4 — reply threading (NEAR Social leg only)** in editor + submit
+   paths per Spike A; X stays standalone.
 5. **Phase 5 — join/automate UI, enrollment, sealed keys, spawning.**
 
 ## Verification
 
 - `pnpm run typecheck`, `pnpm run test`, `pnpm run lint` per phase.
 - Phase 1: CRUD round-trip in a pglite test incl. duplicate-id conflict and
-  owner gating; `/campaigns` renders server campaigns with registry fallback.
-- Later phases: posting with a campaign prefill threads under the day's seed
-  on both platforms; automation spawn is idempotent per spec/day; no seed ⇒
-  no spawns; XPOST gate respected at execution.
+  owner gating; `/campaigns` renders server campaigns with registry fallback. ✅
+- Later phases: NEAR Social campaign gms thread under the day's seed
+  (`reply_to` + backlink written in the same action); automation spawn is
+  idempotent per spec/day; no seed ⇒ no spawns; XPOST gate respected at
+  execution.
 
 ## Risks
 
-- FastData KV reply shape may not survive; fallback = owner posts the seed in
-  the classic near.social post format with its own key and replies use
-  `index` entries (Spike A decides).
-- X reply through OutLayer may be unsupported; fallback in Spike B.
+- ~~FastData KV reply shape may not survive~~ — resolved: first-class replies
+  (Spike A).
+- ~~X reply through OutLayer may be unsupported~~ — confirmed unsupported;
+  adopted standalone-X fallback (Spike B). Sponsored X replies remain a
+  small upstream connector change if ever wanted.
 - Owner attribution (`agentId`) semantics through the connectors bridge.
 - API-key principals resolving to `userId` for requireAuthContext is
   framework-owned; if the owner instance's key does not resolve, the seed
