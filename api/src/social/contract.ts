@@ -7,8 +7,10 @@ import {
   ActivityLeaderboardQuerySchema,
   AuthRevokeResponseSchema,
   AuthStatusResponseSchema,
+  CampaignSchema,
   ConnectedAccountSchema,
   ConnectedAccountsResponseSchema,
+  CreateCampaignSchema,
   CreatePostRequestSchema,
   DeletePostRequestSchema,
   MultiStatusDataSchema,
@@ -20,6 +22,7 @@ import {
   SocialConnectAccountResponseSchema,
   SocialConnectCallbackInputSchema,
   SocialConnectCallbackResponseSchema,
+  UpdateCampaignSchema,
 } from "./types";
 
 const accountsContract = oc.router({
@@ -104,10 +107,42 @@ const activityContract = oc.router({
     .errors(PluginErrors),
 });
 
+const campaignsContract = oc.router({
+  list: oc
+    .route({ method: "GET", path: "/social/campaigns" })
+    .output(z.object({ campaigns: z.array(CampaignSchema) }))
+    .errors(PluginErrors),
+
+  get: oc
+    .route({ method: "GET", path: "/social/campaigns/{campaignId}" })
+    .input(z.object({ campaignId: z.string() }))
+    .output(CampaignSchema)
+    .errors(PluginErrors),
+
+  create: oc
+    .route({ method: "POST", path: "/social/campaigns" })
+    .input(CreateCampaignSchema)
+    .output(CampaignSchema)
+    .errors(PluginErrors),
+
+  update: oc
+    .route({ method: "PATCH", path: "/social/campaigns" })
+    .input(UpdateCampaignSchema)
+    .output(CampaignSchema)
+    .errors(PluginErrors),
+
+  remove: oc
+    .route({ method: "DELETE", path: "/social/campaigns" })
+    .input(z.object({ id: z.string() }))
+    .output(CampaignSchema)
+    .errors(PluginErrors),
+});
+
 export const socialContract = oc.router({
   accounts: accountsContract,
   posts: postsContract,
   activity: activityContract,
+  campaigns: campaignsContract,
 });
 
 export type SocialContract = typeof socialContract;

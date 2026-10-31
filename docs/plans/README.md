@@ -18,8 +18,8 @@ Planned at commit `1bfc624`. Every plan carries a drift check against this SHA.
 | 006 | Rebase shadcn primitives on tokens (keep the brutalist skin) | P2 | M | 001 | DONE |
 | 007 | Campaign browsing on the leaderboard pattern | P2 | M | 004 | DONE |
 | 008 | CI ratchet guard against hardcoded colors | P2 | S | — | DONE |
-| 009 | Server-side campaigns + agent-driven daily gm | P2 | L | 004 | TODO |
-| 010 | Server-side post scheduling (replace browser-only) | P2 | L | 009 (shared tick) | TODO |
+| 009 | Server-side campaigns + owner seed instance + automation (v2) | P2 | L | 004 | IN PROGRESS |
+| 010 | Unified job specs/runs + server tick (v2) | P2 | L | 009 (shared model) | IN PROGRESS |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 

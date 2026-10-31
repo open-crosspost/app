@@ -31,10 +31,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCampaigns } from "@/hooks/use-campaigns";
 import {
   CAMPAIGN_DESTINATION_PLATFORM,
   campaignDestinations,
-  listCampaigns,
   postsMatchingCampaign,
 } from "@/lib/campaigns";
 import {
@@ -65,7 +65,7 @@ function CampaignsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { timeframe } = Route.useSearch();
   const { data: session, isPending: isSessionPending } = authClient.useSession();
-  const campaigns = listCampaigns();
+  const { campaigns } = useCampaigns();
 
   const { data: nearAccountId, isLoading: isLoadingNearAccountId } = useQuery(
     nearAccountIdQueryOptions(authClient, !!session?.user),

@@ -107,8 +107,60 @@ export const SocialActivityLeaderboardResponseSchema = z.object({
   }),
 });
 
+export const CampaignDestinationIdSchema = z.enum(["near-social", "twitter"]);
+
+export const CampaignDestinationSchema = z.object({
+  id: CampaignDestinationIdSchema,
+  label: z.string().min(1).max(64),
+  enabled: z.boolean(),
+});
+
+export const CampaignActionSchema = z.object({
+  id: z.string().min(1).max(64),
+  label: z.string().min(1).max(64),
+  kind: z.literal("post"),
+  text: z.string().min(1).max(500),
+  destinations: z.array(CampaignDestinationSchema).min(1),
+});
+
+export const CampaignIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/);
+
+export const CampaignSchema = z.object({
+  id: CampaignIdSchema,
+  name: z.string().min(1).max(80),
+  description: z.string().max(300).default(""),
+  actions: z.array(CampaignActionSchema).min(1),
+  status: z.enum(["active", "inactive"]).default("active"),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const CreateCampaignSchema = z.object({
+  id: CampaignIdSchema,
+  name: z.string().min(1).max(80),
+  description: z.string().max(300).default(""),
+  actions: z.array(CampaignActionSchema).min(1),
+});
+
+export const UpdateCampaignSchema = z
+  .object({
+    id: CampaignIdSchema,
+    name: z.string().min(1).max(80).optional(),
+    description: z.string().max(300).optional(),
+    actions: z.array(CampaignActionSchema).min(1).optional(),
+    status: z.enum(["active", "inactive"]).optional(),
+  })
+  .refine(
+    (patch) =>
+      Object.keys(patch).some((key) => ["name", "description", "actions", "status"].includes(key)),
+    { message: "Update must change name, description, actions, or status" },
+  );
+
 export type SocialConnectAccountInput = z.infer<typeof SocialConnectAccountInputSchema>;
 export type SocialConnectAccountResponse = z.infer<typeof SocialConnectAccountResponseSchema>;
+export type Campaign = z.infer<typeof CampaignSchema>;
+export type CreateCampaign = z.infer<typeof CreateCampaignSchema>;
+export type UpdateCampaign = z.infer<typeof UpdateCampaignSchema>;
 export type SocialConnectCallbackInput = z.infer<typeof SocialConnectCallbackInputSchema>;
 export type SocialConnectCallbackResponse = z.infer<typeof SocialConnectCallbackResponseSchema>;
 export type SocialAccountMutation = z.infer<typeof SocialAccountMutationSchema>;

@@ -9,10 +9,12 @@ import { Platform } from "@crosspost/plugin/types";
 import type { ApiClient } from "@/app";
 import { NETWORK_ID } from "@/config";
 import type { AuthClient } from "@/lib/auth";
+import type { ServerCampaign } from "@/lib/campaigns";
 import { getImageUrl } from "@/lib/utils/near-social-node";
 import { capitalize } from "@/lib/utils/string";
 
 export const socialAccountsQueryKey = ["social", "accounts"] as const;
+export const socialCampaignsQueryKey = ["social", "campaigns"] as const;
 
 export const X_CONNECT_WALLET_KEY_STORAGE_KEY = "crosspost:x-connect:wallet-api-key";
 export const X_CONNECT_CALLBACK_PATH = "/callback/x";
@@ -117,6 +119,11 @@ export function nearSocialAccountQueryOptions(
 export async function listConnectedAccounts(apiClient: ApiClient): Promise<ConnectedAccount[]> {
   const response = await apiClient.social.accounts.list();
   return response.accounts;
+}
+
+export async function fetchServerCampaigns(apiClient: ApiClient): Promise<ServerCampaign[]> {
+  const response = await apiClient.social.campaigns.list();
+  return response.campaigns;
 }
 
 export async function getTwitterConnectedAccount(

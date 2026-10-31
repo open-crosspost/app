@@ -1,5 +1,41 @@
 import { index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description"),
+    actionsJson: text("actions_json").notNull(),
+    ownerUserId: text("owner_user_id").notNull(),
+    status: text("status").notNull().default("active"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => ({
+    statusIdx: index("campaigns_status_idx").on(table.status),
+    ownerIdx: index("campaigns_owner_idx").on(table.ownerUserId),
+  }),
+);
+
+export const campaignParticipants = pgTable(
+  "campaign_participants",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull(),
+    userId: text("user_id").notNull(),
+    mode: text("mode").notNull().default("manual"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => ({
+    campaignUserUnique: uniqueIndex("campaign_participants_campaign_user_idx").on(
+      table.campaignId,
+      table.userId,
+    ),
+  }),
+);
+
 export const socialConnectedAccounts = pgTable(
   "social_connected_accounts",
   {

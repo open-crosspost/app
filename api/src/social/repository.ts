@@ -89,6 +89,10 @@ function matchesQueryTimeframe(
 export class SocialRepository {
   constructor(private readonly db: Database) {}
 
+  get database(): Database {
+    return this.db;
+  }
+
   async ensureSchema(): Promise<void> {
     await this.db.execute(`
       CREATE TABLE IF NOT EXISTS social_connected_accounts (

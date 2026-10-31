@@ -22,12 +22,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCampaign } from "@/hooks/use-campaigns";
 import { useSubmitPost } from "@/hooks/use-submit-post";
 import {
   CAMPAIGN_DESTINATION_PLATFORM,
   campaignDestinations,
   campaignPrefillPosts,
-  getCampaign,
 } from "@/lib/campaigns";
 import {
   connectedAccountsQueryOptions,
@@ -77,7 +77,7 @@ function EditorPage() {
   const authClient = useAuthClient();
   const navigate = useNavigate({ from: Route.fullPath });
   const { campaign: campaignId } = Route.useSearch();
-  const campaign = campaignId ? getCampaign(campaignId) : undefined;
+  const campaign = useCampaign(campaignId);
   const { data: session } = authClient.useSession();
   const isEnabled = !!session?.user;
   const { data: nearAccountId } = useQuery(nearAccountIdQueryOptions(authClient, isEnabled));
@@ -263,8 +263,24 @@ function EditorPage() {
     if (postStatus === "success" && editorContents.length > 0) {
       clearAutoSave();
       dispatch({ type: "editor_reset" });
+      if (campaign) {
+        try {
+          await apiClient.activity.campaignCompleted({ campaignId: campaign.id });
+        } catch (error) {
+          console.error("Campaign completion recording failed:", error);
+        }
+      }
     }
-  }, [posts, selectedAccounts, postType, targetUrl, submitPost, clearAutoSave]);
+  }, [
+    posts,
+    selectedAccounts,
+    postType,
+    targetUrl,
+    submitPost,
+    clearAutoSave,
+    campaign,
+    apiClient,
+  ]);
 
   const openMediaModal = useCallback((src: string, type: string) => {
     dispatch({ type: "media_modal_opened", media: { src, type } });

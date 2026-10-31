@@ -104,6 +104,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
       });
 
       yield* Effect.promise(() => social.ensureSchema());
+      yield* Effect.promise(() => social.ensureCampaignSchema());
 
       socialService = social;
 
@@ -216,6 +217,37 @@ export default createPlugin.withPlugins<PluginsClient>()({
           accountPosts: builder.social.activity.accountPosts.effect(function* ({ input }) {
             const social = yield* SocialServiceTag;
             return yield* Effect.promise(() => social.getAccountPosts(input.signerId, input.query));
+          }),
+        },
+
+        campaigns: {
+          list: builder.social.campaigns.list.effect(function* () {
+            const social = yield* SocialServiceTag;
+            const campaigns = yield* Effect.promise(() => social.listActiveCampaigns());
+            return { campaigns };
+          }),
+
+          get: builder.social.campaigns.get.effect(function* ({ input }) {
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.getCampaign(input.campaignId));
+          }),
+
+          create: builder.social.campaigns.create.effect(function* ({ context, input }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.createCampaign(auth.userId, input));
+          }),
+
+          update: builder.social.campaigns.update.effect(function* ({ context, input }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.updateCampaign(auth.userId, input));
+          }),
+
+          remove: builder.social.campaigns.remove.effect(function* ({ context, input }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.removeCampaign(auth.userId, input.id));
           }),
         },
       },

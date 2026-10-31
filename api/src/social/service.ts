@@ -1,8 +1,11 @@
 import { ORPCError } from "@orpc/server";
+import { CampaignRepository } from "./campaign-repository";
 import type { SocialRepository } from "./repository";
 import type {
   AccountPostsQuery,
   ActivityLeaderboardQuery,
+  Campaign,
+  CreateCampaign,
   CreatePostRequest,
   DeletePostRequest,
   Platform,
@@ -15,6 +18,7 @@ import type {
   SocialConnectCallbackInput,
   SocialConnectCallbackResponse,
   SocialMultiStatusData,
+  UpdateCampaign,
 } from "./types";
 import { ApiErrorCode, makeUnsupportedPlatformResult } from "./types";
 import {
@@ -32,12 +36,77 @@ export class SocialService {
   private twitterFactory?: TwitterPluginClient;
   private connectorsFactory?: (userId: string) => unknown;
   private readonly xCredentials: XClientCredentials;
+  private readonly campaignRepository: CampaignRepository;
 
   constructor(
     private readonly repository: SocialRepository,
     xCredentials: XClientCredentials = {},
+    campaignRepository?: CampaignRepository,
   ) {
     this.xCredentials = xCredentials;
+    this.campaignRepository = campaignRepository ?? new CampaignRepository(repository.database);
+  }
+
+  async listActiveCampaigns(): Promise<Campaign[]> {
+    return this.campaignRepository.listActive();
+  }
+
+  ensureCampaignSchema(): Promise<void> {
+    return this.campaignRepository.ensureSchema();
+  }
+
+  async getCampaign(id: string): Promise<Campaign> {
+    const campaign = await this.campaignRepository.get(id);
+    if (!campaign) {
+      throw new ORPCError("NOT_FOUND", { message: `Campaign ${id} not found` });
+    }
+    return campaign;
+  }
+
+  async createCampaign(userId: string, input: CreateCampaign): Promise<Campaign> {
+    const existing = await this.campaignRepository.get(input.id);
+    if (existing) {
+      throw new ORPCError("CONFLICT", {
+        message: `Campaign ${input.id} already exists`,
+      });
+    }
+    return this.campaignRepository.create(userId, input);
+  }
+
+  async updateCampaign(userId: string, patch: UpdateCampaign): Promise<Campaign> {
+    const ownerUserId = await this.campaignRepository.ownerIdOf(patch.id);
+    if (!ownerUserId) {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Campaign ${patch.id} not found`,
+      });
+    }
+    if (ownerUserId !== userId) {
+      throw new ORPCError("FORBIDDEN", {
+        message: `Only the campaign owner can update ${patch.id}`,
+      });
+    }
+    const updated = await this.campaignRepository.update(patch.id, patch);
+    if (!updated) {
+      throw new ORPCError("NOT_FOUND", { message: `Campaign ${patch.id} not found` });
+    }
+    return updated;
+  }
+
+  async removeCampaign(userId: string, id: string): Promise<Campaign> {
+    const ownerUserId = await this.campaignRepository.ownerIdOf(id);
+    if (!ownerUserId) {
+      throw new ORPCError("NOT_FOUND", { message: `Campaign ${id} not found` });
+    }
+    if (ownerUserId !== userId) {
+      throw new ORPCError("FORBIDDEN", {
+        message: `Only the campaign owner can remove ${id}`,
+      });
+    }
+    const removed = await this.campaignRepository.deactivate(id);
+    if (!removed) {
+      throw new ORPCError("NOT_FOUND", { message: `Campaign ${id} not found` });
+    }
+    return removed;
   }
 
   /**

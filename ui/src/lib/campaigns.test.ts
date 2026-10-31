@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   type Campaign,
   campaignDestinations,
+  campaignFromServer,
   campaignPrefillPosts,
+  findCampaignById,
   getCampaign,
   listCampaigns,
+  mergeCampaigns,
+  type ServerCampaign,
 } from "./campaigns";
 
 describe("campaigns", () => {
@@ -99,5 +103,53 @@ describe("campaignDestinations", () => {
       ],
     };
     expect(campaignDestinations(campaign)).toEqual(["twitter"]);
+  });
+});
+
+describe("server campaign merge", () => {
+  const serverRow: ServerCampaign = {
+    id: "weekly",
+    name: "Weekly prompt",
+    description: "A server-created campaign.",
+    actions: [
+      {
+        id: "prompt",
+        label: "Prompt",
+        kind: "post",
+        text: "What are you building?",
+        destinations: [{ id: "twitter", label: "X", enabled: true }],
+      },
+    ],
+    status: "active",
+    createdAt: "2026-10-31T00:00:00.000Z",
+    updatedAt: "2026-10-31T00:00:00.000Z",
+  };
+
+  it("campaignFromServer skips inactive rows", () => {
+    expect(campaignFromServer(serverRow)).toMatchObject({ id: "weekly" });
+    expect(campaignFromServer({ ...serverRow, status: "inactive" })).toBeNull();
+  });
+
+  it("merges server campaigns first and dedupes local fallback by id", () => {
+    const local = listCampaigns();
+    const merged = mergeCampaigns([serverRow], local);
+    expect(merged.map((campaign) => campaign.id)).toEqual(["weekly", "gm"]);
+
+    const serverGm = mergeCampaigns([serverRow, { ...serverRow, id: "gm" }], local);
+    expect(serverGm.map((campaign) => campaign.id)).toEqual(["weekly", "gm"]);
+    expect(serverGm[1]?.name).toBe("Weekly prompt");
+  });
+
+  it("keeps the local registry visible when the server has no campaigns yet", () => {
+    expect(mergeCampaigns([], listCampaigns()).map((campaign) => campaign.id)).toEqual(["gm"]);
+  });
+
+  it("findCampaignById resolves undefined ids safely", () => {
+    expect(
+      findCampaignById([{ id: "gm", name: "x", description: "", actions: [] }], undefined),
+    ).toBeUndefined();
+    expect(
+      findCampaignById([{ id: "gm", name: "x", description: "", actions: [] }], "gm")?.id,
+    ).toBe("gm");
   });
 });

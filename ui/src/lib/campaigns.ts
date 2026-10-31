@@ -18,6 +18,16 @@ export type CampaignPostAction = {
   destinations: CampaignDestination[];
 };
 
+export type ServerCampaign = {
+  id: string;
+  name: string;
+  description: string;
+  actions: CampaignPostAction[];
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Campaign = {
   id: string;
   name: string;
@@ -81,4 +91,32 @@ export function postsMatchingCampaign(posts: AccountPost[], campaign: Campaign):
     const content = (post.content || "").trim().toLowerCase();
     return content !== "" && texts.includes(content);
   });
+}
+
+export function campaignFromServer(row: ServerCampaign): Campaign | null {
+  if (row.status === "inactive") return null;
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    actions: row.actions,
+  };
+}
+
+export function mergeCampaigns(server: ServerCampaign[], fallback: Campaign[]): Campaign[] {
+  const campaigns: Campaign[] = [];
+  for (const row of server) {
+    const campaign = campaignFromServer(row);
+    if (campaign) campaigns.push(campaign);
+  }
+  const serverIds = new Set(server.map((row) => row.id));
+  campaigns.push(...fallback.filter((campaign) => !serverIds.has(campaign.id)));
+  return campaigns;
+}
+
+export function findCampaignById(
+  campaigns: Campaign[],
+  id: string | undefined,
+): Campaign | undefined {
+  return id ? campaigns.find((campaign) => campaign.id === id) : undefined;
 }
