@@ -29,6 +29,7 @@ export function UserNav() {
   const user = session?.user;
   const displayName = user?.name || user?.email || "Account";
   const profileAccountId = user?.name ?? user?.id ?? null;
+  const isAnonymous = user?.isAnonymous === true;
   const isAdmin = user?.role === "admin";
 
   if (!user) {
@@ -56,7 +57,7 @@ export function UserNav() {
       <DropdownMenuContent align="end" className="min-w-48">
         <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {profileAccountId ? (
+        {profileAccountId && !isAnonymous ? (
           <DropdownMenuItem asChild>
             <Link
               to="/profile/$accountId"

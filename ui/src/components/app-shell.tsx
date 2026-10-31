@@ -38,14 +38,16 @@ export function AppShell({ children, footer, focused = false }: AppShellProps) {
   }
 
   return (
-    <AppFrame>
-      <div className="flex min-h-0 flex-1 flex-col" data-testid="app-shell">
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <Header />
-          <div className="flex flex-1 flex-col">{children}</div>
-          {footer && <footer className="shrink-0 border-t border-border">{footer}</footer>}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <AppFrame>
+        <div className="flex min-h-0 flex-1 flex-col" data-testid="app-shell">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <Header />
+            <div className="flex flex-1 flex-col">{children}</div>
+          </div>
         </div>
-      </div>
-    </AppFrame>
+      </AppFrame>
+      {footer && <div className="shrink-0">{footer}</div>}
+    </div>
   );
 }

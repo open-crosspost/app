@@ -266,7 +266,7 @@ function EditorPage() {
   }, []);
 
   return (
-    <div className="h-full w-full min-w-0 lg:px-6 lg:pb-6">
+    <div className="h-full w-full min-w-0 px-4 pt-4 pb-6 sm:px-6 lg:px-6 lg:pt-6 lg:pb-6">
       <div className="mb-4 border-b border-border lg:hidden">
         <div className="flex">
           <button
