@@ -7,6 +7,8 @@ import {
   ActivityLeaderboardQuerySchema,
   AuthRevokeResponseSchema,
   AuthStatusResponseSchema,
+  CampaignParticipateSchema,
+  CampaignParticipationModeSchema,
   CampaignSchema,
   CampaignSeedRecordSchema,
   CampaignSeedSchema,
@@ -156,6 +158,26 @@ const campaignsContract = oc.router({
     .route({ method: "GET", path: "/social/campaigns/{campaignId}/seed" })
     .input(z.object({ campaignId: z.string() }))
     .output(z.object({ seed: CampaignSeedSchema.nullable() }))
+    .errors(PluginErrors),
+
+  participate: oc
+    .route({ method: "POST", path: "/social/campaigns/participate" })
+    .input(CampaignParticipateSchema)
+    .output(z.object({ campaignId: z.string(), mode: CampaignParticipationModeSchema }))
+    .errors(PluginErrors),
+
+  participations: oc
+    .route({ method: "GET", path: "/social/campaigns/participations" })
+    .output(
+      z.object({
+        participations: z.array(
+          z.object({
+            campaignId: z.string(),
+            mode: CampaignParticipationModeSchema,
+          }),
+        ),
+      }),
+    )
     .errors(PluginErrors),
 });
 

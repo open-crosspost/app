@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import type { Database } from "../db";
 import { jobRuns, jobSpecs } from "../db/schema";
 import {
@@ -97,6 +97,7 @@ function mapRunRow(row: {
   return JobRunOutputSchema.parse({
     id: row.id,
     specId: row.specId,
+    userId: row.userId,
     kind: row.kind,
     campaignId: row.campaignId,
     posts: row.postsJson ? JSON.parse(row.postsJson) : null,
@@ -355,6 +356,62 @@ export class JobRepository {
           .orderBy(desc(jobRuns.scheduledFor))
           .limit(limit)
           .offset(offset);
+
+    return rows
+      .map((row) => {
+        try {
+          return mapRunRow(row);
+        } catch {
+          return null;
+        }
+      })
+      .filter((run): run is JobRun => run !== null);
+  }
+
+  async listActiveCampaignSpecs(): Promise<JobSpec[]> {
+    const rows = await this.db
+      .select(specRowColumns())
+      .from(jobSpecs)
+      .where(and(eq(jobSpecs.kind, "campaign"), eq(jobSpecs.status, "active")));
+
+    return rows
+      .map((row) => {
+        try {
+          return mapSpecRow(row);
+        } catch {
+          return null;
+        }
+      })
+      .filter(
+        (spec): spec is JobSpec =>
+          spec !== null && spec.schedule.mode === "daily" && spec.campaignId !== null,
+      );
+  }
+
+  async hasRunForSpecOnDate(specId: string, dateUtc: string): Promise<boolean> {
+    const dayStart = `${dateUtc}T00:00:00.000Z`;
+    const dayEnd = `${dateUtc}T23:59:59.999Z`;
+    const rows = await this.db
+      .select({ id: jobRuns.id })
+      .from(jobRuns)
+      .where(
+        and(
+          eq(jobRuns.specId, specId),
+          gte(jobRuns.scheduledFor, dayStart),
+          lte(jobRuns.scheduledFor, dayEnd),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
+  }
+
+  async listRunsForExecution(now: Date, limit = 20): Promise<JobRun[]> {
+    const rows = await this.db
+      .select(runRowColumns())
+      .from(jobRuns)
+      .where(and(eq(jobRuns.status, "pending"), lte(jobRuns.scheduledFor, now.toISOString())))
+      .orderBy(jobRuns.scheduledFor)
+      .limit(limit);
 
     return rows
       .map((row) => {

@@ -164,6 +164,26 @@ export class SocialService {
     return this.campaignRepository.getSeed(campaignId, new Date().toISOString().slice(0, 10));
   }
 
+  async participate(
+    userId: string,
+    input: { campaignId: string; mode: "manual" | "auto" },
+  ): Promise<{ campaignId: string; mode: "manual" | "auto" }> {
+    const campaign = await this.campaignRepository.get(input.campaignId);
+    if (!campaign || campaign.status !== "active") {
+      throw new ORPCError("NOT_FOUND", {
+        message: `Campaign ${input.campaignId} not found`,
+      });
+    }
+    await this.campaignRepository.upsertParticipant(input.campaignId, userId, input.mode);
+    return { campaignId: input.campaignId, mode: input.mode };
+  }
+
+  async listParticipations(
+    userId: string,
+  ): Promise<Array<{ campaignId: string; mode: "manual" | "auto" }>> {
+    return this.campaignRepository.listParticipantsForUser(userId);
+  }
+
   async createJobSpec(
     userId: string,
     input: JobSpecCreate,

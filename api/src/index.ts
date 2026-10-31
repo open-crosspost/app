@@ -8,8 +8,12 @@ import { contract } from "./contract";
 import { createDatabaseDriver } from "./db";
 import { requireAuthContext } from "./lib/auth";
 import type { PluginsClient } from "./lib/plugins-types.gen";
+import { CampaignRepository } from "./social/campaign-repository";
+import { JobRepository } from "./social/job-repository";
 import { SocialRepository } from "./social/repository";
+import { JobScheduler, type OutlayerCallResult } from "./social/scheduler";
 import { SocialService } from "./social/service";
+import { DEFAULT_X_CONNECT_PROJECT } from "./social/x-connect";
 
 export class SocialServiceTag extends Context.Service<SocialServiceTag, SocialService>()(
   "api/SocialService",
@@ -42,6 +46,7 @@ export interface AuthContext {
 // Set in initialize, read in createRouter (which runs after the plugin's
 // services are built) to wire the sibling twitter client factory.
 let socialService: SocialService | null = null;
+let jobScheduler: JobScheduler | null = null;
 
 export default createPlugin.withPlugins<PluginsClient>()({
   variables: z.object({}),
@@ -55,6 +60,7 @@ export default createPlugin.withPlugins<PluginsClient>()({
     X_CONNECT_PROJECT: z.string().optional(),
     X_POLICY_MAX_PER_DAY: z.string().optional(),
     OUTLAYER_APP_WALLET_KEY: z.string().optional(),
+    SCHEDULER_ENABLED: z.string().optional(),
     ACTIVITY_API_KEY: z.string().optional(),
     ACTIVITY_SOURCE_ID: z.string().optional(),
     ACTIVITY_API_BASE_URL: z.string().optional(),
@@ -120,6 +126,18 @@ export default createPlugin.withPlugins<PluginsClient>()({
 
       socialService = social;
 
+      const schedulerEnabledRaw = config.secrets.SCHEDULER_ENABLED;
+      const schedulerEnabled = schedulerEnabledRaw === "1" || schedulerEnabledRaw === "true";
+      if (schedulerEnabled) {
+        jobScheduler = new JobScheduler(
+          new JobRepository(driver.db),
+          new CampaignRepository(driver.db),
+          config.secrets.X_CONNECT_PROJECT ?? DEFAULT_X_CONNECT_PROJECT,
+        );
+        jobScheduler.fork();
+        yield* Effect.logInfo("[API] Job scheduler enabled (1-minute tick)");
+      }
+
       const activityPublisher = new ActivityPublisher({
         apiBaseUrl: config.secrets.ACTIVITY_API_BASE_URL ?? "https://activity.nearbuilders.org/api",
         apiKey: config.secrets.ACTIVITY_API_KEY ?? null,
@@ -140,6 +158,17 @@ export default createPlugin.withPlugins<PluginsClient>()({
       plugins.connectors
         ? (userId: string) => plugins.connectors!.client({ userId }) as unknown
         : undefined,
+    );
+
+    jobScheduler?.attachConnectorCall(
+      plugins.connectors
+        ? async (args) => {
+            const client = plugins.connectors!.client({ userId: args.agentId }) as unknown as {
+              outlayerCall: (a: typeof args) => Promise<OutlayerCallResult>;
+            };
+            return client.outlayerCall(args);
+          }
+        : null,
     );
 
     return {
@@ -291,6 +320,21 @@ export default createPlugin.withPlugins<PluginsClient>()({
             const social = yield* SocialServiceTag;
             const seed = yield* Effect.promise(() => social.seedToday(input.campaignId));
             return { seed };
+          }),
+
+          participate: builder.social.campaigns.participate.effect(function* ({ context, input }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            return yield* Effect.promise(() => social.participate(auth.userId, input));
+          }),
+
+          participations: builder.social.campaigns.participations.effect(function* ({ context }) {
+            const auth = requireAuthContext(context);
+            const social = yield* SocialServiceTag;
+            const participations = yield* Effect.promise(() =>
+              social.listParticipations(auth.userId),
+            );
+            return { participations };
           }),
         },
 

@@ -1,6 +1,6 @@
 import type { AccountPost } from "@crosspost/plugin/types";
 import { TimePeriod } from "@crosspost/plugin/types";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   columnVisibilityFeature,
@@ -13,6 +13,7 @@ import {
   useTable,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useApiClient, useAuthClient } from "@/app";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,8 @@ type CampaignEntry = {
   totalPosts?: number;
 };
 
+type Participation = { campaignId: string; mode: "manual" | "auto" };
+
 export const Route = createFileRoute("/_authenticated/campaigns/")({
   validateSearch: (search: Record<string, unknown>): { timeframe?: TimePeriod } => ({
     timeframe: Object.values(TimePeriod).includes(search.timeframe as TimePeriod)
@@ -62,10 +65,43 @@ export const Route = createFileRoute("/_authenticated/campaigns/")({
 function CampaignsPage() {
   const apiClient = useApiClient();
   const authClient = useAuthClient();
+  const queryClient = useQueryClient();
   const navigate = useNavigate({ from: Route.fullPath });
   const { timeframe } = Route.useSearch();
   const { data: session, isPending: isSessionPending } = authClient.useSession();
   const { campaigns } = useCampaigns();
+
+  const { data: participations = [] } = useQuery({
+    queryKey: ["social", "participations"],
+    queryFn: async () => {
+      const response = await apiClient.social.campaigns.participations();
+      return response.participations as Participation[];
+    },
+    enabled: !!session?.user,
+  });
+  const participationByCampaign = new Map(
+    participations.map((entry) => [entry.campaignId, entry.mode]),
+  );
+
+  const participate = useMutation({
+    mutationFn: (input: { campaignId: string }) =>
+      apiClient.social.campaigns.participate({
+        campaignId: input.campaignId,
+        mode: "manual",
+      }),
+    onSuccess: (_result, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["social", "participations"] });
+      void navigate({
+        to: "/campaigns/$campaignId",
+        params: { campaignId: variables.campaignId },
+      });
+    },
+    onError: (error) => {
+      toast.error("Could not join", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    },
+  });
 
   const { data: nearAccountId, isLoading: isLoadingNearAccountId } = useQuery(
     nearAccountIdQueryOptions(authClient, !!session?.user),
@@ -110,9 +146,28 @@ function CampaignsPage() {
                   {campaign.actions.map((action) => `Posts “${action.text}”`).join(", ")}
                 </p>
               </div>
-              <Button variant="secondary" className="shrink-0" disabled>
-                Join soon
-              </Button>
+              <div className="flex shrink-0 items-center gap-2">
+                {participationByCampaign.get(campaign.id) ? (
+                  <Badge variant="secondary">
+                    {participationByCampaign.get(campaign.id) === "auto" ? "Automated" : "Joined"}
+                  </Badge>
+                ) : null}
+                {participationByCampaign.get(campaign.id) ? (
+                  <Button asChild variant="outline" className="shrink-0">
+                    <Link to="/campaigns/$campaignId" params={{ campaignId: campaign.id }}>
+                      Open editor
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    className="shrink-0"
+                    disabled={participate.isPending || !session?.user}
+                    onClick={() => participate.mutate({ campaignId: campaign.id })}
+                  >
+                    Join
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {campaignDestinations(campaign).map((destination) => (

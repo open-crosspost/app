@@ -186,6 +186,16 @@ export const CampaignSeedSchema = z.object({
 export type CampaignSeed = z.infer<typeof CampaignSeedSchema>;
 export type CampaignSeedRecord = z.infer<typeof CampaignSeedRecordSchema>;
 
+export const CampaignParticipationModeSchema = z.enum(["manual", "auto"]);
+
+export const CampaignParticipateSchema = z.object({
+  campaignId: CampaignIdSchema,
+  mode: CampaignParticipationModeSchema.default("manual"),
+});
+
+export type CampaignParticipationMode = z.infer<typeof CampaignParticipationModeSchema>;
+export type CampaignParticipate = z.infer<typeof CampaignParticipateSchema>;
+
 export const JobTargetSchema = z.object({
   platform: z.enum(["twitter", "near-social", "farcaster"]),
   accountUserId: z.string().min(1).max(100),
@@ -265,6 +275,7 @@ export const JobRunStatusSchema = z.enum([
 export const JobRunOutputSchema = z.object({
   id: z.string(),
   specId: z.string(),
+  userId: z.string(),
   kind: z.enum(["scheduled", "campaign"]),
   campaignId: z.string().nullable(),
   posts: z.array(JobSpecPostContentSchema).nullable(),
