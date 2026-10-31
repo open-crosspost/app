@@ -1,3 +1,4 @@
+import "everything-dev/ui/i18n";
 import { createContext, type ReactNode, useContext } from "react";
 
 const AppLocaleContext = createContext<string | undefined>(undefined);

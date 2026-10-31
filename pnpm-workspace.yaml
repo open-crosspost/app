@@ -3,8 +3,8 @@ packages:
   - ui
   - plugins/*
 overrides:
-  "@tanstack/router-core": 1.171.38
-  "@tanstack/react-router": 1.170.45
+  "@tanstack/router-core": 1.171.27
+  "@tanstack/react-router": 1.170.32
 allowBuilds:
   esbuild: true
   sharp: true
