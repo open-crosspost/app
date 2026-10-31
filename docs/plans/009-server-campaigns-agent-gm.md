@@ -323,10 +323,18 @@ prompt-driven campaign management, they register a key and talk to `/api/mcp`.
       `{ "seed": { ..., "nearPostId": "…", "xPostId": "…" } | "seed": null }`.
 
    Invariant: until a seed row exists for today, nothing spawns (phase 5).
-4. **Phase 4 — reply threading (NEAR Social leg only)** in editor + submit
-   paths per Spike A; X stays standalone (upstream reply ticket in flight:
-   open-crosspost/connectors#1 — owner confirmed `reply_to` will land; when
-   it does, pass it through `postToX` and record the reply-side tweet ids).
+4. **Phase 4 — reply threading.** ✅ DONE (2026-11-01): the submit path
+   resolves today's seed (`social.campaigns.seedToday`) and both legs thread
+   when a seed exists — NEAR Social writes `reply_to`/`root` + the
+   `reply/...` backlink in the same `__fastdata_kv` action (Spike A format,
+   `buildFastDataKvArgs(text, reply)`); X passes `reply_to: <seed tweet id>`
+   through `postToX` — live now that open-crosspost/connectors#1 shipped
+   (bare id or x.com/twitter.com status URL both accepted; degradation to
+   standalone only happens while the re-curated wasm is still rolling out).
+   Seed rows gained `near_author_id` — recorded by the owner instance with
+   the NEAR leg — so replies address `crosspost.near/<seedId>`. Relayer and
+   direct wallet fallback paths both thread. When neither seed leg exists
+   that day, postings are standalone (previous behavior).
 5. **Phase 5 — join/automate UI, enrollment, sealed keys, spawning.**
 
 ## Verification
