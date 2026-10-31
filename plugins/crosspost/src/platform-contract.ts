@@ -1,3 +1,4 @@
+import "@orpc/openapi/extensions/route";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 import * as AuthSchemas from "./types/platform-schemas/auth";

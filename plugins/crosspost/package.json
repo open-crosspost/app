@@ -28,7 +28,8 @@
     "@orpc/contract": "catalog:",
     "@orpc/server": "catalog:",
     "effect": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@orpc/openapi": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "^0.84.3",

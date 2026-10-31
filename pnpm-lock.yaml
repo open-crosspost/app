@@ -510,7 +510,7 @@ importers:
         version: 0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@rspack/cli':
         specifier: 'catalog:'
-        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)))
       '@rspack/core':
         specifier: 'catalog:'
         version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
@@ -580,7 +580,7 @@ importers:
         version: 0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@rspack/cli':
         specifier: 'catalog:'
-        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)))
       '@rspack/core':
         specifier: 'catalog:'
         version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
@@ -653,7 +653,7 @@ importers:
         version: 0.1.6(vite@8.3.4(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@rspack/cli':
         specifier: 'catalog:'
-        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)))
       '@rspack/core':
         specifier: 'catalog:'
         version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
@@ -687,6 +687,9 @@ importers:
       '@orpc/contract':
         specifier: 'catalog:'
         version: 2.0.0-beta.35
+      '@orpc/openapi':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.35
       '@orpc/server':
         specifier: 'catalog:'
         version: 2.0.0-beta.35
@@ -708,7 +711,7 @@ importers:
         version: 2.7.52(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@7.0.2)
       '@rspack/cli':
         specifier: 'catalog:'
-        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)))
       '@rspack/core':
         specifier: 'catalog:'
         version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
@@ -766,10 +769,13 @@ importers:
         version: 2.7.52(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@7.0.2)
       '@rspack/cli':
         specifier: 'catalog:'
-        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+        version: 2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)))
       '@rspack/core':
         specifier: 'catalog:'
         version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+      '@rspack/dev-server':
+        specifier: ^2.2.2
+        version: 2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.9
@@ -4173,6 +4179,25 @@ packages:
       '@module-federation/runtime-tools':
         optional: true
       '@swc/helpers':
+        optional: true
+
+  '@rspack/dev-middleware@2.0.6':
+    resolution: {integrity: sha512-Rcx7dlDZQ9ddUJGuutFvnSeAKl+ZOc1fnC3htibs8yew3zMD9VgvSUe4MAwEn94Gb390l5heA+s/j5KhoSG5MQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@rspack/core': ^2.0.0
+    peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
+
+  '@rspack/dev-server@2.2.2':
+    resolution: {integrity: sha512-pK4V9YJW8dkfjy6WYJ2T6DrPkcIn2yjA1HiaU146141j8UCxHok5lsplyqudLzerOhvwqMrNFmnsuXLnFbfn4Q==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@rspack/core': ^2.0.0
+      selfsigned: ^5.0.0
+    peerDependenciesMeta:
+      selfsigned:
         optional: true
 
   '@rspack/plugin-react-refresh@2.0.2':
@@ -11425,9 +11450,11 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.2.8
       '@rspack/binding-win32-x64-msvc': 2.2.8
 
-  '@rspack/cli@2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))':
+  '@rspack/cli@2.2.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)))':
     dependencies:
       '@rspack/core': 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+    optionalDependencies:
+      '@rspack/dev-server': 2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
 
   '@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)':
     dependencies:
@@ -11435,6 +11462,15 @@ snapshots:
     optionalDependencies:
       '@module-federation/runtime-tools': 2.9.2
       '@swc/helpers': 0.5.23
+
+  '@rspack/dev-middleware@2.0.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))':
+    optionalDependencies:
+      '@rspack/core': 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+
+  '@rspack/dev-server@2.2.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))':
+    dependencies:
+      '@rspack/core': 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+      '@rspack/dev-middleware': 2.0.6(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
 
   '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(react-refresh@0.18.0)':
     dependencies:
