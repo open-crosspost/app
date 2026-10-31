@@ -74,12 +74,13 @@ export async function postToX(
   apiClient: ApiClient,
   agentId: string,
   text: string,
+  replyTo?: string,
 ): Promise<ConnectorPostResult> {
   const call = await apiClient.connectors.outlayerCall({
     agentId,
     connector: X_CONNECTOR_PROJECT,
     operation: "post",
-    input: { text },
+    input: replyTo ? { text, reply_to: replyTo } : { text },
   });
   const outcome = parseConnectorOutcome(call);
   return { ...outcome, computeCost: call.computeCost ?? null };

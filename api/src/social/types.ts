@@ -158,10 +158,15 @@ export const UpdateCampaignSchema = z
 
 export const CampaignDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+export const CampaignNearAuthorIdSchema = z
+  .string()
+  .regex(/^[a-z0-9_.-]{2,64}$/, "expected a NEAR account id");
+
 export const CampaignSeedRecordSchema = z
   .object({
     campaignId: CampaignIdSchema,
     date: CampaignDateSchema.optional(),
+    nearAuthorId: CampaignNearAuthorIdSchema.optional(),
     nearPostId: z.string().min(1).max(120).optional(),
     xPostId: z.string().min(1).max(64).optional(),
   })
@@ -172,6 +177,7 @@ export const CampaignSeedRecordSchema = z
 export const CampaignSeedSchema = z.object({
   campaignId: CampaignIdSchema,
   date: CampaignDateSchema,
+  nearAuthorId: CampaignNearAuthorIdSchema.nullable(),
   nearPostId: z.string().nullable(),
   xPostId: z.string().nullable(),
   createdAt: z.iso.datetime(),

@@ -87,6 +87,7 @@ export const campaignDailySeeds = pgTable(
     id: text("id").primaryKey(),
     campaignId: text("campaign_id").notNull(),
     date: text("date").notNull(),
+    nearAuthorId: text("near_author_id"),
     nearPostId: text("near_post_id"),
     xPostId: text("x_post_id"),
     createdAt: text("created_at").notNull(),

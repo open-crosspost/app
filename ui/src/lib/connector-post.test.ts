@@ -176,4 +176,31 @@ describe("postToX", () => {
       input: { text: "GM" },
     });
   });
+
+  it("passes reply_to through to the bridge when a seed tweet id is given", async () => {
+    const calls: unknown[] = [];
+    const apiClient = {
+      connectors: {
+        outlayerCall: async (input: unknown) => {
+          calls.push(input);
+          return {
+            callId: "call-10",
+            status: "completed",
+            output: {
+              success: true,
+              output: { tweet_id: "10", url: "https://x.com/alice/status/10" },
+            },
+            error: null,
+          };
+        },
+      },
+    } as never;
+
+    await postToX(apiClient, "agent-1", "gm", "1852180000000");
+    expect(calls[0]).toMatchObject({
+      agentId: "agent-1",
+      operation: "post",
+      input: { text: "gm", reply_to: "1852180000000" },
+    });
+  });
 });

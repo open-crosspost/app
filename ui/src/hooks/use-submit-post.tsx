@@ -18,6 +18,7 @@ import { connectorErrorDetail, connectorSuccessDetail, postToX } from "@/lib/con
 import { extractGateRefusal, XPOST_GUARD_ANCHOR_ID } from "@/lib/gate";
 import {
   directFallbackEnabled,
+  type NearSocialReplyRef,
   postToNearSocial,
   postToNearSocialDirect,
   RelayerUnavailableError,
@@ -29,6 +30,11 @@ import { useGateStore } from "@/store/gate-store";
 import { useSubmissionResultsStore } from "@/store/submission-results-store";
 
 export type SubmitStatus = "idle" | "posting" | "success" | "partial-success" | "failure";
+
+export type CampaignThreadRefs = {
+  near?: NearSocialReplyRef;
+  xSeedTweetId?: string;
+};
 
 export interface SubmitResult {
   status: SubmitStatus;
@@ -74,6 +80,7 @@ export function useSubmitPost() {
     selectedAccounts: ConnectedAccount[],
     postType: PostType = "post",
     targetUrl: string = "",
+    campaignThread?: CampaignThreadRefs,
   ): Promise<SubmitStatus> => {
     let processingAccounts = [...selectedAccounts];
 
@@ -190,7 +197,7 @@ export function useSubmitPost() {
         toast.error("NEAR Social write rejected", { description: reason });
       };
       try {
-        await postToNearSocial(near, joinedText, onRejected);
+        await postToNearSocial(near, joinedText, onRejected, campaignThread?.near);
         tickProgress(nearSocialAccounts.length);
         return { skipped: 0, error: null };
       } catch (error) {
@@ -205,7 +212,7 @@ export function useSubmitPost() {
           }
           rememberDirectFallback();
           try {
-            await postToNearSocialDirect(near, joinedText, onRejected);
+            await postToNearSocialDirect(near, joinedText, onRejected, campaignThread?.near);
             tickProgress(nearSocialAccounts.length);
             return { skipped: 0, error: null };
           } catch (directError) {
@@ -245,7 +252,7 @@ export function useSubmitPost() {
         return;
       }
       try {
-        const result = await postToX(apiClient, agentId, joinedText);
+        const result = await postToX(apiClient, agentId, joinedText, campaignThread?.xSeedTweetId);
         connectorResults.push(connectorSuccessDetail(result, account));
       } catch (error) {
         console.error("X connector post error:", error);

@@ -62,8 +62,29 @@ export function toNearSocialUserError(error: unknown): string {
   return GENERIC_POST_ERROR_MESSAGE;
 }
 
-export function buildFastDataKvArgs(text: string): Record<string, { text: string }> {
-  return { [`post/${Date.now()}`]: { text } };
+export type NearSocialReplyRef = {
+  parentAccount: string;
+  parentPostId: string;
+};
+
+export function buildFastDataKvArgs(
+  text: string,
+  reply?: NearSocialReplyRef,
+): Record<string, unknown> {
+  const postId = `post/${Date.now()}`;
+  if (!reply) {
+    return { [postId]: { text } };
+  }
+
+  const parent = `${reply.parentAccount}/${reply.parentPostId}`;
+  return {
+    [postId]: {
+      text,
+      reply_to: parent,
+      root: parent,
+    },
+    [`reply/${parent}/${postId.slice("post/".length)}`]: {},
+  };
 }
 
 type IndexerTxStatus = {
@@ -123,6 +144,7 @@ export async function postToNearSocial(
   near: AuthClient["near"],
   text: string,
   onRejected?: (reason: string) => void,
+  reply?: NearSocialReplyRef,
 ): Promise<NearSocialPostResult> {
   if (NETWORK_ID !== "mainnet") {
     throw new Error(MAINNET_ONLY_MESSAGE);
@@ -151,7 +173,7 @@ export async function postToNearSocial(
     throw new RelayerUnavailableError("The post relayer isn't funded right now.");
   }
 
-  const args = buildFastDataKvArgs(text);
+  const args = buildFastDataKvArgs(text, reply);
   const payload = await near.buildSignedDelegateAction(
     FASTDATA_KV_CONTRACT_ID,
     (builder, receiverId) =>
@@ -211,6 +233,7 @@ export async function postToNearSocialDirect(
   near: AuthClient["near"],
   text: string,
   onRejected?: (reason: string) => void,
+  reply?: NearSocialReplyRef,
 ): Promise<NearSocialPostResult> {
   if (NETWORK_ID !== "mainnet") {
     throw new Error(MAINNET_ONLY_MESSAGE);
@@ -231,7 +254,7 @@ export async function postToNearSocialDirect(
         type: "FunctionCall",
         params: {
           methodName: "__fastdata_kv",
-          args: buildFastDataKvArgs(text),
+          args: buildFastDataKvArgs(text, reply),
           gas: "1000000000",
           deposit: "0",
         },

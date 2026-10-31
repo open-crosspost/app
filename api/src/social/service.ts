@@ -150,6 +150,7 @@ export class SocialService {
     assertCampaignDate(date);
 
     return this.campaignRepository.upsertSeed(input.campaignId, date, {
+      nearAuthorId: input.nearAuthorId ?? null,
       nearPostId: input.nearPostId ?? null,
       xPostId: input.xPostId ?? null,
     });

@@ -126,6 +126,18 @@ export async function fetchServerCampaigns(apiClient: ApiClient): Promise<Server
   return response.campaigns;
 }
 
+export function campaignSeedQueryKey(campaignId: string) {
+  return ["social", "campaign-seed", campaignId] as const;
+}
+
+export function campaignSeedQueryOptions(apiClient: ApiClient, campaignId: string) {
+  return {
+    queryKey: campaignSeedQueryKey(campaignId),
+    queryFn: () => apiClient.social.campaigns.seedToday({ campaignId }),
+    staleTime: 60_000,
+  };
+}
+
 export const jobSpecsQueryKey = ["social", "jobs", "specs"] as const;
 export const jobRunsBaseQueryKey = ["social", "jobs", "runs"] as const;
 export function jobRunsQueryKey(query?: {

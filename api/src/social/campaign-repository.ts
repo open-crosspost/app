@@ -88,6 +88,7 @@ export class CampaignRepository {
         id text PRIMARY KEY,
         campaign_id text NOT NULL,
         date text NOT NULL,
+        near_author_id text,
         near_post_id text,
         x_post_id text,
         created_at text NOT NULL
@@ -259,9 +260,14 @@ export class CampaignRepository {
   async upsertSeed(
     campaignId: string,
     date: string,
-    legs: { nearPostId?: string | null; xPostId?: string | null },
+    legs: {
+      nearAuthorId?: string | null;
+      nearPostId?: string | null;
+      xPostId?: string | null;
+    },
   ): Promise<CampaignSeed> {
     const existing = await this.getSeed(campaignId, date);
+    const nearAuthorId = legs.nearAuthorId ?? existing?.nearAuthorId ?? null;
     const nearPostId = legs.nearPostId ?? existing?.nearPostId ?? null;
     const xPostId = legs.xPostId ?? existing?.xPostId ?? null;
 
@@ -271,13 +277,14 @@ export class CampaignRepository {
         id: randomUUID(),
         campaignId,
         date,
+        nearAuthorId,
         nearPostId,
         xPostId,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
       })
       .onConflictDoUpdate({
         target: [campaignDailySeeds.campaignId, campaignDailySeeds.date],
-        set: { nearPostId, xPostId },
+        set: { nearAuthorId, nearPostId, xPostId },
       });
 
     const read = await this.getSeed(campaignId, date);
@@ -292,6 +299,7 @@ export class CampaignRepository {
       .select({
         campaignId: campaignDailySeeds.campaignId,
         date: campaignDailySeeds.date,
+        nearAuthorId: campaignDailySeeds.nearAuthorId,
         nearPostId: campaignDailySeeds.nearPostId,
         xPostId: campaignDailySeeds.xPostId,
         createdAt: campaignDailySeeds.createdAt,

@@ -23,13 +23,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCampaign } from "@/hooks/use-campaigns";
-import { useSubmitPost } from "@/hooks/use-submit-post";
+import { type CampaignThreadRefs, useSubmitPost } from "@/hooks/use-submit-post";
 import {
   CAMPAIGN_DESTINATION_PLATFORM,
   campaignDestinations,
   campaignPrefillPosts,
 } from "@/lib/campaigns";
 import {
+  campaignSeedQueryOptions,
   connectedAccountsQueryOptions,
   mergeConnectedAccounts,
   nearAccountIdQueryOptions,
@@ -93,6 +94,22 @@ function EditorPage() {
     () => mergeConnectedAccounts(connectedAccounts, nearSocialAccount ?? null),
     [connectedAccounts, nearSocialAccount],
   );
+
+  const { data: seedData } = useQuery({
+    ...campaignSeedQueryOptions(apiClient, campaign!.id),
+    enabled: !!campaign,
+  });
+  const campaignThread = useMemo<CampaignThreadRefs>(() => {
+    const seed = seedData?.seed ?? null;
+    if (!seed) return {};
+    return {
+      near:
+        seed.nearPostId && seed.nearAuthorId
+          ? { parentAccount: seed.nearAuthorId, parentPostId: seed.nearPostId }
+          : undefined,
+      xSeedTweetId: seed.xPostId ?? undefined,
+    };
+  }, [seedData]);
   const selectedAccounts = useMemo(
     () => allAccounts.filter((account) => selectedAccountIds.includes(account.userId)),
     [allAccounts, selectedAccountIds],
@@ -258,7 +275,13 @@ function EditorPage() {
           : [],
     }));
 
-    const postStatus = await submitPost(editorContents, selectedAccounts, postType, targetUrl);
+    const postStatus = await submitPost(
+      editorContents,
+      selectedAccounts,
+      postType,
+      targetUrl,
+      campaignThread,
+    );
 
     if (postStatus === "success" && editorContents.length > 0) {
       clearAutoSave();
@@ -279,6 +302,7 @@ function EditorPage() {
     submitPost,
     clearAutoSave,
     campaign,
+    campaignThread,
     apiClient,
   ]);
 

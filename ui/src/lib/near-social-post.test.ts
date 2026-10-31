@@ -18,6 +18,27 @@ describe("buildFastDataKvArgs", () => {
     expect(keys[0]).toMatch(/^post\/\d+$/);
     expect(args[keys[0]]).toEqual({ text: "gm" });
   });
+
+  it("writes reply_to, root, and the backlink key in one action", () => {
+    const args = buildFastDataKvArgs("gm", {
+      parentAccount: "crosspost.near",
+      parentPostId: "1759140000000",
+    });
+    const keys = Object.keys(args);
+    expect(keys).toHaveLength(2);
+
+    const postKey = keys.find((key) => key.startsWith("post/"));
+    const replyKey = keys.find((key) => key.startsWith("reply/"));
+    expect(postKey).toMatch(/^post\/\d+$/);
+    expect(replyKey).toBe(`reply/crosspost.near/1759140000000/${postKey!.slice("post/".length)}`);
+
+    const postValue = args[postKey!] as { text: string; reply_to: string; root: string };
+    expect(postValue.text).toBe("gm");
+    expect(postValue.reply_to).toBe("crosspost.near/1759140000000");
+    expect(postValue.root).toBe("crosspost.near/1759140000000");
+
+    expect(args[replyKey!]).toEqual({});
+  });
 });
 
 describe("toNearSocialUserError", () => {
