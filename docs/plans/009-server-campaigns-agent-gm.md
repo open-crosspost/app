@@ -336,6 +336,27 @@ prompt-driven campaign management, they register a key and talk to `/api/mcp`.
    direct wallet fallback paths both thread. When neither seed leg exists
    that day, postings are standalone (previous behavior).
 5. **Phase 5 — join/automate UI, enrollment, sealed keys, spawning.**
+   ✅ DONE (2026-11-01, commits 30ad376 + ca71ec2):
+   - Join = `social.campaigns.participate` (manual|auto) + card badges.
+ - Automate = configure dialog (profile targets from connected accounts,
+   optional daily time + tz) → `job_specs` (kind `campaign`, daily) +
+   participate(auto).
+ - Server tick (010 P2): `SCHEDULER_ENABLED` 1-min Effect loop — spawns a
+   jittered run per active daily spec once the day's seed row exists
+   (idempotent per spec/day), fires X-only runs server-side through the
+   connectors bridge with `reply_to` (gate applies at execution), and parks
+   runs with NEAR targets as `needs_signature` for browser pickup (the
+   browser executor claims both pending and needs_signature due runs).
+ - Automation keys: `automation_keys` table; server-generated ed25519
+   keypair vault-sealed (HKDF+AES-256-GCM over `API_KEY_VAULT_SECRET`);
+   `social.automation.keyPrepare` returns the public key (idempotent, resets
+   revoked rows); the user approves a wallet AddKey (receiver `social`,
+   methodNames `["__fastdata_kv"]`, 0.25 NEAR allowance) and `keyGrant`
+   activates the row; `keyRevoke` for removal.
+ - Remaining follow-up (next session): true server-side NEAR firing needs an
+   app-held NEAR gas key decision (secret `NEAR_GAS_KEY`-style or relayer
+   session resolution) — until then NEAR automation legs fire when the user
+   opens the app, which the current browser executor handles.
 
 ## Verification
 
