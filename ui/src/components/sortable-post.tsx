@@ -39,13 +39,13 @@ function SortablePostComponent({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="w-full rounded-lg bg-background p-2">
-      <div className="flex gap-2 w-full">
-        <div className="flex-none w-8">
+    <div ref={setNodeRef} style={style} className="w-full min-w-0 rounded-lg bg-background p-1 sm:p-2">
+      <div className="flex w-full min-w-0 gap-1.5 sm:gap-2">
+        <div className="w-6 flex-none sm:w-8">
           <div
             {...attributes}
             {...listeners}
-            className="sticky top-0 h-[150px] w-8 flex items-center justify-center cursor-grab bg-muted rounded-lg base-component touch-manipulation"
+            className="sticky top-0 flex h-[150px] w-6 cursor-grab items-center justify-center rounded-lg bg-muted touch-manipulation base-component sm:w-8"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -68,21 +68,21 @@ function SortablePostComponent({
             </svg>
           </div>
         </div>
-        <div className="flex-1 w-full">
+        <div className="min-w-0 w-full flex-1">
           <Textarea
             value={post.text}
             onChange={(e) => onTextChange(index, e.target.value)}
             onFocus={() => onTextFocus?.(index)}
             onBlur={() => onTextBlur?.(index)}
             placeholder={`Thread part ${index + 1}`}
-            className={`min-h-[150px] w-full rounded-lg border-2 border-primary resize-none focus:ring-2 focus:ring-blue-500 ${
+            className={`min-h-[150px] w-full resize-none rounded-lg border-2 border-primary focus:ring-2 focus:ring-ring ${
               post.text && post.text.length > 280 ? "border-destructive" : ""
             }`}
             acceptImages={true}
             onImageUpload={(file) => onMediaUpload(index, file)}
           />
-          <div className="flex flex-col gap-2 mt-2">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <div className="mt-2 flex flex-col gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-row flex-wrap gap-2">
                 <input
                   type="file"

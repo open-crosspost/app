@@ -239,16 +239,15 @@ function EditorPage() {
   }, []);
 
   return (
-    <div className="w-full h-full lg:px-6 lg:pb-6">
-      {/* Mobile Tab Navigation - Only visible on mobile */}
-      <div className="lg:hidden border-b border-gray-200  mb-6">
+    <div className="h-full w-full min-w-0 lg:px-6 lg:pb-6">
+      <div className="mb-4 border-b border-border lg:hidden">
         <div className="flex">
           <button
             type="button"
-            className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 border-b-2 py-3 text-sm font-medium transition-colors ${
               activeTab === "editor"
-                ? "border-black dark:border-white text-black dark:text-white bg-gray-50 dark:bg-gray-800"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "border-primary bg-muted text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setActiveTab("editor")}
           >
@@ -256,39 +255,38 @@ function EditorPage() {
           </button>
           <button
             type="button"
-            className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 border-b-2 py-3 text-sm font-medium transition-colors ${
               activeTab === "scheduled"
-                ? "border-black dark:border-white text-black dark:text-white bg-gray-50 dark:bg-gray-800"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "border-primary bg-muted text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setActiveTab("scheduled")}
           >
-            Scheduled Posts
+            Scheduled
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:gap-8 w-full h-full">
-        {/* Left Side - Editor (50%) */}
+      <div className="flex h-full w-full min-w-0 flex-col lg:flex-row lg:gap-8">
         <div
-          className={`flex-1 lg:w-1/2 min-w-0 px-4 lg:px-0 ${activeTab === "editor" ? "block" : "hidden lg:block"}`}
+          className={`min-w-0 flex-1 lg:w-1/2 ${activeTab === "editor" ? "block" : "hidden lg:block"}`}
         >
-          <div className="h-full flex flex-col">
-            <div className="space-y-4 mb-4">
+          <div className="flex h-full min-w-0 flex-col">
+            <div className="mb-4 space-y-4">
               <PlatformAccountsSelector disabledPlatforms={disabledPlatforms} />
-              {/* Controls Bar */}
-              <div className="flex items-center gap-2 mb-2">
-                <PostInteractionSelector
-                  postType={postType}
-                  targetUrl={targetUrl}
-                  onPostTypeChange={setPostType}
-                  onTargetUrlChange={setTargetUrl}
-                />
-                {/* Mobile Dropdown */}
-                <div className="lg:hidden">
+              <div className="mb-2 flex min-w-0 items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <PostInteractionSelector
+                    postType={postType}
+                    targetUrl={targetUrl}
+                    onPostTypeChange={setPostType}
+                    onTargetUrlChange={setTargetUrl}
+                  />
+                </div>
+                <div className="shrink-0 lg:hidden">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm">
+                      <Button size="sm" className="h-9 w-9 px-0">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -308,8 +306,7 @@ function EditorPage() {
                   </DropdownMenu>
                 </div>
 
-                {/* Desktop Buttons */}
-                <div className="hidden lg:flex gap-2 flex-shrink-0">
+                <div className="hidden shrink-0 gap-2 lg:flex">
                   <Button
                     onClick={() => setIsPreviewOpen(true)}
                     disabled={posts.every((p) => !(p.text || "").trim() || p.text === "ㅤ")}
@@ -324,7 +321,7 @@ function EditorPage() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col">
+            <div className="flex min-w-0 flex-1 flex-col">
               <PostEditorCore
                 posts={posts}
                 onPostsChange={handlePostsChange}
@@ -338,24 +335,25 @@ function EditorPage() {
                 onTextBlur={handleTextBlur}
               />
 
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4">
-                <span className="text-sm text-gray-500 order-2 sm:order-1 text-left">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="order-2 text-left text-sm text-muted-foreground sm:order-1">
                   {`${posts.length} parts`}
                 </span>
-                <div className="flex gap-2 order-1 sm:order-2">
+                <div className="order-1 grid grid-cols-3 gap-2 sm:order-2 sm:flex">
                   <Button
                     onClick={handleSaveDraft}
                     disabled={posts.every((p) => !(p.text || "").trim())}
-                    className="flex-1 sm:flex-auto"
+                    className="min-w-0 px-2 sm:px-4"
                   >
-                    Save Draft
+                    <span className="sm:hidden">Draft</span>
+                    <span className="hidden sm:inline">Save Draft</span>
                   </Button>
                   <Button
                     onClick={() => setIsScheduleModalOpen(true)}
                     disabled={
                       posts.every((p) => !(p.text || "").trim()) || selectedAccounts.length === 0
                     }
-                    className="flex-1 sm:flex-auto"
+                    className="min-w-0 px-2 sm:px-4"
                   >
                     Schedule
                   </Button>
@@ -366,9 +364,9 @@ function EditorPage() {
                       posts.every((p) => !(p.text || "").trim()) ||
                       selectedAccounts.length === 0
                     }
-                    className="flex-1 sm:flex-auto"
+                    className="min-w-0 px-2 sm:px-4"
                   >
-                    {isPosting ? "Posting..." : "Post"}
+                    {isPosting ? "…" : "Post"}
                   </Button>
                 </div>
               </div>
@@ -376,9 +374,8 @@ function EditorPage() {
           </div>
         </div>
 
-        {/* Right Side - Scheduled Posts Queue (50%) */}
         <div
-          className={`flex-1 lg:w-1/2 px-4 lg:px-0 ${activeTab === "scheduled" ? "block" : "hidden lg:block"}`}
+          className={`min-w-0 flex-1 lg:w-1/2 ${activeTab === "scheduled" ? "block" : "hidden lg:block"}`}
         >
           <div className="h-full overflow-auto">
             <ScheduledPostsFeed />

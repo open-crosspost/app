@@ -99,7 +99,7 @@ function Home() {
               </p>
               <UnderConstruction
                 label="home"
-                sourceFile="ui/src/routes/_layout/_authenticated/home.tsx"
+                sourceFile="ui/src/routes/_authenticated/home.tsx"
                 className="w-full max-w-sm"
               />
             </div>

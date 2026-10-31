@@ -15,6 +15,42 @@ export const socialAccountsQueryKey = ["social", "accounts"] as const;
 
 export const X_CONNECT_WALLET_KEY_STORAGE_KEY = "crosspost:x-connect:wallet-api-key";
 export const X_CONNECT_CALLBACK_PATH = "/callback/x";
+export const X_CONNECT_RETURN_PATH_STORAGE_KEY = "crosspost:x-connect:return-path";
+
+function isSafeReturnPath(path: string): boolean {
+  return (
+    path.startsWith("/") && !path.startsWith("//") && !path.includes("://") && !path.includes("\\")
+  );
+}
+
+export function rememberXConnectReturnPath(path: string) {
+  if (typeof sessionStorage === "undefined" || !isSafeReturnPath(path)) {
+    return;
+  }
+
+  sessionStorage.setItem(X_CONNECT_RETURN_PATH_STORAGE_KEY, path);
+}
+
+export function readXConnectReturnPath(): string | null {
+  if (typeof sessionStorage === "undefined") {
+    return null;
+  }
+
+  const value = sessionStorage.getItem(X_CONNECT_RETURN_PATH_STORAGE_KEY);
+  if (!value || !isSafeReturnPath(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+export function clearXConnectReturnPath() {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  sessionStorage.removeItem(X_CONNECT_RETURN_PATH_STORAGE_KEY);
+}
 
 const CONNECTABLE_PLATFORMS: readonly string[] = [Platform.TWITTER];
 
