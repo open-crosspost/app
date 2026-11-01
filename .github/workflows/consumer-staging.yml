@@ -1,0 +1,101 @@
+name: Consumer Staging
+
+# Vendored from NEARBuilders/everything-dev@v2.0.0-rc.27 (.github/workflows/consumer-staging.yml).
+# Vendored because `secrets: inherit` is a silent no-op for cross-org reusable
+# workflow calls; this repo (open-crosspost) calls the shared workflow before
+# it can read this repo's secrets. Update alongside `platform` via `bos upgrade`.
+#
+# Reusable staging deploy for generated child repos — never runs in this
+# repo. The caller owns triggers, permissions policy, and secrets (pass
+# `secrets: inherit` or map them explicitly). Runs the child's staging deploy
+# command (`pnpm run bos deploy --env staging`) from `working_directory`.
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: 'Directory exposing the repo''s standard scripts (default: repo root)'
+        required: false
+        type: string
+        default: .
+      verbose:
+        description: Show full build output instead of clean summary
+        required: false
+        type: boolean
+        default: false
+      storage_origin:
+        description: 'Upload service origin (self-hosted apps/upload deployments override the default)'
+        required: false
+        type: string
+        default: https://upload.everything.dev
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy-staging:
+    name: Deploy Staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+    env:
+      NEAR_PRIVATE_KEY: ${{ secrets.NEAR_PRIVATE_KEY }}
+      BOS_STORAGE_ORIGIN: ${{ inputs.storage_origin }}
+      # Staging deploys publish to the staging gateway (staging.domain ?? domain),
+      # so a consumer with a distinct staging domain mints a second deploy key
+      # (`bos login --key --env staging`) — otherwise the production key matches.
+      BOS_STORAGE_API_KEY: ${{ secrets.BOS_STAGING_STORAGE_API_KEY || secrets.BOS_STORAGE_API_KEY }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      # Same token-scope rule as consumer-deploy.yml: the child repoint
+      # (`service source connect`) needs a workspace-scoped RAILWAY_API_TOKEN
+      # plus project/environment targeting vars — set for staging separately
+      # if the staging service lives in a different Railway project.
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_STAGING_API_TOKEN || secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_STAGING_PROJECT_ID || vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_STAGING_ENVIRONMENT_ID || vars.RAILWAY_ENVIRONMENT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node 24)
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Guard — no stray bun artifacts
+        run: |
+          if [ -f bun.lock ]; then
+            echo "::error::bun.lock present — bun re-migrated the workspace (ADR 0026). Delete bun.lock and re-run pnpm install."
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+
+      - name: Get pnpm store dir
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (Node 24)
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Deploy staging (preflight → build → upload → publish → image → Railway)
+        timeout-minutes: 35
+        run: pnpm run bos deploy --env staging${{ inputs.verbose == true && ' --verbose' || '' }}
