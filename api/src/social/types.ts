@@ -25,7 +25,7 @@ import {
   type ReplyToPostRequest,
   ReplyToPostRequestSchema,
   TimePeriod,
-} from "../../../plugins/crosspost/src/types";
+} from "@crosspost/plugin/types";
 
 export {
   type AccountPostsQuery,

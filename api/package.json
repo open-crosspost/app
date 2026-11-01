@@ -16,6 +16,7 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@crosspost/plugin": "workspace:*",
     "@electric-sql/pglite": "catalog:",
     "@libsql/client": "catalog:",
     "@noble/ciphers": "^2.4.0",

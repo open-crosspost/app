@@ -10,6 +10,11 @@ export declare const GetAuthUrlInputSchema: z.ZodObject<{
     state: z.ZodString;
     scopes: z.ZodArray<z.ZodString>;
 }, z.core.$strip>;
+export declare const GetAuthUrlResultSchema: z.ZodObject<{
+    url: z.ZodString;
+    state: z.ZodString;
+    codeVerifier: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
 export declare const ExchangeCodeInputSchema: z.ZodObject<{
     code: z.ZodString;
     redirectUri: z.ZodString;
@@ -30,9 +35,12 @@ export declare const AuthTokenSchema: z.ZodObject<{
     expiresAt: z.ZodNumber;
     scope: z.ZodOptional<z.ZodArray<z.ZodString>>;
     tokenType: z.ZodString;
+    userId: z.ZodOptional<z.ZodString>;
+    username: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export type AuthenticatedRequest = z.infer<typeof AuthenticatedRequestSchema>;
 export type GetAuthUrlInput = z.infer<typeof GetAuthUrlInputSchema>;
+export type GetAuthUrlResult = z.infer<typeof GetAuthUrlResultSchema>;
 export type ExchangeCodeInput = z.infer<typeof ExchangeCodeInputSchema>;
 export type RefreshTokenInput = z.infer<typeof RefreshTokenInputSchema>;
 export type RevokeTokenInput = z.infer<typeof RevokeTokenInputSchema>;

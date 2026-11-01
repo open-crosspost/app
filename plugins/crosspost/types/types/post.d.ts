@@ -1,15 +1,15 @@
 import { z } from "zod";
 export declare const MediaContentSchema: z.ZodObject<{
-    data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+    data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
     mimeType: z.ZodOptional<z.ZodString>;
     altText: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const MediaSchema: z.ZodObject<{
     id: z.ZodString;
     type: z.ZodEnum<{
+        gif: "gif";
         image: "image";
         video: "video";
-        gif: "gif";
     }>;
     url: z.ZodOptional<z.ZodString>;
     altText: z.ZodOptional<z.ZodString>;
@@ -28,9 +28,9 @@ export declare const PostSchema: z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -47,7 +47,7 @@ export declare const PostSchema: z.ZodObject<{
 export declare const PostContentSchema: z.ZodObject<{
     text: z.ZodOptional<z.ZodString>;
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+        data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
         mimeType: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>>;
@@ -82,7 +82,7 @@ export declare const CreatePostRequestSchema: z.ZodObject<{
     content: z.ZodArray<z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
@@ -106,7 +106,7 @@ export declare const QuotePostRequestSchema: z.ZodObject<{
     content: z.ZodArray<z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
@@ -122,7 +122,7 @@ export declare const ReplyToPostRequestSchema: z.ZodObject<{
     content: z.ZodArray<z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
@@ -168,9 +168,9 @@ export declare const PostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -191,9 +191,9 @@ export declare const PostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -215,9 +215,9 @@ export declare const CreatePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -238,9 +238,9 @@ export declare const CreatePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -262,9 +262,9 @@ export declare const RepostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -285,9 +285,9 @@ export declare const RepostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -309,9 +309,9 @@ export declare const QuotePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -332,9 +332,9 @@ export declare const QuotePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -356,9 +356,9 @@ export declare const ReplyToPostResponseSchema: z.ZodUnion<readonly [z.ZodObject
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -379,9 +379,9 @@ export declare const ReplyToPostResponseSchema: z.ZodUnion<readonly [z.ZodObject
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -403,9 +403,9 @@ export declare const DeletePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -426,9 +426,9 @@ export declare const DeletePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -450,9 +450,9 @@ export declare const LikePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -473,9 +473,9 @@ export declare const LikePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<{
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -497,9 +497,9 @@ export declare const UnlikePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
@@ -520,9 +520,9 @@ export declare const UnlikePostResponseSchema: z.ZodUnion<readonly [z.ZodObject<
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodEnum<{
+            gif: "gif";
             image: "image";
             video: "video";
-            gif: "gif";
         }>;
         url: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;

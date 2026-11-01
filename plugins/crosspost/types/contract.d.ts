@@ -2,10 +2,10 @@ import { z } from "zod";
 import * as Types from "./types";
 export declare const contract: {
     auth: {
-        authorizeNearAccount: import("@orpc/contract").ContractProcedure<z.ZodObject<{}, z.core.$strip>, z.ZodObject<{
+        authorizeNearAccount: import("@orpc/contract").ProcedureContract<z.ZodObject<{}, z.core.$strip>, z.ZodObject<{
             signerId: z.ZodString;
             isAuthorized: z.ZodBoolean;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -25,9 +25,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -81,12 +81,12 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getNearAuthorizationStatus: import("@orpc/contract").ContractProcedure<import("@orpc/contract").Schema<unknown, unknown>, z.ZodObject<{
+        }>;
+        getNearAuthorizationStatus: import("@orpc/contract").ProcedureContract<import("@orpc/contract").InitialInputSchema, z.ZodObject<{
             signerId: z.ZodString;
             isAuthorized: z.ZodBoolean;
             authorizedAt: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -106,9 +106,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -162,8 +162,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        loginToPlatform: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        loginToPlatform: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             platform: z.ZodEnum<typeof Types.Platform>;
             options: z.ZodOptional<z.ZodObject<{
                 successUrl: z.ZodOptional<z.ZodString>;
@@ -172,7 +172,7 @@ export declare const contract: {
             }, z.core.$strip>>;
         }, z.core.$strip>, z.ZodObject<{
             url: z.ZodString;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -192,9 +192,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -248,8 +248,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        refreshToken: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        refreshToken: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             platform: z.ZodEnum<typeof Types.Platform>;
             userId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
@@ -261,7 +261,7 @@ export declare const contract: {
                 code: z.ZodString;
                 details: z.ZodOptional<z.ZodString>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -281,9 +281,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -337,8 +337,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        refreshProfile: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        refreshProfile: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             platform: z.ZodEnum<typeof Types.Platform>;
             userId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
@@ -355,7 +355,7 @@ export declare const contract: {
                 lastUpdated: z.ZodNumber;
             }, z.core.$strip>>;
             error: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -375,9 +375,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -431,8 +431,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getAuthStatus: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        getAuthStatus: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             platform: z.ZodEnum<typeof Types.Platform>;
             userId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
@@ -444,7 +444,7 @@ export declare const contract: {
                 expired: z.ZodBoolean;
                 expiresAt: z.ZodOptional<z.ZodString>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -464,9 +464,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -520,11 +520,11 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        unauthorizeNear: import("@orpc/contract").ContractProcedure<z.ZodObject<{}, z.core.$strip>, z.ZodObject<{
+        }>;
+        unauthorizeNear: import("@orpc/contract").ProcedureContract<z.ZodObject<{}, z.core.$strip>, z.ZodObject<{
             success: z.ZodBoolean;
             nearAccount: z.ZodString;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -544,9 +544,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -600,14 +600,14 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        revokeAuth: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        revokeAuth: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             platform: z.ZodEnum<typeof Types.Platform>;
             userId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             platform: z.ZodEnum<typeof Types.Platform>;
             userId: z.ZodString;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -627,9 +627,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -683,8 +683,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getConnectedAccounts: import("@orpc/contract").ContractProcedure<import("@orpc/contract").Schema<unknown, unknown>, z.ZodObject<{
+        }>;
+        getConnectedAccounts: import("@orpc/contract").ProcedureContract<import("@orpc/contract").InitialInputSchema, z.ZodObject<{
             accounts: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -700,7 +700,7 @@ export declare const contract: {
                 }, z.core.$strip>>;
                 error: z.ZodOptional<z.ZodString>;
             }, z.core.$strip>>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -720,9 +720,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -776,10 +776,10 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
+        }>;
     };
     post: {
-        create: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        create: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -787,7 +787,7 @@ export declare const contract: {
             content: z.ZodArray<z.ZodObject<{
                 text: z.ZodOptional<z.ZodString>;
                 media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                    data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+                    data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
                     mimeType: z.ZodOptional<z.ZodString>;
                     altText: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>>>;
@@ -812,7 +812,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -832,9 +832,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -888,8 +888,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        delete: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        delete: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -919,7 +919,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -939,9 +939,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -995,8 +995,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        repost: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        repost: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -1023,7 +1023,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1043,9 +1043,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1099,8 +1099,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        quote: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        quote: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -1110,7 +1110,7 @@ export declare const contract: {
             content: z.ZodArray<z.ZodObject<{
                 text: z.ZodOptional<z.ZodString>;
                 media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                    data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+                    data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
                     mimeType: z.ZodOptional<z.ZodString>;
                     altText: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>>>;
@@ -1135,7 +1135,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1155,9 +1155,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1211,8 +1211,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        reply: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        reply: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -1222,7 +1222,7 @@ export declare const contract: {
             content: z.ZodArray<z.ZodObject<{
                 text: z.ZodOptional<z.ZodString>;
                 media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                    data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+                    data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
                     mimeType: z.ZodOptional<z.ZodString>;
                     altText: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>>>;
@@ -1247,7 +1247,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1267,9 +1267,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1323,8 +1323,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        like: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        like: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -1351,7 +1351,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1371,9 +1371,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1427,8 +1427,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        unlike: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        unlike: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             targets: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 userId: z.ZodString;
@@ -1455,7 +1455,7 @@ export declare const contract: {
                     details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 }, z.core.$strip>>;
             }, z.core.$strip>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1475,9 +1475,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1531,10 +1531,10 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
+        }>;
     };
     activity: {
-        getLeaderboard: import("@orpc/contract").ContractProcedure<z.ZodOptional<z.ZodObject<{
+        getLeaderboard: import("@orpc/contract").ProcedureContract<z.ZodOptional<z.ZodObject<{
             limit: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
             offset: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
             platforms: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -1550,7 +1550,7 @@ export declare const contract: {
                 lastPostTimestamp: z.ZodNumber;
             }, z.core.$strip>>;
             total: z.ZodNumber;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1570,9 +1570,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1626,8 +1626,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getAccountActivity: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        getAccountActivity: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             signerId: z.ZodString;
             query: z.ZodOptional<z.ZodObject<{
                 limit: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
@@ -1648,7 +1648,7 @@ export declare const contract: {
                 platform: z.ZodString;
             }, z.core.$strip>>;
             total: z.ZodNumber;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1668,9 +1668,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1724,8 +1724,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getAccountPosts: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        getAccountPosts: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             signerId: z.ZodString;
             query: z.ZodOptional<z.ZodObject<{
                 limit: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
@@ -1757,7 +1757,7 @@ export declare const contract: {
             }, z.core.$strip>>;
             platforms: z.ZodOptional<z.ZodArray<z.ZodString>>;
             types: z.ZodOptional<z.ZodArray<z.ZodString>>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1777,9 +1777,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1833,10 +1833,10 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
+        }>;
     };
     system: {
-        getRateLimits: import("@orpc/contract").ContractProcedure<import("@orpc/contract").Schema<unknown, unknown>, z.ZodObject<{
+        getRateLimits: import("@orpc/contract").ProcedureContract<import("@orpc/contract").InitialInputSchema, z.ZodObject<{
             limits: z.ZodArray<z.ZodObject<{
                 platform: z.ZodEnum<typeof Types.Platform>;
                 limits: z.ZodRecord<z.ZodString, z.ZodObject<{
@@ -1846,7 +1846,7 @@ export declare const contract: {
                     resetAfter: z.ZodNumber;
                 }, z.core.$strip>>;
             }, z.core.$strip>>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1866,9 +1866,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -1922,8 +1922,8 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getEndpointRateLimit: import("@orpc/contract").ContractProcedure<z.ZodObject<{
+        }>;
+        getEndpointRateLimit: import("@orpc/contract").ProcedureContract<z.ZodObject<{
             endpoint: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             endpoint: z.ZodString;
@@ -1931,7 +1931,7 @@ export declare const contract: {
             remaining: z.ZodNumber;
             reset: z.ZodNumber;
             platform: z.ZodOptional<z.ZodEnum<typeof Types.Platform>>;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -1951,9 +1951,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -2007,12 +2007,12 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
-        getHealthStatus: import("@orpc/contract").ContractProcedure<import("@orpc/contract").Schema<unknown, unknown>, z.ZodObject<{
+        }>;
+        getHealthStatus: import("@orpc/contract").ProcedureContract<import("@orpc/contract").InitialInputSchema, z.ZodObject<{
             status: z.ZodString;
             version: z.ZodOptional<z.ZodString>;
             timestamp: z.ZodString;
-        }, z.core.$strip>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, import("@orpc/contract").MergedErrorMap<Record<never, never>, {
+        }, z.core.$strip>, {
             readonly UNAUTHORIZED: {
                 readonly status: 401;
                 readonly data: z.ZodObject<{
@@ -2032,9 +2032,9 @@ export declare const contract: {
                     remainingRequests: z.ZodOptional<z.ZodNumber>;
                     resetTime: z.ZodOptional<z.ZodString>;
                     limitType: z.ZodOptional<z.ZodEnum<{
+                        bandwidth: "bandwidth";
                         requests: "requests";
                         tokens: "tokens";
-                        bandwidth: "bandwidth";
                     }>>;
                 }, z.core.$strip>;
             };
@@ -2088,7 +2088,7 @@ export declare const contract: {
                     suggestion: z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-        }>>>, Record<never, never>>;
+        }>;
     };
 };
 export type ContractType = typeof contract;

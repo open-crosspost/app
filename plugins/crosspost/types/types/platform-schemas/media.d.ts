@@ -5,7 +5,7 @@ export declare const UploadMediaInputSchema: z.ZodObject<{
     refreshToken: z.ZodOptional<z.ZodString>;
     expiresAt: z.ZodOptional<z.ZodNumber>;
     media: z.ZodObject<{
-        data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+        data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
         mimeType: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;

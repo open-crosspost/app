@@ -1,13 +1,13 @@
 import { z } from "zod";
 export declare const MediaContentSchema: z.ZodObject<{
-    data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+    data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
     mimeType: z.ZodOptional<z.ZodString>;
     altText: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const PostContentSchema: z.ZodObject<{
     text: z.ZodOptional<z.ZodString>;
     media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+        data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
         mimeType: z.ZodOptional<z.ZodString>;
         altText: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>>;
@@ -20,14 +20,14 @@ export declare const CreatePostInputSchema: z.ZodObject<{
     content: z.ZodUnion<readonly [z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
     }, z.core.$strip>, z.ZodArray<z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
@@ -56,14 +56,14 @@ export declare const QuotePostInputSchema: z.ZodObject<{
     content: z.ZodUnion<readonly [z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
     }, z.core.$strip>, z.ZodArray<z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
@@ -78,14 +78,14 @@ export declare const ReplyInputSchema: z.ZodObject<{
     content: z.ZodUnion<readonly [z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
     }, z.core.$strip>, z.ZodArray<z.ZodObject<{
         text: z.ZodOptional<z.ZodString>;
         media: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            data: z.ZodUnion<readonly [z.ZodString, z.ZodCustom<Blob, Blob>]>;
+            data: z.ZodUnion<readonly [z.ZodString, z.ZodInstanceOf<Blob>]>;
             mimeType: z.ZodOptional<z.ZodString>;
             altText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
