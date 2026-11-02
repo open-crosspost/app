@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import type { PluginsClient } from "../lib/plugins-types.gen";
 import { storeOutlayerSecretRows } from "./outlayer-secret-store";
-import type { ConnectorCallFn } from "./scheduler";
+import { type ConnectorCallFn, extractRunRefusal } from "./scheduler";
 import type { SocialConnectCallbackInput, SocialConnectCallbackResponse } from "./types";
 
 export const X_OAUTH_SCOPES: string[] = [
@@ -287,6 +287,11 @@ export class XConnectFlow {
       throw new ORPCError("BAD_REQUEST", {
         message: `The enclave code exchange did not complete (status: ${call.status}, callId: ${call.callId})`,
       });
+    }
+
+    const refusal = extractRunRefusal(call.output);
+    if (refusal) {
+      throw new ORPCError("BAD_REQUEST", { message: refusal });
     }
 
     const answer = extractExchangeAnswer(call.output);

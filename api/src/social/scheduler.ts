@@ -42,6 +42,21 @@ function extractTweetOutcome(output: unknown): { tweetId: string | null; url: st
   };
 }
 
+/**
+ * A connector refusal arrives inside a completed run's answer envelope —
+ * `success: false` with the refusal sentence under `error` — while the
+ * call's own `error` field carries transport failures.
+ */
+export function extractRunRefusal(output: unknown): string | null {
+  if (!output || typeof output !== "object") return null;
+  const envelope = output as { error?: unknown; success?: unknown };
+  const refusal = typeof envelope.error === "string" && envelope.error ? envelope.error : null;
+  if (envelope.success === false || refusal) {
+    return refusal ?? "the run refused without a reason";
+  }
+  return null;
+}
+
 export class JobScheduler {
   private connectorCall: ConnectorCallFn | null = null;
 
@@ -163,16 +178,18 @@ export class JobScheduler {
           input: xSeedTweetId ? { text, reply_to: xSeedTweetId } : { text },
         });
         const tweet = extractTweetOutcome(call.output);
+        const refusal = extractRunRefusal(call.output);
         const published =
           call.status === "completed" &&
           call.error === null &&
+          !refusal &&
           (tweet.tweetId !== null || tweet.url !== null);
 
         if (!published) {
           await this.jobRepository.reportRun(run.userId, claimed.id, {
             runId: claimed.id,
             status: "failed",
-            error: call.error ?? "The connector did not publish the post.",
+            error: call.error ?? refusal ?? "The connector did not publish the post.",
           });
           continue;
         }

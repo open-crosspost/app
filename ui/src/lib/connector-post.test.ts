@@ -210,6 +210,24 @@ describe("parseConnectorOutcome", () => {
     ).toThrow("rate limited (status: failed, callId: call-1)");
   });
 
+  it("throws the refusal sentence when a completed run's answer envelope refuses", () => {
+    expect(() =>
+      parseConnectorOutcome({
+        callId: "call-1",
+        status: "completed",
+        output: {
+          logs: [],
+          operation: "post",
+          success: false,
+          error: "credential_busy: another run of this connection is refreshing right now",
+        },
+        error: null,
+      }),
+    ).toThrow(
+      "credential_busy: another run of this connection is refreshing right now (status: completed, callId: call-1)",
+    );
+  });
+
   it("throws when a completed call carries no publish evidence", () => {
     expect(() =>
       parseConnectorOutcome({

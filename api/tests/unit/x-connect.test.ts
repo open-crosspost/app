@@ -294,6 +294,29 @@ describe("XConnectFlow.complete", () => {
     expect(error.message).toContain("X refused the code exchange");
   });
 
+  it("surfaces a refusal that arrives inside a completed run's answer envelope", async () => {
+    const envelopeRefused = vi.fn(async () => ({
+      callId: "call-envelope",
+      status: "completed",
+      output: {
+        logs: [],
+        operation: "exchange_code",
+        success: false,
+        error: "X refused the code exchange: HTTP 400 invalid_grant. A code is single-use.",
+      },
+      error: null,
+    })) as unknown as ConnectorCallFn;
+    const { flow, started } = await startedFlow(envelopeRefused);
+
+    const error = await flow
+      .complete({ userId: "user-1", platform: Platform.TWITTER, code: "c", state: started.state })
+      .catch((thrown) => thrown);
+
+    expect(error).toBeInstanceOf(ORPCError);
+    expect(error.code).toBe("BAD_REQUEST");
+    expect(error.message).toContain("X refused the code exchange");
+  });
+
   it("refuses when the run does not complete", async () => {
     const stuck = vi.fn(async () => ({
       callId: "call-stuck",

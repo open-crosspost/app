@@ -24,6 +24,7 @@ type XPostPayload = {
 type XConnectorOutput = {
   success?: unknown;
   output?: XPostPayload | null;
+  error?: unknown;
   username?: unknown;
 };
 
@@ -61,6 +62,10 @@ export function parseConnectorOutcome(call: {
 
   if (call.error) {
     throw new Error(`${call.error} (status: ${call.status || "unknown"}, callId: ${call.callId})`);
+  }
+  const refusal = asString(output?.error);
+  if (refusal) {
+    throw new Error(`${refusal} (status: ${call.status || "unknown"}, callId: ${call.callId})`);
   }
   if (!published) {
     throw new Error(

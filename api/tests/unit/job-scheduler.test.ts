@@ -169,6 +169,38 @@ describe("JobScheduler", () => {
     expect(runs[0]?.status).toBe("failed");
     expect(runs[0]?.error).toContain("gate refused");
   });
+
+  it("records the refusal sentence when a completed run's answer envelope refuses", async () => {
+    await jobRepository.createSpec("user-7", campaignSpec("twitter"));
+    await campaignRepository.upsertSeed("gm", utcToday(), { xPostId: "1852180000000" });
+    await scheduler.spawnRuns();
+
+    scheduler.attachConnectorCall(
+      connectorMock([
+        {
+          output: {
+            logs: [],
+            operation: "post",
+            success: false,
+            error: "credential_expired: X refused the refresh token — revoked or expired",
+          },
+        },
+      ]).fn,
+    );
+
+    const spec = (await jobRepository.listSpecs("user-7"))[0];
+    if (!spec) throw new Error("expected spec");
+    for (const run of await jobRepository.listRuns("user-7", { specId: spec.id })) {
+      await driver.db.execute(
+        `update job_runs set scheduled_for = '${new Date().toISOString()}' where id = '${run.id}'`,
+      );
+    }
+
+    await scheduler.fireDueRuns();
+    const runs = await jobRepository.listRuns("user-7", { specId: spec.id });
+    expect(runs[0]?.status).toBe("failed");
+    expect(runs[0]?.error).toContain("credential_expired: X refused the refresh token");
+  });
 });
 
 function campaignSpec(platform: "twitter" | "near-social"): JobSpecCreate {
