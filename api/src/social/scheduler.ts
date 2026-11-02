@@ -12,12 +12,14 @@ export type OutlayerCallResult = {
   computeCost?: string | null;
 };
 
-type ConnectorCallFn = (args: {
+export type ConnectorCallArgs = {
   agentId: string;
   connector: string;
   operation: string;
   input: Record<string, unknown>;
-}) => Promise<OutlayerCallResult>;
+};
+
+export type ConnectorCallFn = (args: ConnectorCallArgs) => Promise<OutlayerCallResult>;
 
 type XOutcomePayload = {
   tweet_id?: unknown;

@@ -14,7 +14,7 @@ export class TwitterService {
   private profileAdapter: ProfileAdapter;
   private rateLimitAdapter: RateLimitAdapter;
 
-  constructor(clientId: string, clientSecret: string) {
+  constructor(clientId: string, clientSecret?: string) {
     this.clientFactory = new ClientFactory(clientId, clientSecret);
     this.authAdapter = new AuthAdapter(clientId, clientSecret);
     this.postAdapter = new PostAdapter(this.clientFactory);

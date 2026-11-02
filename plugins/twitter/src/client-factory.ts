@@ -7,7 +7,7 @@ export class ClientFactory {
 
   constructor(
     private clientId: string,
-    private clientSecret: string,
+    private clientSecret?: string,
   ) {
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
   }

@@ -5,7 +5,7 @@ import { TwitterApi } from "twitter-api-v2";
 export class AuthAdapter {
   constructor(
     private clientId: string,
-    private clientSecret: string,
+    private clientSecret?: string,
   ) {}
 
   /**

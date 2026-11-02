@@ -9,25 +9,23 @@ export class TwitterServiceTag extends Context.Service<TwitterServiceTag, Twitte
 ) {}
 
 /**
- * Twitter Platform Plugin — the OAuth connect handoff only. The direct
- * posting surface retired with ticket #21 is no longer mounted.
+ * Twitter Platform Plugin — the OAuth connect handoff's consent URL only.
+ * The app's X app is a public client for this surface: the code exchange
+ * runs inside the connector's enclave (exchange_code), so no client secret
+ * is configured here.
  */
 export default createPlugin({
-  variables: z.object(),
+  variables: z.object({}),
 
   secrets: z.object({
-    X_CLIENT_ID: z.string().describe("X OAuth 2.0 Client ID"),
-    X_CLIENT_SECRET: z.string().describe("X OAuth 2.0 Client Secret"),
+    X_CLIENT_ID: z.string().describe("X OAuth 2.0 Client ID (public client)"),
   }),
 
   contract,
 
   initialize: (config) =>
     Effect.gen(function* () {
-      const service = new TwitterService(
-        config.secrets.X_CLIENT_ID,
-        config.secrets.X_CLIENT_SECRET,
-      );
+      const service = new TwitterService(config.secrets.X_CLIENT_ID);
       return yield* Effect.succeed(Layer.succeed(TwitterServiceTag, service));
     }),
 
@@ -36,11 +34,6 @@ export default createPlugin({
       getAuthUrl: builder.auth.getAuthUrl.effect(function* ({ input }) {
         const service = yield* TwitterServiceTag;
         return yield* Effect.promise(() => Effect.runPromise(service.getAuthUrl(input)));
-      }),
-
-      exchangeCodeForToken: builder.auth.exchangeCodeForToken.effect(function* ({ input }) {
-        const service = yield* TwitterServiceTag;
-        return yield* Effect.promise(() => Effect.runPromise(service.exchangeCodeForToken(input)));
       }),
     },
   }),

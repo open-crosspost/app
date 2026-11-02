@@ -10,7 +10,6 @@ export default {
     variables: {},
     secrets: {
       X_CLIENT_ID: process.env.X_CLIENT_ID || "",
-      X_CLIENT_SECRET: process.env.X_CLIENT_SECRET || "",
     },
   } satisfies PluginConfigInput<typeof Plugin>,
 };

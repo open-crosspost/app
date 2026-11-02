@@ -63,7 +63,7 @@ describe("connectorErrorDetail", () => {
       message: "boom",
       code: ApiErrorCode.PLATFORM_ERROR,
       recoverable: false,
-      details: { platform: "twitter", userId: "elliot_braemTwitter" },
+      details: { platform: "twitter", userId: "elliot_braemTwitter", raw: "boom" },
     });
   });
 
@@ -71,6 +71,84 @@ describe("connectorErrorDetail", () => {
     const detail = connectorErrorDetail("nope", account);
     expect(detail.message).toBe("Posting to X failed.");
     expect(detail.code).toBe(ApiErrorCode.PLATFORM_ERROR);
+  });
+
+  it.each([
+    [
+      "credential_busy: another run of this connection is refreshing the credential right now",
+      ApiErrorCode.RATE_LIMITED,
+      true,
+      "The X connection is being refreshed — try again in a few seconds.",
+    ],
+    [
+      "rate_limited: X is throttling; nothing was posted",
+      ApiErrorCode.RATE_LIMITED,
+      true,
+      "X is rate limiting right now — wait a moment and try again.",
+    ],
+    [
+      "operation_limit_reached: the daily ceiling; retry_after_seconds names the wait",
+      ApiErrorCode.RATE_LIMITED,
+      true,
+      "X is rate limiting right now — wait a moment and try again.",
+    ],
+    [
+      "credential_expired: X refused the refresh token — revoked or expired",
+      ApiErrorCode.UNAUTHORIZED,
+      false,
+      "Your X connection needs attention — reconnect your account.",
+    ],
+    [
+      "credential_rejected: X refused the access token; probably revoked mid-flight",
+      ApiErrorCode.UNAUTHORIZED,
+      false,
+      "Your X connection needs attention — reconnect your account.",
+    ],
+    [
+      "scope_missing: the credential was not granted tweet.write",
+      ApiErrorCode.UNAUTHORIZED,
+      false,
+      "Your X connection needs attention — reconnect your account.",
+    ],
+    [
+      "no credential reached this run: not connected, not granted, or the wrong secrets_ref",
+      ApiErrorCode.UNAUTHORIZED,
+      false,
+      "Your X connection needs attention — reconnect your account.",
+    ],
+    [
+      "policy_denied: the owner's rules: no policy, an unreadable policy, or their daily cap",
+      ApiErrorCode.PLATFORM_ERROR,
+      false,
+      "The owner's posting rules refused this post.",
+    ],
+  ] as const)("classifies the refusal %s into its curated error detail", (raw, code, recoverable, message) => {
+    const detail = connectorErrorDetail(
+      new Error(`${raw} (status: failed, callId: call-1)`),
+      account,
+    );
+    expect(detail).toMatchObject({
+      message,
+      code,
+      recoverable,
+      details: {
+        platform: "twitter",
+        userId: "elliot_braemTwitter",
+        raw: `${raw} (status: failed, callId: call-1)`,
+      },
+    });
+  });
+
+  it("leaves an unmatched refusal at platform-error with the raw message", () => {
+    const detail = connectorErrorDetail(
+      new Error("X refused /2/tweets: HTTP 403 forbidden (status: failed, callId: call-1)"),
+      account,
+    );
+    expect(detail).toMatchObject({
+      message: "X refused /2/tweets: HTTP 403 forbidden (status: failed, callId: call-1)",
+      code: ApiErrorCode.PLATFORM_ERROR,
+      recoverable: false,
+    });
   });
 });
 

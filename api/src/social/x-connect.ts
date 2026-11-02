@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import type { PluginsClient } from "../lib/plugins-types.gen";
 import { storeOutlayerSecretRows } from "./outlayer-secret-store";
+import type { ConnectorCallFn } from "./scheduler";
 import type { SocialConnectCallbackInput, SocialConnectCallbackResponse } from "./types";
 
 export const X_OAUTH_SCOPES: string[] = [
@@ -49,6 +50,40 @@ interface PendingConnect {
   expiresAt: number;
 }
 
+type ExchangeAnswer = {
+  id?: unknown;
+  username?: unknown;
+  granted_scope?: unknown;
+  connect?: { X_REFRESH_TOKEN?: unknown } | null;
+  "connect.X_REFRESH_TOKEN"?: unknown;
+};
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value ? value : null;
+}
+
+/**
+ * The run answer reaches the API wrapped in OutLayer's run envelope
+ * (`{ logs, operation, output, success }`); a bare answer is tolerated too.
+ */
+function extractExchangeAnswer(output: unknown): ExchangeAnswer | null {
+  if (!output || typeof output !== "object") return null;
+  const nested = (output as { output?: unknown }).output;
+  if (nested && typeof nested === "object") return nested as ExchangeAnswer;
+  return output as ExchangeAnswer;
+}
+
+/**
+ * The minted refresh token reaches the run answer only under
+ * `connect.X_REFRESH_TOKEN` — nested per the connector's answer, with the
+ * flat dotted spelling tolerated.
+ */
+function readRefreshToken(answer: ExchangeAnswer | null): string | null {
+  if (!answer) return null;
+  const nested = asString(answer.connect?.X_REFRESH_TOKEN);
+  return nested ?? asString(answer["connect.X_REFRESH_TOKEN"]);
+}
+
 const pendingConnects = new Map<string, PendingConnect>();
 
 function pruneExpiredPendingConnects(now = Date.now()) {
@@ -73,6 +108,7 @@ export class XConnectFlow {
   constructor(
     private readonly twitter: TwitterPluginClient,
     private readonly credentials: XClientCredentials,
+    private readonly dispatch?: ConnectorCallFn,
   ) {}
 
   get project(): string {
@@ -124,25 +160,6 @@ export class XConnectFlow {
       });
     }
 
-    const token = await this.twitter().auth.exchangeCodeForToken({
-      code: input.code,
-      redirectUri: pending.redirectUri,
-      codeVerifier: pending.codeVerifier,
-      scopes: X_OAUTH_SCOPES,
-    });
-
-    if (!token.refreshToken) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "X did not grant a refresh token. Approve the offline.access scope and try again",
-      });
-    }
-
-    if (!token.userId) {
-      throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "X did not return the connected user",
-      });
-    }
-
     // Two credential shapes:
     //   BYO (walletApiKey passed, the advanced path) — both rows live under
     //     the caller's own wallet; the caller profile is the wallet's address.
@@ -165,16 +182,44 @@ export class XConnectFlow {
       max_per_day: this.credentials.maxPerDay ?? DEFAULT_X_DAILY_POST_CAP,
     });
 
+    // The author row lands before the run: the enclave's exchange_code reads
+    // the OAuth client from it, under the curated X_OAUTH_* names.
     try {
       const stored = await storeOutlayerSecretRows({
         walletApiKey,
         project: this.project,
         rows: [
-          { profile: "author", secrets: { X_CLIENT_ID: clientId, X_CLIENT_SECRET: clientSecret } },
+          {
+            profile: "author",
+            secrets: {
+              X_OAUTH_CLIENT_ID: clientId,
+              X_OAUTH_CLIENT_SECRET: clientSecret,
+            },
+          },
+        ],
+      });
+      if (!stored) {
+        throw new Error("the row store answered nothing");
+      }
+    } catch (error) {
+      throw new ORPCError("BAD_GATEWAY", {
+        message: `OutLayer did not store the X author credential: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
+
+    const exchanged = await this.runExchangeCode(input.code, pending);
+
+    try {
+      const stored = await storeOutlayerSecretRows({
+        walletApiKey,
+        project: this.project,
+        rows: [
           {
             profile: callerProfile,
             secrets: {
-              X_REFRESH_TOKEN: token.refreshToken,
+              X_REFRESH_TOKEN: exchanged.refreshToken,
               X_POLICY: policyJson,
             },
           },
@@ -193,9 +238,75 @@ export class XConnectFlow {
 
     return {
       status: "connected",
-      scope: token.scope ?? X_OAUTH_SCOPES,
-      xUserId: token.userId,
-      username: token.username,
+      scope: exchanged.grantedScope ?? X_OAUTH_SCOPES,
+      xUserId: exchanged.xUserId,
+      username: exchanged.username,
+    };
+  }
+
+  /**
+   * The enclave exchange: the code + PKCE verifier are exchanged with the
+   * author client inside the connector's run — the API server never calls
+   * X's token endpoint and never holds the client secret at exchange time.
+   */
+  private async runExchangeCode(
+    code: string,
+    pending: PendingConnect,
+  ): Promise<{
+    refreshToken: string;
+    xUserId: string;
+    username?: string;
+    grantedScope?: string[];
+  }> {
+    if (!this.dispatch) {
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: "The connectors bridge is not wired — the enclave code exchange is unavailable",
+      });
+    }
+
+    const call = await this.dispatch({
+      agentId: pending.userId,
+      connector: this.project,
+      operation: "exchange_code",
+      input: {
+        code,
+        code_verifier: pending.codeVerifier,
+        redirect_uri: pending.redirectUri,
+      },
+    });
+
+    if (call.error) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: call.error,
+      });
+    }
+    if (call.status !== "completed") {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `The enclave code exchange did not complete (status: ${call.status}, callId: ${call.callId})`,
+      });
+    }
+
+    const answer = extractExchangeAnswer(call.output);
+    const refreshToken = readRefreshToken(answer);
+    if (!refreshToken) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "X did not grant a refresh token. Approve the offline.access scope and try again",
+      });
+    }
+
+    const xUserId = asString(answer?.id);
+    if (!xUserId) {
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: "X did not return the connected user",
+      });
+    }
+
+    const grantedScope = asString(answer?.granted_scope);
+    return {
+      refreshToken,
+      xUserId,
+      username: asString(answer?.username) ?? undefined,
+      grantedScope: grantedScope?.split(" ").filter(Boolean),
     };
   }
 }

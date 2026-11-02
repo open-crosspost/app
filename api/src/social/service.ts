@@ -4,6 +4,7 @@ import { CampaignRepository } from "./campaign-repository";
 import { JobRepository } from "./job-repository";
 import { generateNearAutomationKey } from "./key-vault";
 import type { SocialRepository } from "./repository";
+import type { ConnectorCallArgs, ConnectorCallFn, OutlayerCallResult } from "./scheduler";
 import type {
   AccountPostsQuery,
   ActivityLeaderboardQuery,
@@ -52,9 +53,20 @@ function unavailableMessage(subject: string, action: string): string {
   return `${action} for ${subject} is not implemented yet.`;
 }
 
+interface ConnectorsBridgeClient {
+  outlayerWalletConnect: (input: { agentId: string; walletApiKey: string }) => Promise<unknown>;
+  outlayerAppWalletAttach: (input: { agentId: string; rowProfile: string }) => Promise<unknown>;
+  outlayerCall: (args: ConnectorCallArgs) => Promise<OutlayerCallResult>;
+}
+
+type ConnectorsClientFactory = (
+  userId: string,
+  context?: { near?: { primaryAccountId: string } },
+) => unknown;
+
 export class SocialService {
   private twitterFactory?: TwitterPluginClient;
-  private connectorsFactory?: (userId: string) => unknown;
+  private connectorsFactory?: ConnectorsClientFactory;
   private readonly xCredentials: XClientCredentials;
   private readonly campaignRepository: CampaignRepository;
   private readonly jobRepository: JobRepository;
@@ -397,13 +409,41 @@ export class SocialService {
     this.twitterFactory = factory;
   }
 
-  attachConnectors(factory?: (userId: string) => unknown) {
+  attachConnectors(factory?: ConnectorsClientFactory) {
     this.connectorsFactory = factory;
   }
 
-  private get xConnect(): XConnectFlow | undefined {
+  private connectorsClient(
+    userId: string,
+    nearAccountId?: string,
+  ): ConnectorsBridgeClient | undefined {
+    return this.connectorsFactory?.(
+      userId,
+      nearAccountId ? { near: { primaryAccountId: nearAccountId } } : undefined,
+    ) as ConnectorsBridgeClient | undefined;
+  }
+
+  /**
+   * The server-side OutLayer dispatch (the same bridge the job scheduler
+   * fires through), scoped to the connecting user's session — the enclave
+   * exchange runs as them, under their wallet's payment path.
+   */
+  private outlayerDispatch(nearAccountId?: string): ConnectorCallFn | undefined {
+    if (!this.connectorsFactory) return undefined;
+    return async (args) => {
+      const connectors = this.connectorsClient(args.agentId, nearAccountId);
+      if (!connectors?.outlayerCall) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "The connectors bridge is not wired — the enclave code exchange is unavailable",
+        });
+      }
+      return connectors.outlayerCall(args);
+    };
+  }
+
+  private xConnectFlow(dispatch?: ConnectorCallFn): XConnectFlow | undefined {
     return this.twitterFactory
-      ? new XConnectFlow(this.twitterFactory, this.xCredentials)
+      ? new XConnectFlow(this.twitterFactory, this.xCredentials, dispatch)
       : undefined;
   }
 
@@ -419,14 +459,15 @@ export class SocialService {
     userId: string,
     input: SocialConnectAccountInput,
   ): Promise<SocialConnectAccountResponse> {
-    if (input.platform !== "twitter" || !this.xConnect) {
+    const xConnect = this.xConnectFlow();
+    if (input.platform !== "twitter" || !xConnect) {
       return {
         status: "unavailable",
         message: unavailableMessage(input.platform, "account connection"),
       };
     }
 
-    const { url, state } = await this.xConnect.start({ userId, redirectUri: input.redirectUri });
+    const { url, state } = await xConnect.start({ userId, redirectUri: input.redirectUri });
 
     return {
       status: "redirect",
@@ -440,31 +481,16 @@ export class SocialService {
     input: SocialConnectCallbackInput,
     nearAccountId?: string,
   ): Promise<SocialConnectCallbackResponse> {
-    if (input.platform !== "twitter" || !this.xConnect) {
+    const xConnect = this.xConnectFlow(this.outlayerDispatch(nearAccountId));
+    if (input.platform !== "twitter" || !xConnect) {
       throw new ORPCError("BAD_REQUEST", {
         message: unavailableMessage(input.platform, "account connection"),
       });
     }
 
-    const response = await this.xConnect.complete({ userId, nearAccountId, ...input });
-
-    await this.repository.recordConnectedAccount(userId, input.platform, {
-      platformUserId: response.xUserId,
-      username: response.username,
-    });
-
-    const connectors = this.connectorsFactory?.(userId) as
-      | {
-          outlayerWalletConnect: (input: {
-            agentId: string;
-            walletApiKey: string;
-          }) => Promise<unknown>;
-          outlayerAppWalletAttach: (input: {
-            agentId: string;
-            rowProfile: string;
-          }) => Promise<unknown>;
-        }
-      | undefined;
+    // The wallet registration lands first: the enclave exchange dispatches
+    // through the same bridge and needs the caller's payment path attached.
+    const connectors = this.connectorsClient(userId, nearAccountId);
     if (connectors) {
       try {
         if (input.walletApiKey) {
@@ -481,10 +507,17 @@ export class SocialService {
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         throw new ORPCError("BAD_GATEWAY", {
-          message: `X connected, but the OutLayer wallet registration failed: ${detail}`,
+          message: `The OutLayer wallet registration failed: ${detail}`,
         });
       }
     }
+
+    const response = await xConnect.complete({ userId, nearAccountId, ...input });
+
+    await this.repository.recordConnectedAccount(userId, input.platform, {
+      platformUserId: response.xUserId,
+      username: response.username,
+    });
 
     return response;
   }

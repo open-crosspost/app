@@ -1,4 +1,3 @@
-import { z } from "zod";
 import {
   type AccountPostsQuery,
   AccountPostsQuerySchema,
@@ -26,6 +25,7 @@ import {
   ReplyToPostRequestSchema,
   TimePeriod,
 } from "@crosspost/plugin/types";
+import { z } from "zod";
 
 export {
   type AccountPostsQuery,

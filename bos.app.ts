@@ -64,7 +64,7 @@ export default App({
     },
     twitter: {
       path: "plugins/twitter",
-      secrets: ["X_CLIENT_ID", "X_CLIENT_SECRET"],
+      secrets: ["X_CLIENT_ID"],
     },
   },
 });

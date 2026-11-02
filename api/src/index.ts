@@ -163,7 +163,8 @@ export default createPlugin.withPlugins<PluginsClient>()({
     socialService?.attachTwitter(plugins.twitter ? () => plugins.twitter.client() : undefined);
     socialService?.attachConnectors(
       plugins.connectors
-        ? (userId: string) => plugins.connectors!.client({ userId }) as unknown
+        ? (userId: string, context?: { near?: { primaryAccountId: string } }) =>
+            plugins.connectors!.client({ userId, ...context }) as unknown
         : undefined,
     );
 

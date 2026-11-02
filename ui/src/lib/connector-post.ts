@@ -106,11 +106,78 @@ export function connectorSuccessDetail(
   };
 }
 
+type RefusalClassification = {
+  code: ApiErrorCode;
+  recoverable: boolean;
+  message: string;
+};
+
+const RATE_LIMITED_REFRESH: RefusalClassification = {
+  code: ApiErrorCode.RATE_LIMITED,
+  recoverable: true,
+  message: "The X connection is being refreshed — try again in a few seconds.",
+};
+
+const RATE_LIMITED_THROTTLED: RefusalClassification = {
+  code: ApiErrorCode.RATE_LIMITED,
+  recoverable: true,
+  message: "X is rate limiting right now — wait a moment and try again.",
+};
+
+const RECONNECT: RefusalClassification = {
+  code: ApiErrorCode.UNAUTHORIZED,
+  recoverable: false,
+  message: "Your X connection needs attention — reconnect your account.",
+};
+
+const POLICY_REFUSED: RefusalClassification = {
+  code: ApiErrorCode.PLATFORM_ERROR,
+  recoverable: false,
+  message: "The owner's posting rules refused this post.",
+};
+
+/**
+ * The connector family's refusal prefixes, mapped to what the user should
+ * see. The raw sentence stays in `details.raw` for support and debugging.
+ */
+const REFUSAL_PREFIXES: Array<{ prefixes: string[]; classification: RefusalClassification }> = [
+  { prefixes: ["credential_busy:"], classification: RATE_LIMITED_REFRESH },
+  {
+    prefixes: ["rate_limited:", "operation_limit_reached"],
+    classification: RATE_LIMITED_THROTTLED,
+  },
+  {
+    prefixes: [
+      "credential_expired:",
+      "credential_rejected:",
+      "scope_missing:",
+      "no credential reached this run",
+    ],
+    classification: RECONNECT,
+  },
+  { prefixes: ["policy_denied:"], classification: POLICY_REFUSED },
+];
+
+function classifyRefusal(raw: string): RefusalClassification | null {
+  for (const rule of REFUSAL_PREFIXES) {
+    if (rule.prefixes.some((prefix) => raw.startsWith(prefix))) {
+      return rule.classification;
+    }
+  }
+  return null;
+}
+
 export function connectorErrorDetail(error: unknown, account: ConnectedAccount): ErrorDetail {
+  const raw = error instanceof Error ? error.message : null;
+  const classified = raw ? classifyRefusal(raw) : null;
   return {
-    message: error instanceof Error ? error.message : "Posting to X failed.",
-    code: ApiErrorCode.PLATFORM_ERROR,
-    recoverable: false,
-    details: { platform: Platform.TWITTER, userId: account.userId },
+    message: classified?.message ?? raw ?? "Posting to X failed.",
+    code: classified?.code ?? ApiErrorCode.PLATFORM_ERROR,
+    recoverable: classified?.recoverable ?? false,
+    details: {
+      platform: Platform.TWITTER,
+      userId: account.userId,
+      ...(raw ? { raw } : {}),
+    },
   };
 }
