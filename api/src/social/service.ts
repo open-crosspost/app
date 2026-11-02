@@ -34,6 +34,7 @@ import type {
 } from "./types";
 import { ApiErrorCode, makeUnsupportedPlatformResult } from "./types";
 import {
+  CONNECTORS_BRIDGE_UNAVAILABLE,
   profileForUser,
   type TwitterPluginClient,
   type XClientCredentials,
@@ -434,7 +435,7 @@ export class SocialService {
       const connectors = this.connectorsClient(args.agentId, nearAccountId);
       if (!connectors?.outlayerCall) {
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: "The connectors bridge is not wired — the enclave code exchange is unavailable",
+          message: CONNECTORS_BRIDGE_UNAVAILABLE,
         });
       }
       return connectors.outlayerCall(args);

@@ -40,6 +40,9 @@ export const profileForUser = (key: string): string =>
 
 export const DEFAULT_X_CONNECT_PROJECT = "connectors.outlayer.near/x";
 
+export const CONNECTORS_BRIDGE_UNAVAILABLE =
+  "The connectors bridge is not wired — the enclave code exchange is unavailable";
+
 /** The twitter plugin's in-process client factory (v2 client-entry surface). */
 export type TwitterPluginClient = NonNullable<PluginsClient["twitter"]>["client"];
 
@@ -260,7 +263,7 @@ export class XConnectFlow {
   }> {
     if (!this.dispatch) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "The connectors bridge is not wired — the enclave code exchange is unavailable",
+        message: CONNECTORS_BRIDGE_UNAVAILABLE,
       });
     }
 
