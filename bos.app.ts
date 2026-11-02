@@ -21,8 +21,6 @@ export default App({
       "API_DATABASE_URL",
       "API_DATABASE_AUTH_TOKEN",
       "BETTER_AUTH_SECRET",
-      "X_CLIENT_ID",
-      "X_CLIENT_SECRET",
       "X_CONNECT_PROJECT",
       "X_POLICY_MAX_PER_DAY",
       "OUTLAYER_APP_WALLET_KEY",

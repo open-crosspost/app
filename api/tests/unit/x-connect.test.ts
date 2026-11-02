@@ -35,8 +35,6 @@ const twitterFactory = (() => ({
 })) as unknown as TwitterPluginClient;
 
 const credentials: XClientCredentials = {
-  clientId: "app-client-id",
-  clientSecret: "app-client-secret",
   appWalletKey: "wk_app",
 };
 
@@ -129,7 +127,7 @@ describe("XConnectFlow.complete", () => {
     });
   });
 
-  it("stores the author row under the curated keys before the run, the credential row after", async () => {
+  it("never holds the OAuth client: only the caller's credential row is stored, after the run", async () => {
     const { flow, started } = await startedFlow(dispatch);
 
     await flow.complete({
@@ -139,21 +137,9 @@ describe("XConnectFlow.complete", () => {
       state: started.state,
     });
 
-    expect(timeline).toEqual(["store", "run", "store"]);
-    expect(storeOutlayerSecretRowsMock).toHaveBeenNthCalledWith(1, {
-      walletApiKey: "wk_app",
-      project: DEFAULT_X_CONNECT_PROJECT,
-      rows: [
-        {
-          profile: "author",
-          secrets: {
-            X_OAUTH_CLIENT_ID: "app-client-id",
-            X_OAUTH_CLIENT_SECRET: "app-client-secret",
-          },
-        },
-      ],
-    });
-    expect(storeOutlayerSecretRowsMock).toHaveBeenNthCalledWith(2, {
+    expect(timeline).toEqual(["run", "store"]);
+    expect(storeOutlayerSecretRowsMock).toHaveBeenCalledTimes(1);
+    expect(storeOutlayerSecretRowsMock).toHaveBeenCalledWith({
       walletApiKey: "wk_app",
       project: DEFAULT_X_CONNECT_PROJECT,
       rows: [
@@ -190,7 +176,7 @@ describe("XConnectFlow.complete", () => {
     });
 
     expect(response).toMatchObject({ xUserId: "99", username: "alice" });
-    expect(storeOutlayerSecretRowsMock).toHaveBeenNthCalledWith(2, {
+    expect(storeOutlayerSecretRowsMock).toHaveBeenNthCalledWith(1, {
       walletApiKey: "wk_app",
       project: DEFAULT_X_CONNECT_PROJECT,
       rows: [
@@ -216,20 +202,8 @@ describe("XConnectFlow.complete", () => {
       walletApiKey: "wk_byo",
     });
 
-    expect(storeOutlayerSecretRowsMock).toHaveBeenNthCalledWith(1, {
-      walletApiKey: "wk_byo",
-      project: DEFAULT_X_CONNECT_PROJECT,
-      rows: [
-        {
-          profile: "author",
-          secrets: {
-            X_OAUTH_CLIENT_ID: "app-client-id",
-            X_OAUTH_CLIENT_SECRET: "app-client-secret",
-          },
-        },
-      ],
-    });
-    expect(storeOutlayerSecretRowsMock).toHaveBeenNthCalledWith(2, {
+    expect(storeOutlayerSecretRowsMock).toHaveBeenCalledTimes(1);
+    expect(storeOutlayerSecretRowsMock).toHaveBeenCalledWith({
       walletApiKey: "wk_byo",
       project: DEFAULT_X_CONNECT_PROJECT,
       rows: [
@@ -315,6 +289,30 @@ describe("XConnectFlow.complete", () => {
     expect(error).toBeInstanceOf(ORPCError);
     expect(error.code).toBe("BAD_REQUEST");
     expect(error.message).toContain("X refused the code exchange");
+  });
+
+  it("surfaces the missing-author-client refusal when the publisher has not provisioned their row", async () => {
+    const noAuthorRow = vi.fn(async () => ({
+      callId: "call-no-author",
+      status: "completed",
+      output: {
+        logs: [],
+        operation: "exchange_code",
+        success: false,
+        error:
+          "no OAuth client reached this run to exchange the code with: the publishing account stores the connector's client under profile `author` (X_OAUTH_CLIENT_ID, X_OAUTH_CLIENT_SECRET)",
+      },
+      error: null,
+    })) as unknown as ConnectorCallFn;
+    const { flow, started } = await startedFlow(noAuthorRow);
+
+    const error = await flow
+      .complete({ userId: "user-1", platform: Platform.TWITTER, code: "c", state: started.state })
+      .catch((thrown) => thrown);
+
+    expect(error).toBeInstanceOf(ORPCError);
+    expect(error.code).toBe("BAD_REQUEST");
+    expect(error.message).toContain("no OAuth client reached this run");
   });
 
   it("refuses when the run does not complete", async () => {
@@ -406,7 +404,6 @@ describe("SocialService.completeConnect", () => {
       expect(timeline).toEqual([
         "client:user-1:work.efiz.near",
         `attach:${profileForUser("work.efiz.near")}`,
-        "store",
         "client:user-1:work.efiz.near",
         "run:exchange_code",
         "store",

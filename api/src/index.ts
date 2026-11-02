@@ -55,8 +55,6 @@ export default createPlugin.withPlugins<PluginsClient>()({
     API_DATABASE_URL: z.string().default("file:./api.db"),
     API_DATABASE_AUTH_TOKEN: z.string().optional(),
     BETTER_AUTH_SECRET: z.string().optional(),
-    X_CLIENT_ID: z.string().optional(),
-    X_CLIENT_SECRET: z.string().optional(),
     X_CONNECT_PROJECT: z.string().optional(),
     X_POLICY_MAX_PER_DAY: z.string().optional(),
     OUTLAYER_APP_WALLET_KEY: z.string().optional(),
@@ -116,8 +114,6 @@ export default createPlugin.withPlugins<PluginsClient>()({
       const social = new SocialService(
         socialRepository,
         {
-          clientId: config.secrets.X_CLIENT_ID,
-          clientSecret: config.secrets.X_CLIENT_SECRET,
           project: config.secrets.X_CONNECT_PROJECT,
           appWalletKey: config.secrets.OUTLAYER_APP_WALLET_KEY,
           maxPerDay: Number.isFinite(maxPerDay) ? maxPerDay : undefined,

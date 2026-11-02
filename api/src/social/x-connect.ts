@@ -16,8 +16,6 @@ const PENDING_CONNECT_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_X_DAILY_POST_CAP = 1000;
 
 export interface XClientCredentials {
-  clientId?: string;
-  clientSecret?: string;
   /** The connector project the handoff stores the credential row for. */
   project?: string;
   /**
@@ -156,21 +154,20 @@ export class XConnectFlow {
       });
     }
 
-    const { clientId, clientSecret } = this.credentials;
-    if (!clientId || !clientSecret) {
-      throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "X client credentials are not configured",
-      });
-    }
-
     // Two credential shapes:
-    //   BYO (walletApiKey passed, the advanced path) — both rows live under
-    //     the caller's own wallet; the caller profile is the wallet's address.
+    //   BYO (walletApiKey passed, the advanced path) — the caller's row lives
+    //     under the caller's own wallet; the caller profile is the wallet's
+    //     address.
     //   App-managed (default, no keys touched) — the caller's row lives on
     //     the APP wallet under the caller's flattened account id; the app's
     //     shared payment key pays for dispatch and resolves the row via
-    //     secrets_ref. The author row (the OAuth client pair) is app-global:
-    //     stored once per wallet, re-stored idempotently.
+    //     secrets_ref.
+    //
+    // The OAuth client pair is NOT the API's to store: the author row
+    // (profile `author`) belongs to the project's publishing account and is
+    // provisioned once out-of-band with the outlayer CLI — no server ever
+    // holds the client secret. A run whose author row is missing is refused
+    // by the connector itself, and the refusal names the fix.
     const walletApiKey = input.walletApiKey ?? this.credentials.appWalletKey;
     if (!walletApiKey) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -184,33 +181,6 @@ export class XConnectFlow {
     const policyJson = JSON.stringify({
       max_per_day: this.credentials.maxPerDay ?? DEFAULT_X_DAILY_POST_CAP,
     });
-
-    // The author row lands before the run: the enclave's exchange_code reads
-    // the OAuth client from it, under the curated X_OAUTH_* names.
-    try {
-      const stored = await storeOutlayerSecretRows({
-        walletApiKey,
-        project: this.project,
-        rows: [
-          {
-            profile: "author",
-            secrets: {
-              X_OAUTH_CLIENT_ID: clientId,
-              X_OAUTH_CLIENT_SECRET: clientSecret,
-            },
-          },
-        ],
-      });
-      if (!stored) {
-        throw new Error("the row store answered nothing");
-      }
-    } catch (error) {
-      throw new ORPCError("BAD_GATEWAY", {
-        message: `OutLayer did not store the X author credential: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-    }
 
     const exchanged = await this.runExchangeCode(input.code, pending);
 
