@@ -5,7 +5,7 @@ import { App } from "everything-dev/descriptor";
 export default App({
   name: "opencrosspost.com",
   extends: "bos://dev.everything.near/everything.dev",
-  platform: "2.0.0-rc.27",
+  platform: "2.0.0-rc.30",
   account: "crosspost.near",
   domain: "opencrosspost.com",
   title: "Open Crosspost",

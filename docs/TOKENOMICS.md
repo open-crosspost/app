@@ -1,26 +1,35 @@
-# XPOST Tokenomics — monetizing Open Crosspost
+# XPOST Tokenomics — monetizing Open Crosspost (v2)
 
-> Drafted 2026-10-31. The source of truth for XPOST utility, tier thresholds,
-> and the credit-pack flow. Tickets reference this doc; changes to the model
-> land here first.
+> Drafted 2026-10-31; **rewritten 2026-11-02 as v2** — the pack model is
+> gone. v2 model: consumers post free (app-paid, capped), heavy users hold
+> XPOST to raise their caps, agents pay a NEAR-denominated subscription
+> with an XPOST discount, and 20% of subscription revenue buys XPOST
+> weekly on Ref. The source of truth for XPOST utility, tier thresholds,
+> and the subscription/buyback flow. Changes to the model land here first.
 >
-> Grounding facts measured/verified 2026-10-31: per-post compute cost, token
-> contract metadata, pool state. See the E2E.md probe section for the bridge
-> work these tiers ride on.
+> Grounding facts measured/verified 2026-10-31 (compute cost, token
+> contract metadata, pool state) and 2026-11-02 (X API pay-per-usage
+> rates — docs.x.com/x-api/getting-started/pricing). See E2E.md for the
+> bridge work the tiers ride on. The connector's wholesale fee deal with
+> OutLayer is negotiated in [`TERMS-x-connector.md`](./TERMS-x-connector.md).
 
 ## 1. The unit economics (measured, not estimated)
 
 | Cost item | Value | Notes |
 |---|---|---|
-| OutLayer compute, X post (preview project) | **$0.001001** | `compute_cost: 1001` micros USDC, observed live. Operation fees only start on curated connectors |
+| X API post write (pay-per-usage) | **$0.015** (`Post: Create`) | Billed to the app's prepaid credits, per request; **$0.200 if the post contains a URL** — the connector routes URL posts to the priced `post_url` operation (TERMS); **URL posts are never free** |
+| Platform (OutLayer) keep per curated-connector call | **$0.005** | $0.001 compute + $0.004 margin inside the $0.02 fee; #15 sponsor codes are the later lever to ~$0.001 |
+| **App's net cost per sponsored text post** | **$0.02** | Fee −$0.02 (paid as caller) + author share +$0.015 (paid as author) + X bill −$0.015 = **−$0.02**. The author-share rebate only offsets X's bill — without the TERMS agreement the same post costs **$0.035**; without OutLayer, not possible at all (the enclave holds the credentials) |
+| X API user read (`me`) | **$0.010/user read** | 24 h dedup per resource; the app caches the connected handle 7 days → **~$0.52/user/yr** for profile display |
 | NEAR Social post | **~$0** | Gasless relay; user carries their own storage deposit |
-| Annual cost of a daily-GM user | **~$0.37** | Compute is *not* the scarce resource |
-| The real scarcity | **The X app's post quota** | Per-app rate limits are shared by ALL users — the gate rations this, not compute |
-| The real fixed costs | X developer account, OutLayer program agreement (#8), dev time | Orders of magnitude above per-post compute |
+| Annual cost of a maxed free tier (1 post/day) | **~$7.30/user** | Utilization-dependent; typical GM usage is at or under the cap |
 
-Conclusion: cost-recovery math does not set prices at $0.001/post. The gate
-**rations a scarce quota** and **creates token demand**; the credit packs
-**monetize** with a stated margin.
+Conclusion: X posting has a hard $0.015 floor set by X's published rate —
+there is no shared post quota under pay-per-usage, cost recovery absolutely
+sets the price floor, and the app gifts that cost deliberately (below).
+NEAR Social posting is free for us. The blog is: **consumers are the
+subsidized free engine, holders raise their own caps, agents are the
+revenue, and the buyback converts that revenue into token price.**
 
 ## 2. The token (facts from the contract + launchpad)
 
@@ -30,113 +39,125 @@ Conclusion: cost-recovery math does not set prices at $0.001/post. The gate
   curve** (every depositor bought at one price; all NEAR deposited became a
   **locked** LP; token trades on Ref Finance). No per-trade creator fee
   exists — the platform takes nothing from trading.
-- Pool state at drafting: **$10.316K locked liquidity, $12.011K market cap →
-  XPOST ≈ $0.000012**.
-- Treasury: **20% (200M XPOST ≈ $2.4K today)**. Consequence: the ONLY
-  trading-related upside is treasury appreciation — which makes the product
-  itself the demand engine. At $10.3K liquidity, ~$5K of net product-driven
-  buying ≈ 2× the price.
+- Pool state: **$10.316K locked liquidity, $12.011K market cap →
+  XPOST ≈ $0.000012** (2026-10-31).
+- Treasury started at **20% (200M XPOST)** and **grows** in v2: 20% of
+  subscription revenue is spent buying XPOST weekly and the bought tokens
+  return to the treasury — plus all tokens received as subscriptions paid
+  in XPOST. Policy: treasury holds, never market-sells (showing the
+  mechanism while it must also buy each week).
 
-## 3. Loop 1 — Hold tiers (admission; gate BUILT, off by default)
+## 3. The consumer ladder — free to post, hold to post more
 
-The dispatch gate (`connectors.outlayerCall`) reads the caller's session NEAR
-account balance before spending anything; refusal is fail-closed and free.
+The gate (`connectors.outlayerCall`) still reads the session's NEAR account
+balance; refusal is fail-closed and free. Every paid path is
+wallet-anchored; anonymous sessions land at Tier 0 by construction; the
+wallet prompt belongs at the point of wanting more, not at signup.
 
-| Tier | Hold (initial) | ~$ at drafting | Unlocks |
+| Tier | Requirement | Gets | Our max cost/user/yr |
 |---|---|---|---|
-| 0 | 0 | — | NEAR Social posting (free for us), browse campaigns |
-| 1 | **100,000 XPOST** | ~$1.20 | X connect + manual GM, app-paid, daily cap |
-| 2 | **1,000,000** | ~$12 | Auto-GM scheduler (#20), higher caps, multi-destination |
-| 3 | **10,000,000** | ~$120 | Agent campaigns (B2: grants, per-post proofs), API keys |
+| Free | nothing | X connect + **1 text post/day** (app-paid), NEAR Social unlimited (~$0 to us), campaign browsing, BYO/fund-link path | $7.30 |
+| Holder | hold ~100,000 XPOST (~$1.20) | **2/day** + auto-GM scheduler (#20) | $14.60 |
+| Big holder | hold ~1,000,000 (~$12) | **5/day** + multi-destination | $36.50 |
 
 Design notes:
 
-- Tier 3 = 1% of supply — **scarce by design** (~80 such holders possible
-  from the 80% float). The prosumer tier should be small.
-- **Non-holders keep the BYO/fund-link path** (already built) — a freemium
-  boundary, not a meme-token paywall. The gate sells convenience (sponsored
-  posts), not access.
-- **Every paid path is wallet-anchored**: the gate reads the session's NEAR
-  account balance and packs are `ft_transfer`s — anonymous (wallet-less)
-  sessions get Tier 0 by construction. The wallet prompt belongs at the
-  *paywall*, not at signup: connect (SIWN) → the session links
-  `walletAddress` → `onLinkAccount` migrates the anonymous data → tiers and
-  packs then apply. No custodial user funds ever.
-- Fixed token amounts, **no oracle at dispatch time** — predictable UX, zero
-  infra. Recalibration is a config change (below), not code.
+- **The overflow valve IS the token** (replaces packs): want more than the
+  free cap? Hold more XPOST. Usage demand converts directly into token
+  demand — no checkout, no custodial funds, no pack UX.
+- **Worst-case overrun is accepted marketing spend**: the hold is a
+  one-time ~$1.20–$12 while the cost is recurring, so a fully-maxed
+  tier always exceeds hold value at current price ($7.30–$36.50 actual
+  worst cases above). Caps exist to bound it; observed GM utilization is
+  ~1/day. Caps are env knobs, revisited with real usage data.
+- **Threshold targets stay pinned to USD** (~$1.20 / ~$12) with the daily
+  Ref-pool refresh already built (below §1a of v1, same mechanism):
+  two free view calls, DB row → variable defaults, 24 h interval in
+  plugin `initialize`, fail-safe keeps yesterday's row, ±25%/day drift cap.
+- **Bounded free-op costs, always**: `delete` free ≤5/credential/day then
+  at-cost ($0.011); `me` cached 7 days. Any newly free operation ships
+  with its bound first.
 
-### 1a. Dynamic thresholds (daily, no git noise)
+## 4. The agent subscription (the revenue line)
 
-Tiers are **pinned to USD targets** (~$1.20 / $12 / $120) by a daily refresh:
+API keys, agent campaigns (#B2: grants, per-post proofs), and the agent
+rail are **paid, not held**. One launch shape:
 
-- **Price source**: the Ref pools themselves — two free RPC view calls
-  (`get_pool` on the XPOST/wNEAR pool **6055** and the deep USD leg,
-  wNEAR/USDT pool **6063** — there is no deep wNEAR/USDC pool, so USDT is
-  the USD reference). On-chain, deterministic, no API key.
-- **Storage**: a `gate_config` row in the connectors plugin DB. Resolution at
-  dispatch: **DB row → plugin-variable defaults** (the static ladder above).
-- **Refresh**: a 24h interval in the plugin `initialize` — the same tick
-  pattern the #20 scheduler will use (one mechanism, two consumers). Each
-  run: price → thresholds = target-$ / price → snap to pretty numbers
-  (1/2/5 × 10ⁿ).
-- **Fail-safe**: a failed price read keeps yesterday's row — an outage never
-  widens or tightens the gate.
-- **Drift cap**: thresholds move at most **±25%/day** — a pool wobble or a
-  single whale pump cannot reprice tiers wildly. Manual lever: an admin route
-  reads/writes the row directly.
+> **$10/mo, priced in NEAR — 300 posts/mo included**
+> **pay in XPOST and take 20% off**
 
-## 4. Loop 2 — Credit packs (direct revenue; the real line)
+- **No hold requirement** — anything else would shrink the buyer pool to
+  speculators; B2 buyers get a flat, predictable price in the asset they
+  already have.
+- **The XPOST discount is the token's transactional reason** (the BNB
+  pattern): a standing monthly budget that is 20% cheaper in XPOST. An
+  agent paying in XPOST buys ~$8/month of the token, every month.
+- **Economics per sub (NEAR-paid)**: $10 revenue; 300 posts × $0.02 =
+  $6 cost; buyback takes $2 → **~$2 net/sub (~20%)**. XPOST-paid: the
+  agent's ~$8 of XPOST goes to the treasury unswapped (pure net demand);
+  post costs fund from the NEAR side.
+- **Break-even on the free tier**: 100 free-tier users fully maxed (1/day)
+  = 3,000 posts/mo = $60/mo → **~30 subs fund 100 daily free users
+  entirely**. At typical utilization (~1/day is the cap itself — GM users
+  are at or near it) plan like they are maxed.
+- **XPOST received is treasuried, never swapped** — selling it would sell
+  into the same pool the discount just bought from. Costs are funded by
+  NEAR revenue; if NEAR inflows ever exceed needs, the existing 50/50
+  hold/swap policy on pack inflows applies to the excess.
+- **#15 sponsor codes** are the later margin lever: the platform's keep
+  drops $0.004 → ~$0.001, cutting post cost to $0.016 and widening every
+  margin above.
 
-"Buy 1,000 sponsored posts" — one `ft_transfer` to the app treasury.
+## 5. The buyback (the price engine)
 
-- **Pricing**: 44% margin over compute — ~150,000 XPOST per 1,000-post pack
-  (~$1.80 at spot for $1.00 of compute). Credits are USD-denominated; XPOST
-  accepted at spot; the premium is stated in USD up front.
-- **Enforcement**: the allowance lives **app-side**, counted from the bridge
-  event log — same mechanism as per-user caps. No OutLayer changes.
-- **Treasury route**: hold 50% / swap 50% on Ref into the app wallet to fund
-  the shared payment key. Sell pressure is sized to actual compute burn
-  (tiny) — the swap never moves the pool.
-- Works for **non-holders too** — this is how the freemium boundary
-  monetizes, and it is whale-independent.
-- Pack pricing is an env knob (`packPremiumUsd` / `packPosts`), decided
-  finally at launch.
+A fixed **20% of NEAR revenue** buys XPOST on Ref weekly. Published txs;
+policy change is a doc change first.
 
-## 5. Loop 3 — Agent tier pays in XPOST (B2; the demand flywheel)
-
-XPOST is not — and will not be — a NEAR Intents asset (a $10K meme token gets
-no solver routing). The loop therefore runs through Ref, not intents:
-
-**Agent budget packs**: pay XPOST to the treasury → the api credits the
-agent's owner-signed budget line → the app pays OutLayer in USDC from its
-float. Users never touch USDC; the app absorbs the swap. Same treasury route
-as Loop 2.
-
-This makes XPOST the **payment token for the premium tier** — the strongest
-sustained buy pressure a $10K pool can absorb — and it composes with
-everything B2 already builds (grants, budget caps, per-post proofs).
+- **Why it works at this liquidity**: the pool is ~$10.3K locked — even
+  **$50/week ≈ 1.3% of the pool**, visible sustained pressure. Revenue
+  growth → weekly buying → price.
+- **The holder story, honestly**: no lockups, no claims, no staking. You
+  hold a token whose only job is to be needed (§3 caps, §4 discount) and
+  whose revenue engine buys it every week (§5).
+- **Bought tokens re-treasury** (decided 2026-11-02): they return to the
+  treasury, which **never market-sells** — that is the difference between
+  a buyback circulation and a circular wash. Future use of treasury XPOST
+  (discount promos, grants) is a doc change too.
+- The 200M founding treasury can **boost early buybacks** so the mechanism
+  is visibly live from week one.
+- **What died with the packs** (kept for the record): the 44%-over-compute
+  pack line, the Tier-3 hold-gate on API keys, and pricing packs over raw
+  compute or the (wrong) $0.005 net basis. Agent economics in v2 price
+  over the true $0.02/post.
 
 ## 6. Revenue summary
 
-1. **Pack premium** (~44% over compute) — starts accruing day one,
-   whale-independent.
-2. **Treasury appreciation** — 200M XPOST rides the demand the tiers and
-   packs create; at $10.3K locked liquidity the product demand *is* the price
-   mover.
-3. Later: **sponsor codes** (#15) shift compute cost to a negotiated OutLayer
-   program, widening the pack margin.
+1. **Session margin** (~20%/sub after costs and buyback) at $10/mo —
+   30 subs ≈ break-even for 100 daily free users; every sub beyond is
+   accretive.
+2. **Buyback flywheel** — 20% of all NEAR revenue, weekly, on Ref.
+3. **Treasury appreciation** — 200M+ XPOST held by a treasury that only
+   ever buys; at $10.3K liquidity, product demand *is* the price mover.
+4. Later: **sponsor codes** (#15) widen every margin.
 
 ## 7. Risk policies
 
-- **Threshold staleness**: price moves 2× on ~$5K of demand → tiers
-  recalibrate automatically (daily refresh, drift-capped). Review the USD
-  targets quarterly.
-- **Perception**: freemium boundary + "credits at spot, premium stated in
-  USD" keeps the model honest against "meme paywall" readings.
-- **Treasury rule**: 50/50 hold/swap on pack inflows, published here; any
-  change to the split is a doc change first.
+- **URL posts are never surfaced as free** — $0.200 X cost routes to the
+  priced `post_url` operation; the pre-submit link-surcharge notice shows
+  it (open-crosspost/app#53).
+- **Cap overhead**: worst case per holder is known, bounded, and accepted
+  marketing spend, per §3; caps are env knobs reviewed monthly against
+  observed utilization.
 - **Fail-closed always**: gate or price-read failures refuse the dispatch
-  before money moves; nothing is ever charged on a refusal.
-- **No burn**: packs lock in the treasury (then partially fund compute) —
-  deflation burns revenue. Revisit only if the supply overhang becomes the
-  binding constraint.
+  before money moves; nothing is ever charged on a refusal; a downed app
+  makes no X call and burns no credits.
+- **X repricing risk**: pay-per-usage rates "are subject to change" —
+  monitor the Usage API + Developer Console; reprice = one `set-prices`
+  run + doc change (quarterly and on any rate announcement).
+- **Free-operation griefing bounds**: capped deletes, cached `me`, since
+  every free op is metered cash to the author's X credits.
+- **Treasury rule**: treasury only buys. Buyback + XPOST-paid subs flow
+  in; nothing flows out to the market. Changing this is the doc you would
+  be reading.
+- **Threshold staleness**: dynamic thresholds with daily refresh,
+  fail-safe, ±25% drift cap (unchanged); USD targets reviewed quarterly.
