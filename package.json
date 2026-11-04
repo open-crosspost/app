@@ -17,7 +17,6 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "start": "bos start",
-    "postinstall": "node node_modules/.bin/bos types gen || true",
     "db:push": "pnpm --dir api exec drizzle-kit push",
     "db:studio": "bos db:studio",
     "db:generate": "pnpm --dir api exec drizzle-kit generate",

@@ -14,7 +14,7 @@ export declare const contract: {
             url: import("zod").ZodString;
             state: import("zod").ZodString;
             codeVerifier: import("zod").ZodOptional<import("zod").ZodString>;
-        }, import("zod/v4/core").$strip>, object>;
+        }, import("zod/v4/core").$strip>, Record<never, never>>;
     };
 };
 export type ContractType = typeof contract;

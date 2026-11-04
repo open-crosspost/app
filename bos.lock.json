@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "everything-dev/composition-lockfile",
+  "runtimeRef": "bos://crosspost.near/opencrosspost.com",
+  "release": "2.0.0-rc.38",
+  "remotes": {
+    "app.api": {
+      "kind": "descriptor"
+    },
+    "app.ui": {
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/crosspost.near/opencrosspost.com/ui/",
+      "digest": {
+        "manifest": "versions/ddfcbb1c3e9614bb.json",
+        "integrity": "sha384-VFgDrfgNxh5R7psQvDyepaZ8v1KFHUeE40Who9nGZDbjPT6woU1IIwu6FRESj9I+"
+      }
+    },
+    "app.auth": {
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/dev.everything.near/everything.dev/auth/",
+      "digest": {
+        "manifest": "versions/0c5b71b916ee9b80.json",
+        "integrity": "sha384-cCM+g5/pwvbExFWfiDe272JUYoMw/OCtOCmbFvpIBeXi8yKrFS3n19ViHwvd68q/"
+      }
+    },
+    "app.auth.ui": {
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/dev.everything.near/everything.dev/auth-ui/",
+      "digest": {
+        "manifest": "versions/b17c749b8a96a5a6.json",
+        "integrity": "sha384-ZdyXWmyNzTsI6LDVNGCaRITpVLk1SBwvyVHTRlVtQ/9aTaaVNRzRe187hMTLUEKC"
+      }
+    },
+    "app.host": {
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/dev.everything.near/everything.dev/host/",
+      "digest": {
+        "manifest": "versions/86c1e2e89a863bcc.json",
+        "integrity": "sha384-Ua5fQpNR08BpFmvq4ARGs36GHjittkK2xFTbFnFEods0Fdv5Z91hiKvciRmrEdXP"
+      }
+    },
+    "plugins.auth": {
+      "kind": "descriptor"
+    },
+    "plugins.agent-connect": {
+      "kind": "descriptor"
+    },
+    "plugins.connectors": {
+      "kind": "descriptor"
+    },
+    "plugins.twitter": {
+      "kind": "descriptor"
+    }
+  },
+  "fingerprint": "cf96ef4f42ebac72",
+  "resolvedAt": "2026-11-04T21:00:29.125Z"
+}
