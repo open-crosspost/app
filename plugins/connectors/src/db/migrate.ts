@@ -4,13 +4,32 @@ import {
   type LoadedMigrations,
   loadMigrations as loadSharedMigrations,
   type Migration,
-  type MigrationDatabase,
-  type MigrationReport,
   type MigrationStorage,
   runMigrations,
 } from "everything-dev/db";
 
-export type { DriftReport, LoadedMigrations } from "everything-dev/db";
+interface MigrationDatabase {
+  execute(query: unknown): Promise<unknown>;
+  transaction<T>(fn: (tx: { execute(query: unknown): Promise<unknown> }) => Promise<T>): Promise<T>;
+}
+
+interface DriftReport {
+  status: "healthy" | "empty" | "untracked-existing-schema" | "drift-safe-repair" | "drift-manual";
+  expectedTables: string[];
+  missingTables: string[];
+  appliedHashes: number;
+  localHashes: number;
+  storage: MigrationStorage;
+}
+
+interface MigrationReport {
+  applied: number;
+  total: number;
+  storage: MigrationStorage;
+  schema: string | undefined;
+}
+
+export type { DriftReport, LoadedMigrations, MigrationReport };
 export { detectDrift } from "everything-dev/db";
 
 export const loadMigrations: Effect.Effect<LoadedMigrations, DatabaseError> = loadSharedMigrations({
@@ -40,4 +59,4 @@ export function migrate(
   );
 }
 
-export type { Migration, MigrationReport };
+export type { Migration };
