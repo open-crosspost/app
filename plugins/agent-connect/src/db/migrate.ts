@@ -29,8 +29,8 @@ interface MigrationReport {
   schema: string | undefined;
 }
 
-export type { DriftReport, LoadedMigrations, MigrationReport };
 export { detectDrift } from "everything-dev/db";
+export type { DriftReport, LoadedMigrations, MigrationReport };
 
 export const loadMigrations: Effect.Effect<LoadedMigrations, DatabaseError> = loadSharedMigrations({
   fromDir: import.meta.dirname,

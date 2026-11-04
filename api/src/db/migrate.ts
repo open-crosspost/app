@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import {
-  type DatabaseError as SharedDatabaseError,
   detectDrift as detectSharedDrift,
   type LoadedMigrations,
   loadMigrations as loadSharedMigrations,
   type Migration,
   type MigrationStorage,
   runMigrations,
+  type DatabaseError as SharedDatabaseError,
 } from "everything-dev/db";
 import { type Database, DatabaseError } from "./index";
 
@@ -55,10 +55,7 @@ export function migrate(
   storage?: MigrationStorage,
 ): Effect.Effect<number, DatabaseError> {
   return Effect.map(
-    Effect.mapError(
-      runMigrations(db, migrations, { journal: storage }),
-      toDatabaseError,
-    ),
+    Effect.mapError(runMigrations(db, migrations, { journal: storage }), toDatabaseError),
     (report) => report.applied,
   );
 }
@@ -68,8 +65,5 @@ export function detectDrift(
   migrations: Migration[],
   storage?: MigrationStorage,
 ): Effect.Effect<DriftReport, DatabaseError> {
-  return Effect.mapError(
-    detectSharedDrift(db, migrations, storage),
-    toDatabaseError,
-  );
+  return Effect.mapError(detectSharedDrift(db, migrations, storage), toDatabaseError);
 }
