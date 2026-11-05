@@ -5,14 +5,19 @@
   "release": "2.0.0-rc.38",
   "remotes": {
     "app.api": {
-      "kind": "descriptor"
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/crosspost.near/opencrosspost.com/api/",
+      "digest": {
+        "manifest": "versions/a1203b2b68712fc6.json",
+        "integrity": "sha384-8dIDxGvXNNRPX+fa6nAyroUwHwLs73mPjFpX2slhDlSFdboXrwFku1Rrvv9Ut3yr"
+      }
     },
     "app.ui": {
       "kind": "descriptor",
       "base": "https://cdn.everything.dev/bundles/crosspost.near/opencrosspost.com/ui/",
       "digest": {
-        "manifest": "versions/ddfcbb1c3e9614bb.json",
-        "integrity": "sha384-VFgDrfgNxh5R7psQvDyepaZ8v1KFHUeE40Who9nGZDbjPT6woU1IIwu6FRESj9I+"
+        "manifest": "versions/b40e1bace5c39e9c.json",
+        "integrity": "sha384-smR4X9MGp/PNB8asIkTHS/cyD1pu3vf1F2SkdrYnJ/YAvEG/P4UNyDgZUwvHAy5i"
       }
     },
     "app.auth": {
@@ -43,15 +48,30 @@
       "kind": "descriptor"
     },
     "plugins.agent-connect": {
-      "kind": "descriptor"
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/crosspost.near/opencrosspost.com/agent-connect/",
+      "digest": {
+        "manifest": "versions/c9faa2d277b25aa8.json",
+        "integrity": "sha384-NRJG1Y7q18PhwGXKVSocdK2XjZQs0jqlsmX7xrk3y6MvZXHvUASZVC6ZUJsoaSoY"
+      }
     },
     "plugins.connectors": {
-      "kind": "descriptor"
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/crosspost.near/opencrosspost.com/connectors/",
+      "digest": {
+        "manifest": "versions/a02e6720094eedad.json",
+        "integrity": "sha384-+hC/UyTtT6ETEJV3l27+HGdVL/MwNdY+YDVUUC7CXCoZD5UHDLr+iO6bLnPJ1AI6"
+      }
     },
     "plugins.twitter": {
-      "kind": "descriptor"
+      "kind": "descriptor",
+      "base": "https://cdn.everything.dev/bundles/crosspost.near/opencrosspost.com/twitter/",
+      "digest": {
+        "manifest": "versions/cc4d05ad58288860.json",
+        "integrity": "sha384-8QuJVB/dUh1JZ3r8KjMY0nzE3AlTXKavF5fnS126HHUncvByXShNTcNulis9V0Nx"
+      }
     }
   },
-  "fingerprint": "cf96ef4f42ebac72",
-  "resolvedAt": "2026-11-04T21:00:29.125Z"
+  "fingerprint": "32716c2fc90efcda",
+  "resolvedAt": "2026-11-05T15:59:07.906Z"
 }
