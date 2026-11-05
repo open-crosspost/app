@@ -95,10 +95,7 @@ function EditorPage() {
     [connectedAccounts, nearSocialAccount],
   );
 
-  const { data: seedData } = useQuery({
-    ...campaignSeedQueryOptions(apiClient, campaign!.id),
-    enabled: !!campaign,
-  });
+  const { data: seedData } = useQuery(campaignSeedQueryOptions(apiClient, campaign?.id));
   const campaignThread = useMemo<CampaignThreadRefs>(() => {
     const seed = seedData?.seed ?? null;
     if (!seed) return {};

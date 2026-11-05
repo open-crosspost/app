@@ -126,15 +126,19 @@ export async function fetchServerCampaigns(apiClient: ApiClient): Promise<Server
   return response.campaigns;
 }
 
-export function campaignSeedQueryKey(campaignId: string) {
+export function campaignSeedQueryKey(campaignId: string | undefined) {
   return ["social", "campaign-seed", campaignId] as const;
 }
 
-export function campaignSeedQueryOptions(apiClient: ApiClient, campaignId: string) {
+export function campaignSeedQueryOptions(apiClient: ApiClient, campaignId: string | undefined) {
   return {
     queryKey: campaignSeedQueryKey(campaignId),
-    queryFn: () => apiClient.social.campaigns.seedToday({ campaignId }),
+    queryFn: () => {
+      if (!campaignId) throw new Error("campaign seed requested without a campaign");
+      return apiClient.social.campaigns.seedToday({ campaignId });
+    },
     staleTime: 60_000,
+    enabled: campaignId != null,
   };
 }
 
