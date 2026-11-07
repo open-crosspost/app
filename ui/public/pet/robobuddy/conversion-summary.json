@@ -3,7 +3,7 @@
     "id": "robobuddy",
     "displayName": "CrosspostBuddy",
     "spriteVersionNumber": 2,
-    "path": "C:\\Users\\DELL\\Downloads\\app-1\\ui\\public\\pet\\robobuddy\\spritesheet.webp"
+    "path": "ui/public/pet/robobuddy/spritesheet.webp"
   },
   "mappingMode": "semantic",
   "mapping": [
@@ -46,7 +46,7 @@
   "note": "Default semantic mapping: RoboBuddy artwork places sleep in jumping and celebrate in waiting.",
   "output": {
     "spritesheet": {
-      "path": "C:\\Users\\DELL\\Downloads\\app-1\\ui\\public\\pet\\spritesheet.webp",
+      "path": "ui/public/pet/spritesheet.webp",
       "width": 768,
       "height": 960,
       "rows": [
@@ -58,7 +58,7 @@
       ]
     },
     "hero": {
-      "path": "C:\\Users\\DELL\\Downloads\\app-1\\ui\\public\\pet\\hero.webp",
+      "path": "ui/public/pet/hero.webp",
       "width": 512,
       "height": 512,
       "source": {
@@ -79,8 +79,8 @@
       }
     },
     "placeholders": {
-      "spritesheet": "C:\\Users\\DELL\\Downloads\\app-1\\ui\\public\\pet\\placeholder-spritesheet.webp",
-      "hero": "C:\\Users\\DELL\\Downloads\\app-1\\ui\\public\\pet\\placeholder-hero.webp"
+      "spritesheet": "ui/public/pet/placeholder-spritesheet.webp",
+      "hero": "ui/public/pet/placeholder-hero.webp"
     }
   }
 }
