@@ -1,0 +1,8 @@
+{
+  "id": "robobuddy",
+  "displayName": "CrosspostBuddy",
+  "description": "A cool little robot mascot with sunglasses, ready to accompany your Crosspost journey.",
+  "spritesheetPath": "spritesheet.webp",
+  "spriteVersionNumber": 2,
+  "kind": "object"
+}
