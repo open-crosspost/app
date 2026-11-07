@@ -25,9 +25,7 @@ function loadSharp() {
       // try next
     }
   }
-  throw new Error(
-    "sharp is required. Install with: npm install sharp@0.34.5 --prefix .tmp-sharp",
-  );
+  throw new Error("sharp is required. Install with: npm install sharp@0.34.5 --prefix .tmp-sharp");
 }
 
 const sharp = loadSharp();
@@ -329,7 +327,10 @@ async function main() {
     },
   };
 
-  await writeFile(join(sourceDir, "conversion-summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
+  await writeFile(
+    join(sourceDir, "conversion-summary.json"),
+    `${JSON.stringify(summary, null, 2)}\n`,
+  );
   console.log(JSON.stringify(summary, null, 2));
   console.log("Wrote Buddy-compatible spritesheet and hero from RoboBuddy.");
 }

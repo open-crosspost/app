@@ -49,13 +49,7 @@
       "path": "ui/public/pet/spritesheet.webp",
       "width": 768,
       "height": 960,
-      "rows": [
-        "idle",
-        "celebrate",
-        "sad",
-        "wave",
-        "sleep"
-      ]
+      "rows": ["idle", "celebrate", "sad", "wave", "sleep"]
     },
     "hero": {
       "path": "ui/public/pet/hero.webp",
