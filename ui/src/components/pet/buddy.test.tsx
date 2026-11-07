@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Buddy } from "./buddy";
 
 const HIDDEN_KEY = "buddy:hidden";
@@ -11,6 +11,13 @@ class ResizeObserverStub {
   disconnect() {}
 }
 
+function tapBuddy() {
+  const buddy = screen.getByRole("button", { name: "Buddy — drag to move" });
+  fireEvent.pointerDown(buddy, { clientX: 20, clientY: 20 });
+  fireEvent.pointerUp(buddy, { clientX: 20, clientY: 20 });
+  return buddy;
+}
+
 describe("Buddy", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -19,6 +26,7 @@ describe("Buddy", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
   });
 
   it("renders the draggable buddy by default", () => {
@@ -27,8 +35,24 @@ describe("Buddy", () => {
     expect(screen.getByRole("button", { name: "Buddy — drag to move" })).toBeTruthy();
   });
 
+  it("reveals dismiss on tap and hides it after a few seconds", () => {
+    vi.useFakeTimers();
+    render(<Buddy />);
+    const dismiss = screen.getByRole("button", { name: "Dismiss Buddy" });
+    expect(dismiss.className).toContain("hidden");
+
+    tapBuddy();
+    expect(dismiss.className).toContain("flex");
+
+    act(() => {
+      vi.advanceTimersByTime(3500);
+    });
+    expect(dismiss.className).toContain("hidden");
+  });
+
   it("dismisses and persists the dismissed choice", () => {
     render(<Buddy />);
+    tapBuddy();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss Buddy" }));
     expect(screen.queryByTestId("buddy")).toBeNull();
     expect(screen.getByRole("button", { name: "Bring back Buddy" })).toBeTruthy();
