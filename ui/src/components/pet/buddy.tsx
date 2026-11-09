@@ -1,7 +1,7 @@
 import type { DragEndEvent } from "@dnd-kit/core";
 import { DndContext, PointerSensor, useDraggable, useSensor } from "@dnd-kit/core";
 import { X } from "lucide-react";
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useBuddyTipStore } from "@/store/buddy-tip-store";
 import { SpritePlayer } from "./sprite-player";
 
@@ -9,6 +9,8 @@ const DISPLAY_SIZE = 96;
 const MARGIN = 16;
 const POSITION_KEY = "buddy:position";
 const HIDDEN_KEY = "buddy:hidden";
+const DISMISS_VISIBLE_MS = 3500;
+const TAP_MOVE_THRESHOLD_PX = 4;
 
 interface Position {
   x: number;
@@ -91,14 +93,37 @@ function DraggableBuddy({
   position,
   flipped,
   onDismiss,
+  suppressTapReveal,
 }: {
   position: Position;
   flipped: boolean;
   onDismiss: () => void;
+  suppressTapReveal: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: "buddy" });
   const tip = useBuddyTipStore((state) => state.tip);
   const dismissTip = useBuddyTipStore((state) => state.dismissTip);
+  const [dismissVisible, setDismissVisible] = useState(false);
+  const hideTimerRef = useRef<number | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current != null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const revealDismiss = useCallback(() => {
+    setDismissVisible(true);
+    clearHideTimer();
+    hideTimerRef.current = window.setTimeout(() => {
+      setDismissVisible(false);
+      hideTimerRef.current = null;
+    }, DISMISS_VISIBLE_MS);
+  }, [clearHideTimer]);
+
+  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
 
   const style: CSSProperties = {
     position: "fixed",
@@ -118,6 +143,21 @@ function DraggableBuddy({
         aria-label="Buddy — drag to move"
         {...listeners}
         {...attributes}
+        onPointerDown={(event) => {
+          pointerStartRef.current = { x: event.clientX, y: event.clientY };
+          listeners?.onPointerDown?.(event as never);
+        }}
+        onPointerUp={(event) => {
+          listeners?.onPointerUp?.(event as never);
+          const start = pointerStartRef.current;
+          pointerStartRef.current = null;
+          if (!start || suppressTapReveal || transform) return;
+          const dx = event.clientX - start.x;
+          const dy = event.clientY - start.y;
+          if (Math.hypot(dx, dy) <= TAP_MOVE_THRESHOLD_PX) {
+            revealDismiss();
+          }
+        }}
       >
         <SpritePlayer
           sheetUrl="/pet/spritesheet.webp"
@@ -131,7 +171,7 @@ function DraggableBuddy({
         onClick={onDismiss}
         onPointerDown={(event) => event.stopPropagation()}
         aria-label="Dismiss Buddy"
-        className="absolute -top-2 -right-2 hidden h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm group-hover:flex hover:text-foreground"
+        className={`absolute -top-2 -right-2 h-6 w-6 items-center justify-center rounded-full border border-muted-foreground/30 bg-background text-muted-foreground shadow-sm group-hover:flex hover:text-foreground ${dismissVisible ? "flex" : "hidden"}`}
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -156,10 +196,13 @@ function BuddyRestoreTab({ onRestore }: { onRestore: () => void }) {
 
 export function Buddy() {
   const { position, updatePosition, hidden, setDismissed } = useBuddyState();
-  const sensor = useSensor(PointerSensor, { activationConstraint: { distance: 4 } });
+  const sensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: TAP_MOVE_THRESHOLD_PX },
+  });
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 0,
   );
+  const [suppressTapReveal, setSuppressTapReveal] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setViewportWidth(window.innerWidth);
@@ -167,9 +210,14 @@ export function Buddy() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const handleDragStart = () => {
+    setSuppressTapReveal(true);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { delta } = event;
     updatePosition({ x: position.x + delta.x, y: position.y + delta.y });
+    queueMicrotask(() => setSuppressTapReveal(false));
   };
 
   const flipped = position.x + DISPLAY_SIZE / 2 < viewportWidth / 2;
@@ -179,8 +227,13 @@ export function Buddy() {
   }
 
   return (
-    <DndContext sensors={[sensor]} onDragEnd={handleDragEnd}>
-      <DraggableBuddy position={position} flipped={flipped} onDismiss={() => setDismissed(true)} />
+    <DndContext sensors={[sensor]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DraggableBuddy
+        position={position}
+        flipped={flipped}
+        onDismiss={() => setDismissed(true)}
+        suppressTapReveal={suppressTapReveal}
+      />
     </DndContext>
   );
 }

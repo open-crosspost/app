@@ -1,0 +1,80 @@
+{
+  "source": {
+    "id": "robobuddy",
+    "displayName": "CrosspostBuddy",
+    "spriteVersionNumber": 2,
+    "path": "ui/public/pet/robobuddy/spritesheet.webp"
+  },
+  "mappingMode": "semantic",
+  "mapping": [
+    {
+      "name": "idle",
+      "srcRow": 0,
+      "frames": 4,
+      "codexState": "idle",
+      "note": "Standing wave-hand pose; closest looping idle available"
+    },
+    {
+      "name": "celebrate",
+      "srcRow": 6,
+      "frames": 4,
+      "codexState": "waiting",
+      "note": "RoboBuddy atlas stores arms-up celebrate poses in the Codex waiting row"
+    },
+    {
+      "name": "sad",
+      "srcRow": 5,
+      "frames": 4,
+      "codexState": "failed",
+      "note": "Seated/dejected pose"
+    },
+    {
+      "name": "wave",
+      "srcRow": 3,
+      "frames": 4,
+      "codexState": "waving",
+      "note": "Squash-and-raise arm sequence"
+    },
+    {
+      "name": "sleep",
+      "srcRow": 4,
+      "frames": 4,
+      "codexState": "jumping",
+      "note": "RoboBuddy atlas stores lying-down Zzz sleep poses in the Codex jumping row"
+    }
+  ],
+  "note": "Default semantic mapping: RoboBuddy artwork places sleep in jumping and celebrate in waiting.",
+  "output": {
+    "spritesheet": {
+      "path": "ui/public/pet/spritesheet.webp",
+      "width": 768,
+      "height": 960,
+      "rows": ["idle", "celebrate", "sad", "wave", "sleep"]
+    },
+    "hero": {
+      "path": "ui/public/pet/hero.webp",
+      "width": 512,
+      "height": 512,
+      "source": {
+        "format": "webp",
+        "width": 192,
+        "height": 208,
+        "space": "srgb",
+        "channels": 4,
+        "depth": "uchar",
+        "isProgressive": false,
+        "isPalette": false,
+        "hasProfile": false,
+        "hasAlpha": true,
+        "autoOrient": {
+          "width": 192,
+          "height": 208
+        }
+      }
+    },
+    "placeholders": {
+      "spritesheet": "ui/public/pet/placeholder-spritesheet.webp",
+      "hero": "ui/public/pet/placeholder-hero.webp"
+    }
+  }
+}
