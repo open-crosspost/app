@@ -2,7 +2,9 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { DndContext, PointerSensor, useDraggable, useSensor } from "@dnd-kit/core";
 import { X } from "lucide-react";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
-import { useBuddyTipStore } from "@/store/buddy-tip-store";
+import { useAppTranslation } from "@/i18n/runtime";
+import { useBuddyReactionStore } from "@/store/buddy-reaction-store";
+import { BuddyReactionWiring } from "./buddy-reaction-wiring";
 import { SpritePlayer } from "./sprite-player";
 
 const DISPLAY_SIZE = 96;
@@ -70,10 +72,13 @@ function useBuddyState() {
 }
 
 function BuddySpeechBubble({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  const { t } = useAppTranslation();
+
   return (
     <div
-      className="absolute bottom-full left-0 mb-2 w-56 rounded-md border border-border bg-popover p-3 text-card-foreground shadow-sm"
+      className="absolute bottom-full left-0 mb-2 w-56 max-w-[min(14rem,calc(100vw-2rem))] rounded-md border border-border bg-popover p-3 text-card-foreground shadow-sm"
       data-testid="buddy-tip"
+      role="status"
     >
       <button
         type="button"
@@ -84,7 +89,7 @@ function BuddySpeechBubble({ message, onDismiss }: { message: string; onDismiss:
       >
         <X className="h-3 w-3" />
       </button>
-      <p className="text-xs leading-snug">{message}</p>
+      <p className="max-h-24 overflow-y-auto text-xs leading-snug break-words">{t(message)}</p>
     </div>
   );
 }
@@ -101,8 +106,10 @@ function DraggableBuddy({
   suppressTapReveal: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: "buddy" });
-  const tip = useBuddyTipStore((state) => state.tip);
-  const dismissTip = useBuddyTipStore((state) => state.dismissTip);
+  const bubble = useBuddyReactionStore((state) => state.bubble);
+  const dismissBubble = useBuddyReactionStore((state) => state.dismissBubble);
+  const spriteState = useBuddyReactionStore((state) => state.spriteState);
+  const completeReaction = useBuddyReactionStore((state) => state.completeReaction);
   const [dismissVisible, setDismissVisible] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -135,7 +142,7 @@ function DraggableBuddy({
 
   return (
     <div style={style} className="group relative" data-testid="buddy">
-      {tip ? <BuddySpeechBubble message={tip.message} onDismiss={dismissTip} /> : null}
+      {bubble ? <BuddySpeechBubble message={bubble.message} onDismiss={dismissBubble} /> : null}
       <button
         type="button"
         ref={setNodeRef}
@@ -161,9 +168,10 @@ function DraggableBuddy({
       >
         <SpritePlayer
           sheetUrl="/pet/spritesheet.webp"
-          state="idle"
+          state={spriteState}
           displaySize={DISPLAY_SIZE}
           flipped={flipped}
+          onStateDone={completeReaction}
         />
       </button>
       <button
@@ -222,18 +230,21 @@ export function Buddy() {
 
   const flipped = position.x + DISPLAY_SIZE / 2 < viewportWidth / 2;
 
-  if (hidden) {
-    return <BuddyRestoreTab onRestore={() => setDismissed(false)} />;
-  }
-
   return (
-    <DndContext sensors={[sensor]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <DraggableBuddy
-        position={position}
-        flipped={flipped}
-        onDismiss={() => setDismissed(true)}
-        suppressTapReveal={suppressTapReveal}
-      />
-    </DndContext>
+    <>
+      <BuddyReactionWiring />
+      {hidden ? (
+        <BuddyRestoreTab onRestore={() => setDismissed(false)} />
+      ) : (
+        <DndContext sensors={[sensor]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <DraggableBuddy
+            position={position}
+            flipped={flipped}
+            onDismiss={() => setDismissed(true)}
+            suppressTapReveal={suppressTapReveal}
+          />
+        </DndContext>
+      )}
+    </>
   );
 }

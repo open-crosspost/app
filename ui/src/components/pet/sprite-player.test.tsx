@@ -74,7 +74,7 @@ describe("SpritePlayer", () => {
     expect(onStateDone).not.toHaveBeenCalled();
   });
 
-  it("skips WAAPI under prefers-reduced-motion and still finishes non-loop states", async () => {
+  it("skips WAAPI under prefers-reduced-motion for sad and still finishes", async () => {
     matchMediaMatches = true;
     vi.useFakeTimers();
     const onStateDone = vi.fn();
@@ -82,7 +82,22 @@ describe("SpritePlayer", () => {
     render(<SpritePlayer sheetUrl="/pet/spritesheet.webp" state="sad" onStateDone={onStateDone} />);
 
     expect(animateMock).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(140 * 4);
+    await vi.advanceTimersByTimeAsync(1000 * 4);
+    expect(onStateDone).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("skips WAAPI under prefers-reduced-motion for celebrate and still finishes", async () => {
+    matchMediaMatches = true;
+    vi.useFakeTimers();
+    const onStateDone = vi.fn();
+
+    render(
+      <SpritePlayer sheetUrl="/pet/spritesheet.webp" state="celebrate" onStateDone={onStateDone} />,
+    );
+
+    expect(animateMock).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000 * 4);
     expect(onStateDone).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
