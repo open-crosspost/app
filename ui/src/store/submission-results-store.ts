@@ -20,6 +20,7 @@ export interface SubmissionResultsState {
   results: SuccessDetail[];
   errors: ErrorDetail[];
   request: SubmissionRequest | null;
+  updatedAt: number;
   setSubmissionOutcome: (data: {
     summary: MultiStatusSummary;
     results: SuccessDetail[];
@@ -37,6 +38,7 @@ const initialState: Omit<
   results: [],
   errors: [],
   request: null,
+  updatedAt: 0,
 };
 
 export const useSubmissionResultsStore = create<SubmissionResultsState>((set) => ({
@@ -47,6 +49,7 @@ export const useSubmissionResultsStore = create<SubmissionResultsState>((set) =>
       results: data.results,
       errors: data.errors,
       request: data.request,
+      updatedAt: Date.now(),
     }),
   clearSubmissionOutcome: () => set(initialState),
 }));

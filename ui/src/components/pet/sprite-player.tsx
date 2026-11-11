@@ -11,8 +11,8 @@ export interface SpriteAnimation {
 
 export const SPRITE_SHEET_STATES: Record<SpriteStateName, SpriteAnimation> = {
   idle: { row: 0, frames: 4, loop: true },
-  celebrate: { row: 1, frames: 4, loop: false },
-  sad: { row: 2, frames: 4, loop: false },
+  celebrate: { row: 1, frames: 4, loop: false, frameMs: 1000 },
+  sad: { row: 2, frames: 4, loop: false, frameMs: 1000 },
   wave: { row: 3, frames: 4, loop: false },
   sleep: { row: 4, frames: 4, loop: true },
 };
